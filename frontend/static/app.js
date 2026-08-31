@@ -850,6 +850,7 @@
       updateTelegramSetupUI();
       loadWatchlist();
       loadBalances();
+      loadTradingCredentials();
       loadFavorites();
     } else {
       setBalancesVisible(false);
@@ -912,6 +913,121 @@
     } catch (err) {
       showTabError("balances-content", "Impossibile caricare i saldi: problema di rete.");
     }
+  }
+
+  // ---- Trading Automatico: per-exchange API key config + enable toggle ----
+  const TRADING_EXCHANGE_NAMES = { binance: "Binance", mexc: "MEXC", kucoin: "KuCoin" };
+
+  async function loadTradingCredentials() {
+    try {
+      const resp = await fetch("/api/auth/trading");
+      if (resp.status === 401) return; // not logged in — silently skip
+      if (!resp.ok) return;
+      const data = await resp.json();
+      renderTradingCredentials(data);
+    } catch (_) {
+      // network error — silently skip
+    }
+  }
+
+  function renderTradingCredentials(creds) {
+    const container = el("trading-credentials-list");
+    if (!container) return;
+
+    container.innerHTML = creds.map(c => {
+      const name = TRADING_EXCHANGE_NAMES[c.exchange] || c.exchange;
+      const summaryText = c.api_key_set ? "🔑 Chiave configurata — modifica" : "Configura chiave API";
+      const passphraseField = c.exchange === "kucoin"
+        ? `<label>Passphrase <input type="password" class="trading-passphrase" placeholder="lascia vuoto per non cambiare" /></label>`
+        : "";
+      return `<div class="trading-cred-card" data-exchange="${c.exchange}">
+        <div class="trading-cred-exchange-row">
+          <span class="trading-cred-name">${name}</span>
+          <label class="trading-enabled-toggle">
+            <input type="checkbox" class="trading-enabled-cb" ${c.enabled ? "checked" : ""}> Attivo
+          </label>
+        </div>
+        <details class="trading-cred-details">
+          <summary>${summaryText}</summary>
+          <div class="trading-cred-fields">
+            <label>API Key <input type="text" class="trading-api-key" placeholder="lascia vuoto per non cambiare" autocomplete="off" /></label>
+            <label>API Secret <input type="password" class="trading-api-secret" placeholder="lascia vuoto per non cambiare" autocomplete="off" /></label>
+            ${passphraseField}
+            <div class="trading-size-row">
+              <label>Tipo size
+                <select class="trading-size-mode">
+                  <option value="fixed_usdt" ${c.size_mode === "fixed_usdt" ? "selected" : ""}>USDT fisso</option>
+                  <option value="pct_balance" ${c.size_mode === "pct_balance" ? "selected" : ""}>% saldo</option>
+                </select>
+              </label>
+              <label>Valore <input type="number" class="trading-size-val" value="${c.size_value}" min="1" step="1" /></label>
+            </div>
+            <button type="button" class="trading-save-btn">Salva</button>
+            <span class="trading-save-status"></span>
+          </div>
+        </details>
+      </div>`;
+    }).join("");
+
+    // Save button handler (event delegation)
+    container.addEventListener("click", async function handleTradingSave(e) {
+      if (!e.target.classList.contains("trading-save-btn")) return;
+      const card = e.target.closest(".trading-cred-card");
+      if (!card) return;
+      const exchange = card.dataset.exchange;
+      const statusEl = card.querySelector(".trading-save-status");
+      const body = {
+        exchange,
+        api_key: card.querySelector(".trading-api-key")?.value || "",
+        api_secret: card.querySelector(".trading-api-secret")?.value || "",
+        passphrase: card.querySelector(".trading-passphrase")?.value || "",
+        enabled: card.querySelector(".trading-enabled-cb")?.checked || false,
+        size_mode: card.querySelector(".trading-size-mode")?.value || "fixed_usdt",
+        size_value: parseFloat(card.querySelector(".trading-size-val")?.value) || 10,
+      };
+      try {
+        const resp = await fetch("/api/auth/trading", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (resp.ok) {
+          statusEl.textContent = "Salvato ✓";
+          setTimeout(() => { statusEl.textContent = ""; }, 3000);
+        } else {
+          const err = await resp.json().catch(() => ({}));
+          statusEl.textContent = err.detail || `Errore (${resp.status})`;
+        }
+      } catch (_) {
+        statusEl.textContent = "Errore di rete";
+      }
+    });
+
+    // Enabled toggle handler (event delegation)
+    container.addEventListener("change", async function handleTradingToggle(e) {
+      if (!e.target.classList.contains("trading-enabled-cb")) return;
+      const card = e.target.closest(".trading-cred-card");
+      if (!card) return;
+      const exchange = card.dataset.exchange;
+      const body = {
+        exchange,
+        api_key: "",
+        api_secret: "",
+        passphrase: "",
+        enabled: e.target.checked,
+        size_mode: card.querySelector(".trading-size-mode")?.value || "fixed_usdt",
+        size_value: parseFloat(card.querySelector(".trading-size-val")?.value) || 10,
+      };
+      try {
+        await fetch("/api/auth/trading", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } catch (_) {
+        // silently ignore
+      }
+    });
   }
 
   function openAuthModal(mode, opts) {
