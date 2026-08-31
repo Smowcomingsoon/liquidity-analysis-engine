@@ -4329,10 +4329,21 @@
       state.assetType = labState.assetType;
       state.cryptoExchange = labState.exchange;
       el("ticker-input").value = labState.displaySymbol || labState.symbol;
+      // Sync lab backtest params into the main form so the chart backtest
+      // uses the same capital/equity/commission as the Lab result just shown.
+      const syncField = (name, labId) => {
+        const mainInput = document.querySelector(`[name="${name}"][form="params-form"], #params-form [name="${name}"]`);
+        const labInput = labEl(labId);
+        if (mainInput && labInput) mainInput.value = labInput.value;
+      };
+      syncField("initial_capital", "lab-initial-capital");
+      syncField("qty_pct_of_equity", "lab-qty-pct");
+      syncField("commission_pct", "lab-commission");
+      syncField("slippage_pct", "lab-slippage");
       runAnalysis(labState.symbol);
-      // Switch to Strategia tab so user sees the result
-      document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "strategia"));
-      document.querySelectorAll(".tab-content").forEach((c) => c.classList.toggle("active", c.dataset.tabContent === "strategia"));
+      // Switch to Backtest tab so user sees the matching result
+      document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "backtest"));
+      document.querySelectorAll(".tab-content").forEach((c) => c.classList.toggle("active", c.dataset.tabContent === "backtest"));
     });
   }
 
