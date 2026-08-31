@@ -916,7 +916,8 @@
   }
 
   // ---- Trading Automatico: per-exchange API key config + enable toggle ----
-  const TRADING_EXCHANGE_NAMES = { binance: "Binance", mexc: "MEXC", kucoin: "KuCoin" };
+  const TRADING_EXCHANGE_NAMES = { mexc: "MEXC" };
+  const TRADING_EXCHANGES = Object.keys(TRADING_EXCHANGE_NAMES);
 
   async function loadTradingCredentials() {
     try {
@@ -934,7 +935,7 @@
     const container = el("trading-credentials-list");
     if (!container) return;
 
-    container.innerHTML = creds.map(c => {
+    container.innerHTML = creds.filter(c => TRADING_EXCHANGES.includes(c.exchange)).map(c => {
       const name = TRADING_EXCHANGE_NAMES[c.exchange] || c.exchange;
       const summaryText = c.api_key_set ? "🔑 Chiave configurata — modifica" : "Configura chiave API";
       const passphraseField = c.exchange === "kucoin"
@@ -1029,6 +1030,40 @@
       }
     });
   }
+
+  function bindManualOrderUI() {
+    async function submitManualOrder(side) {
+      const exchange = el("manual-exchange")?.value;
+      const symbol = el("manual-symbol")?.value.trim().toUpperCase();
+      const sizeMode = el("manual-size-mode")?.value;
+      const sizeValue = parseFloat(el("manual-size-val")?.value);
+      const statusEl = el("manual-order-status");
+      if (!symbol) { statusEl.textContent = "Inserisci il pair (es. RPLUSDT)"; statusEl.classList.remove("hidden"); return; }
+      statusEl.textContent = "Invio ordine…";
+      statusEl.classList.remove("hidden", "ok", "error");
+      try {
+        const resp = await fetch("/api/trading/order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ exchange, symbol, side, size_mode: sizeMode, size_value: sizeValue }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (resp.ok) {
+          statusEl.textContent = `✓ Ordine ${side} inviato`;
+          statusEl.classList.add("ok");
+        } else {
+          statusEl.textContent = `✗ ${data.detail || "Errore " + resp.status}`;
+          statusEl.classList.add("error");
+        }
+      } catch (_) {
+        statusEl.textContent = "✗ Errore di rete";
+        statusEl.classList.add("error");
+      }
+    }
+    el("manual-buy-btn")?.addEventListener("click", () => submitManualOrder("BUY"));
+    el("manual-sell-btn")?.addEventListener("click", () => submitManualOrder("SELL"));
+  }
+  bindManualOrderUI();
 
   function openAuthModal(mode, opts) {
     authMode = mode || "login";

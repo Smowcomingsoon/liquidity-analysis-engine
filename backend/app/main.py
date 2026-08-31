@@ -707,6 +707,39 @@ async def set_trading_credential(body: TradingCredentialRequest, user: User = De
     return {"ok": True}
 
 
+class ManualOrderRequest(BaseModel):
+    exchange: str
+    symbol: str
+    side: Literal["BUY", "SELL"]
+    size_mode: Literal["fixed_usdt", "pct_balance"] = "fixed_usdt"
+    size_value: float
+
+
+@app.post("/api/trading/order")
+async def place_manual_order(body: ManualOrderRequest, user: User = Depends(auth.get_current_user)):
+    supported = {"binance", "mexc", "kucoin"}
+    if body.exchange not in supported:
+        raise HTTPException(status_code=400, detail=f"Exchange non supportato: {body.exchange}")
+    cred = user.trading_credentials.get(body.exchange)
+    if not cred:
+        raise HTTPException(status_code=400, detail="Credenziali non configurate per questo exchange")
+    api_key, api_secret, passphrase = auth.get_decrypted_credential(user, body.exchange)
+    if not api_key or not api_secret:
+        raise HTTPException(status_code=400, detail="API key o secret mancanti — configurali prima nella sezione Trading automatico")
+    from app.models import StrategySignal
+    signal_type = "entry_long" if body.side == "BUY" else "entry_short"
+    fake_signal = StrategySignal(time=int(_time.time()), type=signal_type, price=0.0, label="manual")
+    try:
+        result = await place_order_for_signal(
+            body.exchange, body.symbol, fake_signal,
+            body.size_mode, body.size_value,
+            api_key, api_secret, passphrase,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return {"ok": True, "result": result}
+
+
 @app.get("/api/balances")
 async def get_balances(user: User = Depends(auth.get_current_user)) -> dict:
     if not _balance_visible(user):
