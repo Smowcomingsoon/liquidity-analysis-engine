@@ -668,7 +668,8 @@
 
       const bt = body.backtest;
       const pf = bt.profit_factor !== null ? bt.profit_factor.toFixed(2) : "∞";
-      resultEl.innerHTML = `Migliore trovato su <b>${body.trials_evaluated}</b> combinazioni (${bt.interval}): profit factor <b>${pf}</b>, ${bt.num_trades} trade, win rate ${bt.win_rate_pct !== null ? bt.win_rate_pct.toFixed(0) : "—"}%.`;
+      const dd = Math.abs(bt.max_drawdown_pct).toFixed(1);
+      resultEl.innerHTML = `Migliore trovato su <b>${body.trials_evaluated}</b> combinazioni (${bt.interval}): profit factor <b>${pf}</b>, drawdown <b>-${dd}%</b>, ${bt.num_trades} trade, win rate ${bt.win_rate_pct !== null ? bt.win_rate_pct.toFixed(0) : "—"}%.`;
       resultEl.classList.remove("hidden");
 
       await runAnalysis(state.data.symbol);

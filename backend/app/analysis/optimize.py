@@ -13,11 +13,13 @@ from app.analysis.backtest import run_backtest
 from app.analysis.strategies import DEFAULT_PARAMS, EXHAUSTION_DEFAULT_PARAMS, LKI_DEFAULT_PARAMS
 from app.models import BacktestResult
 
-_TRIALS = 120
-# Below this many trades a great profit factor is likely luck, not a real
-# edge — such a candidate is disqualified rather than risk handing back
-# something that looks great on 2 trades and falls apart on trade 3.
+_TRIALS = 200
+# Below this many trades a great score is likely luck — disqualified.
 _MIN_TRADES = 8
+# Hard drawdown cap: any candidate exceeding this is disqualified regardless
+# of how good its return looks. Keeps the optimizer from picking a strategy
+# that triples equity but gives back -60% in a single losing streak.
+_MAX_DRAWDOWN_PCT = 35.0
 
 
 def _random_lorenzo_params(rng: random.Random) -> dict:
@@ -93,13 +95,39 @@ def is_optimizable(strategy_name: str) -> bool:
 
 
 def _score(bt: BacktestResult) -> float:
+    """Composite score that targets high final equity with controlled drawdown.
+
+    Formula: Calmar ratio × profit_factor_bonus × trade_confidence
+    - Calmar ratio = total_return_pct / abs(max_drawdown_pct): directly
+      rewards return per unit of pain — a strategy that earns +200% with -20%
+      DD beats one that earns +300% with -60% DD (10 vs 5).
+    - Hard cap at _MAX_DRAWDOWN_PCT: candidates above it are disqualified
+      outright, never just downscored — a -50% drawdown is a margin call, not
+      a bad-but-acceptable trade-off.
+    - profit_factor_bonus (capped at 5): secondary weight for trade quality.
+    - trade_confidence: log-normalised trade count so 8 trades and 80 trades
+      are not treated equally; more trades = more evidence.
+    """
     if bt.num_trades < _MIN_TRADES:
         return float("-inf")
-    if bt.profit_factor is None:
-        # gross_loss == 0 with trades present means every trade won —
-        # better than any finite profit factor, not "undefined".
-        return float("inf")
-    return bt.profit_factor
+    if bt.total_return_pct <= 0:
+        return float("-inf")
+    if abs(bt.max_drawdown_pct) > _MAX_DRAWDOWN_PCT:
+        return float("-inf")
+
+    drawdown = max(abs(bt.max_drawdown_pct), 0.5)  # guard against 0
+    calmar = bt.total_return_pct / drawdown
+
+    # Profit factor contribution: capped so a PF of 50 on 1 lucky trade
+    # doesn't dominate; anything above 5 is treated as 5.
+    pf = bt.profit_factor if bt.profit_factor is not None else 10.0
+    pf_bonus = min(pf, 5.0) / 5.0  # normalised to [0, 1]
+
+    # More trades = more confidence the edge is real.
+    import math
+    trade_conf = math.log(bt.num_trades + 1) / math.log(_MIN_TRADES + 1)
+
+    return calmar * (0.65 + 0.25 * pf_bonus + 0.10 * trade_conf)
 
 
 def optimize_strategy(
