@@ -2591,6 +2591,10 @@ body {
 /* ── Backtest Lab (independent panel) ─────────────────────────────── */
 .lab-panel { padding: 12px !important; }
 
+.lab-ticker-row { display: flex; align-items: center; gap: .5rem; }
+.lab-ticker-row .lab-ticker-hero { flex: 1; }
+.lab-exchange-select { padding: .35rem .4rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); font-size: .78rem; cursor: pointer; white-space: nowrap; }
+
 .lab-ticker-hero {
   display: flex;
   align-items: center;

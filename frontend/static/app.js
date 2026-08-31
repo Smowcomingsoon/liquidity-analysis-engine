@@ -4173,10 +4173,13 @@
 
   function buildLabQuery() {
     const strategyName = labState.strategy || "";
+    // Exchange selector overrides labState when explicitly changed by user
+    const exchangeSel = el("lab-exchange-select");
+    const exchange = exchangeSel ? exchangeSel.value : (labState.exchange || "mexc");
     const params = new URLSearchParams();
     params.set("symbol", labState.symbol || "BTCUSDT");
     params.set("asset_type", labState.assetType);
-    params.set("exchange", labState.exchange);
+    params.set("exchange", exchange);
     params.set("ltf_interval", labState.tf);
     params.set("strategy_name", strategyName);
     params.set("initial_capital", labEl("lab-initial-capital").value);
@@ -4494,6 +4497,9 @@
     labEl("lab-ticker-input").value = "";
     labEl("lab-ticker-input").blur();
     labEl("lab-suggestions").classList.add("hidden");
+    // Sync exchange selector to match the result's provider
+    const sel = el("lab-exchange-select");
+    if (sel && item.provider) sel.value = item.provider;
   }
 
   function bindLabUI() {

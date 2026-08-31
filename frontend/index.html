@@ -253,14 +253,20 @@
         <div class="panel lab-panel" id="lab-panel">
 
           <!-- Ticker hero -->
-          <div class="lab-ticker-hero" id="lab-ticker-hero">
-            <div class="lab-ticker-dot"></div>
-            <div class="lab-ticker-text">
-              <span id="lab-ticker-val" class="lab-ticker-val">—</span>
-              <span class="lab-ticker-sub">Digita per cercare</span>
+          <div class="lab-ticker-row">
+            <div class="lab-ticker-hero" id="lab-ticker-hero">
+              <div class="lab-ticker-dot"></div>
+              <div class="lab-ticker-text">
+                <span id="lab-ticker-val" class="lab-ticker-val">—</span>
+                <span class="lab-ticker-sub">Digita per cercare</span>
+              </div>
+              <input id="lab-ticker-input" type="text" class="lab-ticker-input" placeholder="es. RPLUSDT" autocomplete="off" />
+              <ul id="lab-suggestions" class="suggestions hidden"></ul>
             </div>
-            <input id="lab-ticker-input" type="text" class="lab-ticker-input" placeholder="es. BTC" autocomplete="off" />
-            <ul id="lab-suggestions" class="suggestions hidden"></ul>
+            <select id="lab-exchange-select" class="lab-exchange-select">
+              <option value="mexc">MEXC</option>
+              <option value="kucoin">KuCoin</option>
+            </select>
           </div>
 
           <!-- Timeframe pills -->
