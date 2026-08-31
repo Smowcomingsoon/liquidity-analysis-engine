@@ -353,6 +353,19 @@ def _interleave(*lists: list) -> list:
     return out
 
 
+def _rank_suggestions(items: list[SymbolSuggestion], query: str) -> list[SymbolSuggestion]:
+    """Sort by match quality: exact symbol first, then prefix, then rest."""
+    q = query.upper()
+    def _score(s: SymbolSuggestion) -> int:
+        sym = s.symbol.upper()
+        if sym == q:
+            return 0
+        if sym.startswith(q):
+            return 1
+        return 2
+    return sorted(items, key=_score)
+
+
 @app.get("/api/symbols", response_model=list[SymbolSuggestion])
 async def search_symbols(query: str = Query(..., min_length=1, max_length=20)) -> list[SymbolSuggestion]:
     # Single unified search across stocks and both crypto exchanges — no
@@ -364,7 +377,8 @@ async def search_symbols(query: str = Query(..., min_length=1, max_length=20)) -
         _safe_search(mexc_provider, query, "crypto", "mexc"),
         _safe_search(kucoin_provider, query, "crypto", "kucoin"),
     )
-    return _interleave(stock_res, binance_res, mexc_res, kucoin_res)[:12]
+    merged = _interleave(stock_res, binance_res, mexc_res, kucoin_res)
+    return _rank_suggestions(merged, query)[:25]
 
 
 def _dispatch_telegram_alerts(chat_id: str, symbol: str, timeframe_key: str, strategy: StrategyState) -> None:
