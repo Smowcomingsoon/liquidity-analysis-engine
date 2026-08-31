@@ -105,11 +105,21 @@ class BacktestResult(BaseModel):
     max_consecutive_losses: int | None = None
 
 
+class ExchangeCredential(BaseModel):
+    api_key_enc: str = ""      # encrypted API key (empty = not configured)
+    api_secret_enc: str = ""   # encrypted API secret
+    passphrase_enc: str = ""   # encrypted passphrase (KuCoin only)
+    enabled: bool = False      # whether to auto-execute orders on this exchange
+    size_mode: Literal["fixed_usdt", "pct_balance"] = "fixed_usdt"
+    size_value: float = 50.0   # USDT amount or percentage (0-100)
+
+
 class User(BaseModel):
     id: str
     email: str
     password_hash: str
     telegram_chat_id: str = ""  # user pastes this in from their own DM with the shared bot
+    trading_credentials: dict[str, ExchangeCredential] = {}  # key = exchange slug ("binance", "mexc", "kucoin")
 
 
 class FavoriteEntry(BaseModel):

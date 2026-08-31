@@ -25,6 +25,7 @@ except (AttributeError, ValueError):
 
 from app import auth
 from app import rate_limit
+from app.trading.executor import place_order_for_signal
 from app import favorites as favorites_store
 from app import watchlist as watchlist_store
 from app.analysis.backtest import run_backtest
@@ -189,6 +190,27 @@ async def _watchlist_alert_loop() -> None:
                     params = entry.strategy_params.get(strategy_name) or None
                     strategy = build_strategy_state(strategy_name, df, params=params)
                     _dispatch_telegram_alerts(owner.telegram_chat_id, entry.symbol, entry.interval, strategy)
+                    # Auto-execute orders if trading credentials are configured for this exchange
+                    cred = owner.trading_credentials.get(entry.exchange)
+                    if cred and cred.enabled:
+                        api_key, api_secret, passphrase = auth.get_decrypted_credential(owner, entry.exchange)
+                        if api_key and api_secret:
+                            fresh = find_new_signals(entry.symbol, entry.interval, strategy)
+                            for signal in fresh:
+                                try:
+                                    result = await place_order_for_signal(
+                                        entry.exchange, entry.symbol, signal,
+                                        cred.size_mode, cred.size_value,
+                                        api_key, api_secret, passphrase,
+                                    )
+                                    logger.info("Order placed for %s %s: %s", entry.symbol, signal.type, result)
+                                except Exception as exc:
+                                    logger.error("Order failed for %s %s: %s", entry.symbol, signal.type, exc)
+                                    if owner.telegram_chat_id and _telegram_allowed(owner):
+                                        asyncio.create_task(telegram.send_to(
+                                            owner.telegram_chat_id,
+                                            f"⚠️ Ordine FALLITO <b>{entry.symbol}</b> [{signal.type}]: {exc}",
+                                        ))
             except Exception as exc:  # noqa: BLE001
                 logger.error("Alert loop error for %s: %s", entry.symbol, exc, exc_info=True)
                 if settings.telegram_bot_token and owner.telegram_chat_id and _telegram_allowed(owner):
@@ -291,6 +313,26 @@ class BacktestParamsQuery(BaseModel):
     slippage_pct: float = 0.02
     stop_loss_pct: float = 0.0
     take_profit_pct: float = 0.0
+
+
+class TradingCredentialRequest(BaseModel):
+    exchange: str
+    api_key: str = ""        # empty = keep existing
+    api_secret: str = ""     # empty = keep existing
+    passphrase: str = ""     # empty = keep existing
+    enabled: bool = False
+    size_mode: Literal["fixed_usdt", "pct_balance"] = "fixed_usdt"
+    size_value: float = 50.0
+
+
+class TradingCredentialOut(BaseModel):
+    exchange: str
+    api_key_set: bool        # True if an encrypted key exists
+    api_secret_set: bool
+    passphrase_set: bool
+    enabled: bool
+    size_mode: str
+    size_value: float
 
 
 async def _safe_search(
@@ -618,6 +660,38 @@ async def update_telegram_chat_id(
             )
         )
     return _user_out(updated)
+
+
+@app.get("/api/auth/trading", response_model=list[TradingCredentialOut])
+async def get_trading_credentials(user: User = Depends(auth.get_current_user)) -> list[TradingCredentialOut]:
+    out = []
+    for exchange in ("binance", "mexc", "kucoin"):
+        cred = user.trading_credentials.get(exchange)
+        if cred is None:
+            out.append(TradingCredentialOut(exchange=exchange, api_key_set=False, api_secret_set=False, passphrase_set=False, enabled=False, size_mode="fixed_usdt", size_value=50.0))
+        else:
+            out.append(TradingCredentialOut(
+                exchange=exchange,
+                api_key_set=bool(cred.api_key_enc),
+                api_secret_set=bool(cred.api_secret_enc),
+                passphrase_set=bool(cred.passphrase_enc),
+                enabled=cred.enabled,
+                size_mode=cred.size_mode,
+                size_value=cred.size_value,
+            ))
+    return out
+
+
+@app.patch("/api/auth/trading")
+async def set_trading_credential(body: TradingCredentialRequest, user: User = Depends(auth.get_current_user)):
+    supported = {"binance", "mexc", "kucoin"}
+    if body.exchange not in supported:
+        raise HTTPException(status_code=400, detail=f"Exchange non supportato: {body.exchange}")
+    auth.set_trading_credential(
+        user.id, body.exchange, body.api_key, body.api_secret, body.passphrase,
+        body.enabled, body.size_mode, body.size_value,
+    )
+    return {"ok": True}
 
 
 @app.get("/api/balances")

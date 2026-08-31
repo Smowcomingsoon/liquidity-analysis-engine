@@ -22,6 +22,7 @@ from pathlib import Path
 from fastapi import Cookie, HTTPException
 
 from app.models import User
+from app.trading.crypto import encrypt as _enc, decrypt as _dec
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 _DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -142,6 +143,43 @@ def set_telegram_chat_id(user_id: str, chat_id: str) -> User | None:
     _users[user_id] = updated
     _save_users()
     return updated
+
+
+def set_trading_credential(
+    user_id: str,
+    exchange: str,
+    api_key: str,
+    api_secret: str,
+    passphrase: str,
+    enabled: bool,
+    size_mode: str,
+    size_value: float,
+) -> User | None:
+    from app.models import ExchangeCredential
+    user = _users.get(user_id)
+    if user is None:
+        return None
+    creds = dict(user.trading_credentials)
+    creds[exchange] = ExchangeCredential(
+        api_key_enc=_enc(api_key, _SECRET) if api_key else creds.get(exchange, ExchangeCredential()).api_key_enc,
+        api_secret_enc=_enc(api_secret, _SECRET) if api_secret else creds.get(exchange, ExchangeCredential()).api_secret_enc,
+        passphrase_enc=_enc(passphrase, _SECRET) if passphrase else creds.get(exchange, ExchangeCredential()).passphrase_enc,
+        enabled=enabled,
+        size_mode=size_mode,
+        size_value=size_value,
+    )
+    updated = user.model_copy(update={"trading_credentials": creds})
+    _users[user_id] = updated
+    _save_users()
+    return updated
+
+
+def get_decrypted_credential(user: User, exchange: str) -> tuple[str, str, str]:
+    """Returns (api_key, api_secret, passphrase) decrypted. Empty strings if not configured."""
+    cred = user.trading_credentials.get(exchange)
+    if cred is None:
+        return "", "", ""
+    return _dec(cred.api_key_enc, _SECRET), _dec(cred.api_secret_enc, _SECRET), _dec(cred.passphrase_enc, _SECRET)
 
 
 def make_session_cookie(user_id: str) -> str:
