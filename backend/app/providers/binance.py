@@ -18,7 +18,7 @@ _CANONICAL_TO_INTERVAL = {
     "1M": "1M",
 }
 _QUOTE_ASSETS = ["USDT", "USDC", "FDUSD", "TUSD", "BUSD", "DAI", "BTC", "ETH"]
-_MAX_SUGGESTIONS = 8
+_MAX_SUGGESTIONS = 25
 
 _symbols_cache: TTLCache = TTLCache(maxsize=1, ttl=3600)
 
@@ -117,12 +117,11 @@ class BinanceProvider(DataProvider):
             _symbols_cache["all"] = symbols
 
         q = query.upper().replace("/", "")
-        matches = [
-            s
-            for s in symbols
-            if s.get("symbol", "").startswith(q) and s.get("isSpotTradingAllowed") and s.get("status") == "TRADING"
-        ]
-        matches.sort(key=lambda s: (s.get("quoteAsset") != "USDT", len(s.get("symbol", ""))))
+        all_spot = [s for s in symbols if s.get("isSpotTradingAllowed") and s.get("status") == "TRADING"]
+        starts = [s for s in all_spot if s.get("symbol", "").startswith(q)]
+        contains = [s for s in all_spot if q in s.get("symbol", "") and not s.get("symbol", "").startswith(q)]
+        matches = starts + contains
+        matches.sort(key=lambda s: (not s.get("symbol", "").startswith(q), s.get("quoteAsset") != "USDT", len(s.get("symbol", ""))))
 
         out = []
         for s in matches[:_MAX_SUGGESTIONS]:

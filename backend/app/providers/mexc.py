@@ -20,7 +20,7 @@ _CANONICAL_TO_INTERVAL = {
 # MEXC's spot market has no bare-USD-quoted pairs (verified against /api/v3/exchangeInfo) —
 # only USDT/USDC/etc. A trailing "USD" is normalized away below, not treated as already-quoted.
 _QUOTE_ASSETS = ["USDT", "USDC", "FDUSD", "TUSD", "DAI", "BTC", "ETH"]
-_MAX_SUGGESTIONS = 8
+_MAX_SUGGESTIONS = 25
 
 _symbols_cache: TTLCache = TTLCache(maxsize=1, ttl=3600)
 
@@ -126,8 +126,11 @@ class MexcProvider(DataProvider):
             _symbols_cache["all"] = symbols
 
         q = query.upper().replace("/", "")
-        matches = [s for s in symbols if s.get("symbol", "").startswith(q) and s.get("isSpotTradingAllowed")]
-        matches.sort(key=lambda s: (s.get("quoteAsset") != "USDT", len(s.get("symbol", ""))))
+        all_spot = [s for s in symbols if s.get("isSpotTradingAllowed")]
+        starts = [s for s in all_spot if s.get("symbol", "").startswith(q)]
+        contains = [s for s in all_spot if q in s.get("symbol", "") and not s.get("symbol", "").startswith(q)]
+        matches = starts + contains
+        matches.sort(key=lambda s: (not s.get("symbol", "").startswith(q), s.get("quoteAsset") != "USDT", len(s.get("symbol", ""))))
 
         out = []
         for s in matches[:_MAX_SUGGESTIONS]:

@@ -27,7 +27,7 @@ _INTERVAL_SECONDS = {
     "1d": 86400,
     "1w": 604800,
 }
-_MAX_SUGGESTIONS = 8
+_MAX_SUGGESTIONS = 25
 
 _symbols_cache: TTLCache = TTLCache(maxsize=1, ttl=3600)
 

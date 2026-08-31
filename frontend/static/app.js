@@ -4519,7 +4519,28 @@
       if (q.length < 1) { labSuggest.clear(); return; }
       labSuggestTimer = setTimeout(() => labSuggest.fetch(q), 200);
     });
-    input.addEventListener("keydown", (e) => labSuggest.handleKey(e));
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const typed = input.value.trim().toUpperCase().replace(/\//g, "");
+        if (typed && !labSuggest.resolved) {
+          // Accept the typed symbol directly — normalise to XXXUSDT if no quote
+          const sym = /USDT$|USD$|BTC$|ETH$|USDC$/.test(typed) ? typed : typed + "USDT";
+          labState.symbol = sym;
+          labState.displaySymbol = sym.replace(/USDT$|USD$|BTC$/, "") || sym;
+          labState.assetType = "crypto";
+          labState.exchange = "mexc";
+          labEl("lab-ticker-val").textContent = sym;
+          input.value = "";
+          input.blur();
+          labEl("lab-suggestions").classList.add("hidden");
+        } else {
+          labSuggest.handleKey(e);
+        }
+        return;
+      }
+      labSuggest.resolved = null;
+      labSuggest.handleKey(e);
+    });
 
     // Timeframe pills
     labEl("lab-tf-row").addEventListener("click", (e) => {
