@@ -916,7 +916,7 @@
   }
 
   // ---- Trading Automatico: per-exchange API key config + enable toggle ----
-  const TRADING_EXCHANGE_NAMES = { mexc: "MEXC" };
+  const TRADING_EXCHANGE_NAMES = { mexc: "MEXC", kraken: "Kraken", coinbase: "Coinbase", bitstamp: "Bitstamp" };
   const TRADING_EXCHANGES = Object.keys(TRADING_EXCHANGE_NAMES);
 
   async function loadTradingCredentials() {
@@ -1032,24 +1032,69 @@
   }
 
   function bindManualOrderUI() {
-    async function submitManualOrder(side) {
+    let activeSide = "BUY";
+
+    function syncSideUI() {
+      document.querySelectorAll(".mo-side-tab").forEach(btn => {
+        btn.classList.toggle("mo-tab-active", btn.dataset.side === activeSide);
+      });
+      const execBtn = el("manual-execute-btn");
+      if (!execBtn) return;
+      execBtn.textContent = activeSide;
+      execBtn.classList.toggle("mo-execute-buy", activeSide === "BUY");
+      execBtn.classList.toggle("mo-execute-sell", activeSide === "SELL");
+    }
+
+    function syncSliderUnit() {
+      const mode = document.querySelector('input[name="mo-size-mode"]:checked')?.value;
+      const unit = el("manual-size-unit");
+      const slider = el("manual-size-slider");
+      const valInput = el("manual-size-val");
+      if (!unit || !slider) return;
+      if (mode === "pct_balance") {
+        unit.textContent = "%";
+        slider.max = 100;
+        slider.min = 1;
+        valInput.max = 100;
+      } else {
+        unit.textContent = "USDT";
+        slider.max = 10000;
+        slider.min = 1;
+        valInput.max = 10000;
+      }
+    }
+
+    document.querySelectorAll(".mo-side-tab").forEach(btn => {
+      btn.addEventListener("click", () => { activeSide = btn.dataset.side; syncSideUI(); });
+    });
+
+    document.querySelectorAll('input[name="mo-size-mode"]').forEach(r => {
+      r.addEventListener("change", syncSliderUnit);
+    });
+
+    const slider = el("manual-size-slider");
+    const valInput = el("manual-size-val");
+    slider?.addEventListener("input", () => { if (valInput) valInput.value = slider.value; });
+    valInput?.addEventListener("input", () => { if (slider) slider.value = valInput.value; });
+
+    async function submitManualOrder() {
       const exchange = el("manual-exchange")?.value;
       const symbol = el("manual-symbol")?.value.trim().toUpperCase();
-      const sizeMode = el("manual-size-mode")?.value;
+      const sizeMode = document.querySelector('input[name="mo-size-mode"]:checked')?.value || "pct_balance";
       const sizeValue = parseFloat(el("manual-size-val")?.value);
       const statusEl = el("manual-order-status");
-      if (!symbol) { statusEl.textContent = "Inserisci il pair (es. RPLUSDT)"; statusEl.classList.remove("hidden"); return; }
+      if (!symbol) { statusEl.textContent = "Inserisci il pair (es. BTCUSDT)"; statusEl.classList.remove("hidden"); return; }
       statusEl.textContent = "Invio ordine…";
       statusEl.classList.remove("hidden", "ok", "error");
       try {
         const resp = await fetch("/api/trading/order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ exchange, symbol, side, size_mode: sizeMode, size_value: sizeValue }),
+          body: JSON.stringify({ exchange, symbol, side: activeSide, size_mode: sizeMode, size_value: sizeValue }),
         });
         const data = await resp.json().catch(() => ({}));
         if (resp.ok) {
-          statusEl.textContent = `✓ Ordine ${side} inviato`;
+          statusEl.textContent = `✓ Ordine ${activeSide} inviato`;
           statusEl.classList.add("ok");
         } else {
           statusEl.textContent = `✗ ${data.detail || "Errore " + resp.status}`;
@@ -1060,8 +1105,9 @@
         statusEl.classList.add("error");
       }
     }
-    el("manual-buy-btn")?.addEventListener("click", () => submitManualOrder("BUY"));
-    el("manual-sell-btn")?.addEventListener("click", () => submitManualOrder("SELL"));
+
+    el("manual-execute-btn")?.addEventListener("click", submitManualOrder);
+    syncSliderUnit();
   }
   bindManualOrderUI();
 

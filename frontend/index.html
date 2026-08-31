@@ -439,31 +439,47 @@
                 <span class="trading-auto-badge">⚠️ Denaro reale</span>
               </div>
               <div class="manual-order-form">
-                <div class="manual-order-row">
-                  <label>Exchange
-                    <select id="manual-exchange" class="manual-select">
+                <!-- Exchange + Pair -->
+                <div class="mo-row">
+                  <div class="mo-field">
+                    <label class="mo-label">Exchange</label>
+                    <select id="manual-exchange" class="mo-select">
                       <option value="mexc">MEXC</option>
+                      <option value="kraken">Kraken</option>
+                      <option value="coinbase">Coinbase</option>
+                      <option value="bitstamp">Bitstamp</option>
                     </select>
-                  </label>
-                  <label>Pair
-                    <input type="text" id="manual-symbol" class="manual-input" placeholder="es. BTCUSDT" autocomplete="off" />
-                  </label>
+                  </div>
+                  <div class="mo-field mo-field-grow">
+                    <label class="mo-label">Pair</label>
+                    <input type="text" id="manual-symbol" class="mo-input" placeholder="es. BTCUSDT" autocomplete="off" />
+                  </div>
                 </div>
-                <div class="manual-order-row">
-                  <label>Tipo size
-                    <select id="manual-size-mode" class="manual-select">
-                      <option value="fixed_usdt">USDT fisso</option>
-                      <option value="pct_balance">% saldo</option>
-                    </select>
-                  </label>
-                  <label>Valore
-                    <input type="number" id="manual-size-val" class="manual-input" value="50" min="1" step="1" />
-                  </label>
+
+                <!-- BUY / SELL tabs -->
+                <div class="mo-side-tabs">
+                  <button type="button" class="mo-side-tab mo-buy-tab mo-tab-active" data-side="BUY">BUY</button>
+                  <button type="button" class="mo-side-tab mo-sell-tab" data-side="SELL">SELL</button>
                 </div>
-                <div class="manual-order-btns">
-                  <button type="button" id="manual-buy-btn" class="manual-buy-btn">▲ BUY</button>
-                  <button type="button" id="manual-sell-btn" class="manual-sell-btn">▼ SELL</button>
+
+                <!-- Size mode radio row -->
+                <div class="mo-size-mode-row">
+                  <label class="mo-radio-label"><input type="radio" name="mo-size-mode" value="fixed_usdt" checked /> USDT fisso</label>
+                  <label class="mo-radio-label"><input type="radio" name="mo-size-mode" value="pct_balance" /> % saldo</label>
                 </div>
+
+                <!-- Slider + value input -->
+                <div class="mo-slider-row">
+                  <input type="range" id="manual-size-slider" class="mo-slider" min="1" max="100" value="10" step="1" />
+                  <div class="mo-slider-val-wrap">
+                    <input type="number" id="manual-size-val" class="mo-slider-val-input" value="10" min="1" step="1" />
+                    <span class="mo-slider-unit" id="manual-size-unit">%</span>
+                  </div>
+                </div>
+
+                <!-- Execute button -->
+                <button type="button" id="manual-execute-btn" class="mo-execute-btn mo-execute-buy">BUY</button>
+
                 <div id="manual-order-status" class="manual-order-status hidden"></div>
               </div>
             </div>

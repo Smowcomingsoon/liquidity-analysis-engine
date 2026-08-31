@@ -1,7 +1,13 @@
 from app.models import StrategySignal
-from app.trading import binance_exec, kucoin_exec
+from app.trading import (
+    binance_exec,
+    bitstamp_exec,
+    coinbase_exec,
+    kraken_exec,
+    kucoin_exec,
+)
 
-SUPPORTED_EXCHANGES = {"binance", "mexc", "kucoin"}
+SUPPORTED_EXCHANGES = {"binance", "mexc", "kucoin", "kraken", "coinbase", "bitstamp"}
 
 
 async def place_order_for_signal(
@@ -29,6 +35,12 @@ async def place_order_for_signal(
         return await kucoin_exec.place_order(
             kucoin_symbol, kucoin_side, size_mode, size_value, api_key, api_secret, passphrase
         )
+    elif exchange == "kraken":
+        return await kraken_exec.place_order(symbol, side, size_mode, size_value, api_key, api_secret)
+    elif exchange == "coinbase":
+        return await coinbase_exec.place_order(symbol, side, size_mode, size_value, api_key, api_secret)
+    elif exchange == "bitstamp":
+        return await bitstamp_exec.place_order(symbol, side, size_mode, size_value, api_key, api_secret)
     else:
         raise ValueError(f"Unsupported exchange: {exchange}")
 

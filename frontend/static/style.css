@@ -2927,16 +2927,41 @@ body {
 .trading-save-status { font-size: .75rem; color: var(--accent); }
 
 /* ── Ordine manuale ── */
-.manual-order-form { display: flex; flex-direction: column; gap: .75rem; }
-.manual-order-row { display: flex; gap: .75rem; }
-.manual-order-row label { display: flex; flex-direction: column; gap: .25rem; flex: 1; font-size: .78rem; font-weight: 500; }
-.manual-select, .manual-input { width: 100%; padding: .35rem .5rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); font-size: .82rem; }
-.manual-order-btns { display: flex; gap: .5rem; }
-.manual-buy-btn, .manual-sell-btn { flex: 1; padding: .5rem; border: none; border-radius: 4px; font-size: .85rem; font-weight: 600; cursor: pointer; }
-.manual-buy-btn { background: #27ae60; color: #fff; }
-.manual-buy-btn:hover { background: #219a52; }
-.manual-sell-btn { background: #e74c3c; color: #fff; }
-.manual-sell-btn:hover { background: #c0392b; }
+/* ── Manual order form (TV-Hub style) ── */
+.manual-order-form { display: flex; flex-direction: column; gap: .65rem; }
+
+/* Exchange + Pair row */
+.mo-row { display: flex; gap: .6rem; }
+.mo-field { display: flex; flex-direction: column; gap: .22rem; }
+.mo-field-grow { flex: 1; }
+.mo-label { font-size: .72rem; font-weight: 600; color: var(--fg-muted, #888); text-transform: uppercase; letter-spacing: .04em; }
+.mo-select, .mo-input { width: 100%; padding: .38rem .5rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); font-size: .82rem; }
+
+/* BUY / SELL tabs */
+.mo-side-tabs { display: flex; border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+.mo-side-tab { flex: 1; padding: .45rem; border: none; background: var(--bg); color: var(--fg-muted, #888); font-size: .85rem; font-weight: 700; cursor: pointer; letter-spacing: .05em; transition: background .15s, color .15s; }
+.mo-buy-tab.mo-tab-active { background: #27ae60; color: #fff; }
+.mo-sell-tab.mo-tab-active { background: #e74c3c; color: #fff; }
+.mo-side-tab:not(.mo-tab-active):hover { background: var(--bg-panel); }
+
+/* Size mode radios */
+.mo-size-mode-row { display: flex; gap: 1rem; }
+.mo-radio-label { display: flex; align-items: center; gap: .3rem; font-size: .78rem; cursor: pointer; }
+
+/* Slider row */
+.mo-slider-row { display: flex; align-items: center; gap: .5rem; }
+.mo-slider { flex: 1; height: 4px; accent-color: #3a7bd5; cursor: pointer; }
+.mo-slider-val-wrap { display: flex; align-items: center; gap: .2rem; }
+.mo-slider-val-input { width: 54px; padding: .3rem .35rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); font-size: .82rem; font-variant-numeric: tabular-nums; text-align: right; }
+.mo-slider-unit { font-size: .78rem; color: var(--fg-muted, #888); min-width: 2rem; }
+
+/* Execute button */
+.mo-execute-btn { width: 100%; padding: .55rem; border: none; border-radius: 4px; font-size: .9rem; font-weight: 700; cursor: pointer; letter-spacing: .06em; transition: background .15s; }
+.mo-execute-buy { background: #27ae60; color: #fff; }
+.mo-execute-buy:hover { background: #219a52; }
+.mo-execute-sell { background: #e74c3c; color: #fff; }
+.mo-execute-sell:hover { background: #c0392b; }
+
 .manual-order-status { font-size: .8rem; padding: .35rem .5rem; border-radius: 4px; background: var(--bg-raised, var(--bg-panel)); }
 .manual-order-status.ok { color: #27ae60; }
 .manual-order-status.error { color: #e74c3c; }

@@ -697,7 +697,7 @@ async def get_trading_credentials(user: User = Depends(auth.get_current_user)) -
 
 @app.patch("/api/auth/trading")
 async def set_trading_credential(body: TradingCredentialRequest, user: User = Depends(auth.get_current_user)):
-    supported = {"binance", "mexc", "kucoin"}
+    supported = {"binance", "mexc", "kucoin", "kraken", "coinbase", "bitstamp"}
     if body.exchange not in supported:
         raise HTTPException(status_code=400, detail=f"Exchange non supportato: {body.exchange}")
     auth.set_trading_credential(
@@ -717,7 +717,7 @@ class ManualOrderRequest(BaseModel):
 
 @app.post("/api/trading/order")
 async def place_manual_order(body: ManualOrderRequest, user: User = Depends(auth.get_current_user)):
-    supported = {"binance", "mexc", "kucoin"}
+    supported = {"binance", "mexc", "kucoin", "kraken", "coinbase", "bitstamp"}
     if body.exchange not in supported:
         raise HTTPException(status_code=400, detail=f"Exchange non supportato: {body.exchange}")
     cred = user.trading_credentials.get(body.exchange)

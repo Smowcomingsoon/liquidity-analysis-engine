@@ -21,7 +21,7 @@ def decrypt(ciphertext_b64: str, secret: bytes) -> str:
         nonce, data = raw[:16], raw[16:]
         stream = _keystream(secret, nonce, len(data))
         return bytes(a ^ b for a, b in zip(data, stream)).decode()
-    except Exception:
+    except Exception:  # noqa: BLE001
         return ""
 
 
