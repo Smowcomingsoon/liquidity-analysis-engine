@@ -339,8 +339,8 @@ async def _safe_search(
 ) -> list[SymbolSuggestion]:
     try:
         results = await provider.search_symbols(query)
-    except ProviderError:
-        return []  # one source being down shouldn't sink the combined search
+    except Exception:  # noqa: BLE001 — any provider failure must not sink combined search
+        return []
     return [SymbolSuggestion(**r, asset_type=asset_type, provider=provider_id) for r in results]
 
 
@@ -371,13 +371,12 @@ async def search_symbols(query: str = Query(..., min_length=1, max_length=20)) -
     # Single unified search across stocks and both crypto exchanges — no
     # upfront "stock vs crypto" toggle. The user picks the asset from results
     # that already say which market/exchange it's on.
-    stock_res, binance_res, mexc_res, kucoin_res = await asyncio.gather(
+    stock_res, mexc_res, kucoin_res = await asyncio.gather(
         _safe_search(twelvedata_provider, query, "stock", "stock"),
-        _safe_search(binance_provider, query, "crypto", "binance"),
         _safe_search(mexc_provider, query, "crypto", "mexc"),
         _safe_search(kucoin_provider, query, "crypto", "kucoin"),
     )
-    merged = _interleave(stock_res, binance_res, mexc_res, kucoin_res)
+    merged = _interleave(stock_res, mexc_res, kucoin_res)
     return _rank_suggestions(merged, query)[:25]
 
 
