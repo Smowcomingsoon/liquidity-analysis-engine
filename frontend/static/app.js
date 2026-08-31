@@ -3687,7 +3687,7 @@
   // Alert activates just "alert". Script Pine and Saldi are reached through
   // the Altro menu, not the bottom nav itself, so they still map onto the
   // same mechanism without a 6th/7th tab.
-  const RIGHT_PANEL_TITLES = { strategia: "Strategia", alert: "Alert", saldi: "Saldi", analisi: "Analisi", watchlist: "Watchlist" };
+  const RIGHT_PANEL_TITLES = { strategia: "Strategia", backtest: "Backtest", alert: "Alert", saldi: "Saldi", analisi: "Analisi", watchlist: "Watchlist" };
 
   function showMobileScreen(target) {
     if (!window.matchMedia("(max-width: 760px)").matches) return;
@@ -3980,6 +3980,7 @@
     // active-strategy-select must be populated before the auto-load below
     // reads its value, or the request goes out with an empty strategy_name.
     await populateStrategySelects();
+    initLabState(state.availableStrategies || []);
     // A real trading app never opens on an empty grid — it shows whatever
     // was last open, or a sensible default. We have no per-user persistence
     // yet, so default to BTC on MEXC every time; better than a blank screen.
@@ -3989,11 +3990,370 @@
     runAnalysis("BTC");
   }
 
+  // ── Backtest Lab (independent from chart) ──────────────────────────────
+  const labState = {
+    symbol: null,       // resolved symbol string (e.g. "BTCUSDT")
+    displaySymbol: null,// short name for display (e.g. "BTC")
+    assetType: "crypto",
+    exchange: "mexc",
+    tf: "1d",
+    strategy: null,     // set after populateStrategySelects
+    resolved: null,     // full suggestion item
+    seq: 0,             // monotonic to discard stale responses
+    lastBt: null,       // last successful BacktestResult
+  };
+
+  function labEl(id) { return document.getElementById(id); }
+
+  function buildLabQuery() {
+    const strategyName = labState.strategy || "";
+    const params = new URLSearchParams();
+    params.set("symbol", labState.symbol || "BTCUSDT");
+    params.set("asset_type", labState.assetType);
+    params.set("exchange", labState.exchange);
+    params.set("ltf_interval", labState.tf);
+    params.set("strategy_name", strategyName);
+    params.set("initial_capital", labEl("lab-initial-capital").value);
+    params.set("qty_pct_of_equity", labEl("lab-qty-pct").value);
+    params.set("commission_pct", labEl("lab-commission").value);
+    params.set("slippage_pct", labEl("lab-slippage").value);
+    params.set("stop_loss_pct", "0");
+    params.set("take_profit_pct", "0");
+    const container = labEl("lab-params-fields");
+    const fields = STRATEGY_PARAM_FIELDS[strategyName] || [];
+    fields.forEach((field) => {
+      const input = container.querySelector(`[name="${field.key}"]`);
+      if (!input) return;
+      params.set(field.key, field.type === "checkbox" ? input.checked : input.value);
+    });
+    return params;
+  }
+
+  function renderLabParamFields() {
+    const strategyName = labState.strategy || "";
+    const fields = STRATEGY_PARAM_FIELDS[strategyName] || [];
+    const container = labEl("lab-params-fields");
+    container.innerHTML = "";
+    fields.forEach((field) => {
+      const label = document.createElement("label");
+      if (field.type === "checkbox") {
+        label.className = "full-width";
+        label.innerHTML = `<input type="checkbox" name="${field.key}" ${field.default ? "checked" : ""} /> ${field.label}`;
+      } else if (field.type === "select") {
+        const options = field.options
+          .map((opt) => `<option value="${opt}"${opt === field.default ? " selected" : ""}>${opt}</option>`)
+          .join("");
+        label.innerHTML = `<span>${field.label}</span><select name="${field.key}">${options}</select>`;
+      } else {
+        const min = field.min !== undefined ? ` min="${field.min}"` : "";
+        const max = field.max !== undefined ? ` max="${field.max}"` : "";
+        const step = field.step !== undefined ? ` step="${field.step}"` : "";
+        label.innerHTML = `<span>${field.label}</span><input type="number" name="${field.key}" value="${field.default}"${min}${max}${step} />`;
+      }
+      container.appendChild(label);
+    });
+  }
+
+  function drawLabEquityCanvas(equityCurve) {
+    const canvas = labEl("lab-equity-canvas");
+    if (!canvas || !equityCurve || equityCurve.length < 2) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.offsetWidth || 270;
+    const h = 68;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.height = h + "px";
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+    const values = equityCurve.map((p) => p[1]);
+    const minV = Math.min(...values);
+    const maxV = Math.max(...values);
+    const range = maxV - minV || 1;
+    const pad = 4;
+    const toX = (i) => pad + (i / (values.length - 1)) * (w - 2 * pad);
+    const toY = (v) => h - pad - ((v - minV) / range) * (h - 2 * pad);
+    const points = values.map((v, i) => [toX(i), toY(v)]);
+    const isPos = values[values.length - 1] >= values[0];
+    const stroke = isPos ? COLORS.bull : COLORS.bear;
+    const fillTop = isPos ? "rgba(8,153,129,0.2)" : "rgba(242,54,69,0.15)";
+    // Fill
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, fillTop);
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], h);
+    ctx.lineTo(points[0][0], points[0][1]);
+    points.slice(1).forEach(([x, y]) => ctx.lineTo(x, y));
+    ctx.lineTo(points[points.length - 1][0], h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+    // Line
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    points.slice(1).forEach(([x, y]) => ctx.lineTo(x, y));
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 1.8;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.stroke();
+  }
+
+  function renderLabResults(bt) {
+    labState.lastBt = bt;
+    const pct = bt.total_return_pct;
+    const isPos = pct >= 0;
+    const retEl = labEl("lab-return-val");
+    retEl.textContent = (isPos ? "+" : "") + pct.toFixed(1) + "%";
+    retEl.className = "lab-return-val" + (isPos ? "" : " neg");
+
+    const finalEquity = bt.equity_curve.length ? bt.equity_curve[bt.equity_curve.length - 1][1] : 0;
+    const initCap = parseFloat(labEl("lab-initial-capital").value) || 10000;
+    const sideEl = labEl("lab-return-side");
+    sideEl.innerHTML = `equity finale<br/><b class="${isPos ? "" : "neg"}">${Math.round(finalEquity).toLocaleString("it-IT")} $</b><br/>su ${initCap.toLocaleString("it-IT")} $`;
+
+    const pf = bt.profit_factor !== null ? bt.profit_factor.toFixed(2) : "∞";
+    const wr = bt.win_rate_pct !== null ? bt.win_rate_pct.toFixed(0) + "%" : "—";
+    const dd = "-" + Math.abs(bt.max_drawdown_pct).toFixed(1) + "%";
+    labEl("lab-result-meta").innerHTML = `<span>${bt.num_trades} trade</span> · ${bt.interval || labState.tf} · profit factor ${pf}`;
+    labEl("lab-stat-chips").innerHTML = `
+      <div><div class="chip-lbl">Win rate</div><div class="chip-val pos">${wr}</div></div>
+      <div><div class="chip-lbl">Drawdown</div><div class="chip-val neg">${dd}</div></div>
+      <div><div class="chip-lbl">Prof. factor</div><div class="chip-val">${pf}</div></div>`;
+    labEl("lab-result-block").classList.remove("hidden");
+    drawLabEquityCanvas(bt.equity_curve);
+
+    // Apply strip
+    const chartSymbol = state.data ? state.data.symbol : null;
+    const applyText = labEl("lab-apply-text");
+    if (chartSymbol && chartSymbol !== labState.symbol) {
+      applyText.innerHTML = `Il grafico mostra <b>${chartSymbol}</b> — applicando passerà a <b>${labState.symbol}</b> con gli ingressi/uscite del test.`;
+    } else {
+      applyText.innerHTML = `Applica i risultati di <b>${labState.symbol}</b> sul grafico (ingressi/uscite del test).`;
+    }
+    labEl("lab-apply-strip").classList.remove("hidden");
+  }
+
+  async function runLabBacktest() {
+    if (!labState.symbol) {
+      labEl("lab-status").textContent = "Inserisci prima un ticker.";
+      labEl("lab-status").classList.remove("hidden");
+      return;
+    }
+    const seq = ++labState.seq;
+    const runBtn = labEl("lab-run-btn");
+    const optBtn = labEl("lab-optimize-btn");
+    runBtn.disabled = true;
+    optBtn.disabled = true;
+    labEl("lab-result-block").classList.add("hidden");
+    labEl("lab-apply-strip").classList.add("hidden");
+    labEl("lab-status").textContent = "Backtest in corso… (può richiedere qualche secondo)";
+    labEl("lab-status").classList.remove("hidden");
+    try {
+      const params = buildLabQuery();
+      const resp = await fetch(`/api/backtest/deep?${params.toString()}`);
+      if (seq !== labState.seq) return;
+      if (!resp.ok) throw new Error(`Errore ${resp.status}`);
+      const bt = await resp.json();
+      labEl("lab-status").classList.add("hidden");
+      renderLabResults(bt);
+    } catch (err) {
+      if (seq !== labState.seq) return;
+      labEl("lab-status").textContent = "Errore: " + (err.message || "backtest fallito.");
+    } finally {
+      runBtn.disabled = false;
+      optBtn.disabled = false;
+    }
+  }
+
+  async function runLabOptimize() {
+    if (!labState.symbol) {
+      labEl("lab-status").textContent = "Inserisci prima un ticker.";
+      labEl("lab-status").classList.remove("hidden");
+      return;
+    }
+    if (!OPTIMIZABLE_STRATEGIES.has(labState.strategy)) {
+      labEl("lab-status").textContent = "Questa strategia non supporta l'ottimizzazione automatica.";
+      labEl("lab-status").classList.remove("hidden");
+      return;
+    }
+    const seq = ++labState.seq;
+    const runBtn = labEl("lab-run-btn");
+    const optBtn = labEl("lab-optimize-btn");
+    runBtn.disabled = true;
+    optBtn.disabled = true;
+    labEl("lab-result-block").classList.add("hidden");
+    labEl("lab-apply-strip").classList.add("hidden");
+    labEl("lab-status").textContent = "Ottimizzazione in corso… (10–25s)";
+    labEl("lab-status").classList.remove("hidden");
+    try {
+      const params = buildLabQuery();
+      const url = `/api/optimize?${params.toString()}`;
+      const resp = await fetch(url);
+      if (seq !== labState.seq) return;
+      const body = await resp.json();
+      if (!resp.ok) throw new Error(typeof body.detail === "string" ? body.detail : `Errore ${resp.status}`);
+      // Apply optimized params to the lab fields
+      const strategyName = labState.strategy || "";
+      const container = labEl("lab-params-fields");
+      Object.entries(body.params).forEach(([key, value]) => {
+        const input = container.querySelector(`[name="${key}"]`);
+        if (!input) return;
+        if (input.type === "checkbox") input.checked = !!value;
+        else input.value = value;
+      });
+      labEl("lab-status").classList.add("hidden");
+      renderLabResults(body.backtest);
+    } catch (err) {
+      if (seq !== labState.seq) return;
+      labEl("lab-status").textContent = "Errore ottimizzazione: " + (err.message || "");
+    } finally {
+      runBtn.disabled = false;
+      optBtn.disabled = false;
+    }
+  }
+
+  // Lab ticker autocomplete
+  const labSuggest = { suggestions: [], activeIndex: -1 };
+  let labSuggestTimer = null;
+
+  async function fetchLabSuggestions(query) {
+    try {
+      const resp = await fetch(`/api/symbols?query=${encodeURIComponent(query)}`);
+      labSuggest.suggestions = resp.ok ? await resp.json() : [];
+    } catch {
+      labSuggest.suggestions = [];
+    }
+    labSuggest.activeIndex = -1;
+    renderLabSuggestions();
+  }
+
+  function renderLabSuggestions() {
+    const list = labEl("lab-suggestions");
+    list.innerHTML = "";
+    if (!labSuggest.suggestions.length) { list.classList.add("hidden"); return; }
+    const rect = labEl("lab-ticker-hero").getBoundingClientRect();
+    list.style.left = rect.left + "px";
+    list.style.top = (rect.bottom + 4) + "px";
+    list.style.width = rect.width + "px";
+    labSuggest.suggestions.forEach((item, i) => {
+      const li = document.createElement("li");
+      li.className = i === labSuggest.activeIndex ? "active" : "";
+      const sym = document.createElement("span");
+      sym.className = "sug-symbol";
+      sym.textContent = item.symbol;
+      const name = document.createElement("span");
+      name.className = "sug-name";
+      name.textContent = item.name || "";
+      const main = document.createElement("span");
+      main.className = "sug-main";
+      main.appendChild(sym);
+      main.appendChild(name);
+      const exch = document.createElement("span");
+      exch.className = "sug-exchange sug-exchange-" + (item.provider || "");
+      exch.textContent = item.exchange || "";
+      li.appendChild(main);
+      li.appendChild(exch);
+      li.addEventListener("click", () => selectLabSuggestion(item));
+      list.appendChild(li);
+    });
+    list.classList.remove("hidden");
+  }
+
+  function selectLabSuggestion(item) {
+    labState.symbol = item.symbol;
+    labState.displaySymbol = item.symbol.replace(/USDT$|USD$|BTC$/, "") || item.symbol;
+    labState.assetType = item.asset_type || "crypto";
+    labState.exchange = item.provider || "mexc";
+    labSuggest.resolved = item;
+    labEl("lab-ticker-val").textContent = item.symbol;
+    labEl("lab-ticker-input").value = "";
+    labEl("lab-ticker-input").blur();
+    labEl("lab-suggestions").classList.add("hidden");
+  }
+
+  function bindLabUI() {
+    const input = labEl("lab-ticker-input");
+    const hero = labEl("lab-ticker-hero");
+
+    // Show input on hero click
+    hero.addEventListener("click", () => { input.focus(); });
+    input.addEventListener("focus", () => {
+      input.style.opacity = "1";
+      input.style.background = "var(--bg-panel)";
+      input.style.zIndex = "2";
+    });
+    input.addEventListener("blur", () => {
+      setTimeout(() => {
+        input.style.opacity = "0";
+        labEl("lab-suggestions").classList.add("hidden");
+      }, 150);
+    });
+    input.addEventListener("input", () => {
+      clearTimeout(labSuggestTimer);
+      const q = input.value.trim();
+      if (q.length < 1) { labEl("lab-suggestions").classList.add("hidden"); return; }
+      labSuggestTimer = setTimeout(() => fetchLabSuggestions(q), 200);
+    });
+    input.addEventListener("keydown", (e) => {
+      const list = labEl("lab-suggestions");
+      if (list.classList.contains("hidden")) return;
+      if (e.key === "ArrowDown") { labSuggest.activeIndex = Math.min(labSuggest.activeIndex + 1, labSuggest.suggestions.length - 1); renderLabSuggestions(); e.preventDefault(); }
+      else if (e.key === "ArrowUp") { labSuggest.activeIndex = Math.max(labSuggest.activeIndex - 1, 0); renderLabSuggestions(); e.preventDefault(); }
+      else if (e.key === "Enter" && labSuggest.activeIndex >= 0) { selectLabSuggestion(labSuggest.suggestions[labSuggest.activeIndex]); e.preventDefault(); }
+      else if (e.key === "Escape") { list.classList.add("hidden"); }
+    });
+
+    // Timeframe pills
+    labEl("lab-tf-row").addEventListener("click", (e) => {
+      const btn = e.target.closest(".lab-tf-btn");
+      if (!btn) return;
+      labEl("lab-tf-row").querySelectorAll(".lab-tf-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      labState.tf = btn.dataset.labTf;
+    });
+
+    // Strategy select
+    labEl("lab-strategy-select").addEventListener("change", () => {
+      labState.strategy = labEl("lab-strategy-select").value;
+      renderLabParamFields();
+    });
+
+    labEl("lab-run-btn").addEventListener("click", runLabBacktest);
+    labEl("lab-optimize-btn").addEventListener("click", runLabOptimize);
+
+    labEl("lab-apply-btn").addEventListener("click", () => {
+      if (!labState.symbol || !labState.lastBt) return;
+      // Switch main chart to lab's ticker+params
+      state.assetType = labState.assetType;
+      state.cryptoExchange = labState.exchange;
+      el("ticker-input").value = labState.displaySymbol || labState.symbol;
+      runAnalysis(labState.symbol);
+      // Switch to Strategia tab so user sees the result
+      document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "strategia"));
+      document.querySelectorAll(".tab-content").forEach((c) => c.classList.toggle("active", c.dataset.tabContent === "strategia"));
+    });
+  }
+
+  function initLabState(strategies) {
+    // Pick the first available strategy
+    labState.strategy = strategies[0] || "";
+    const sel = labEl("lab-strategy-select");
+    sel.innerHTML = strategies.map((s) => `<option value="${s}">${s}</option>`).join("");
+    labState.strategy = sel.value;
+    renderLabParamFields();
+    // Default ticker same as chart
+    labState.symbol = "BTCUSDT";
+    labState.displaySymbol = "BTC";
+    labEl("lab-ticker-val").textContent = "BTCUSDT";
+  }
+
   document.addEventListener("DOMContentLoaded", async () => {
     populateIntervalSelects();
     buildMobileTfWheel();
     initCharts();
     bindUI();
+    bindLabUI();
     bindMobileNav();
     bindRail();
     bindTabs();

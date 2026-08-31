@@ -203,6 +203,7 @@
 
       <div class="tabs">
         <button type="button" class="tab active" data-tab="strategia">Strategia</button>
+        <button type="button" class="tab" data-tab="backtest">Backtest</button>
         <button type="button" class="tab" data-tab="watchlist">Watchlist</button>
         <button type="button" class="tab" data-tab="alert">Alert</button>
         <button type="button" class="tab" data-tab="analisi">Analisi</button>
@@ -269,6 +270,78 @@
           <p class="strategy-disclaimer">
             Simulazione storica su dati passati. Le performance passate non garantiscono risultati futuri.
           </p>
+        </div>
+      </div>
+
+      <div class="tab-content" data-tab-content="backtest">
+        <div class="panel lab-panel">
+
+          <!-- Ticker hero -->
+          <div class="lab-ticker-hero" id="lab-ticker-hero">
+            <div class="lab-ticker-dot"></div>
+            <div class="lab-ticker-text">
+              <span id="lab-ticker-val" class="lab-ticker-val">—</span>
+              <span class="lab-ticker-sub">Digita per cercare</span>
+            </div>
+            <input id="lab-ticker-input" type="text" class="lab-ticker-input" placeholder="es. BTC" autocomplete="off" />
+            <ul id="lab-suggestions" class="suggestions hidden"></ul>
+          </div>
+
+          <!-- Timeframe pills -->
+          <div class="lab-tf-row" id="lab-tf-row">
+            <button type="button" class="lab-tf-btn" data-lab-tf="4h">4h</button>
+            <button type="button" class="lab-tf-btn active" data-lab-tf="1d">1d</button>
+            <button type="button" class="lab-tf-btn" data-lab-tf="3d">3d</button>
+            <button type="button" class="lab-tf-btn" data-lab-tf="1w">1w</button>
+            <button type="button" class="lab-tf-btn" data-lab-tf="1M">1M</button>
+          </div>
+
+          <div class="lab-divider"></div>
+
+          <!-- Strategy selector -->
+          <div class="lab-strat-header">
+            <span class="lab-strat-label">Parametri strategia</span>
+            <select id="lab-strategy-select" class="lab-strategy-select"></select>
+          </div>
+          <div id="lab-params-fields" class="lab-params-grid"></div>
+
+          <!-- Backtest params (collapsed) -->
+          <details class="lab-bt-details">
+            <summary>Parametri backtest</summary>
+            <div class="lab-bt-params">
+              <label>Capitale iniziale <input type="number" id="lab-initial-capital" value="10000" min="1" /></label>
+              <label>% equity/trade <input type="number" id="lab-qty-pct" value="30" min="1" max="100" /></label>
+              <label>Commissione % <input type="number" id="lab-commission" value="0.06" min="0" step="0.01" /></label>
+              <label>Slippage % <input type="number" id="lab-slippage" value="0.02" min="0" step="0.01" /></label>
+            </div>
+          </details>
+
+          <!-- Action buttons -->
+          <div class="lab-action-row">
+            <button type="button" id="lab-optimize-btn" class="lab-btn-opt">⟳ Ottimizza</button>
+            <button type="button" id="lab-run-btn" class="lab-btn-run">▶ Esegui</button>
+          </div>
+
+          <!-- Loading/status -->
+          <div id="lab-status" class="lab-status hidden"></div>
+
+          <!-- Results -->
+          <div id="lab-result-block" class="lab-result-block hidden">
+            <div id="lab-result-meta" class="lab-result-meta"></div>
+            <div class="lab-return-hero">
+              <div id="lab-return-val" class="lab-return-val">—</div>
+              <div id="lab-return-side" class="lab-return-side"></div>
+            </div>
+            <canvas id="lab-equity-canvas" class="lab-equity-canvas" height="68"></canvas>
+            <div id="lab-stat-chips" class="lab-stat-chips"></div>
+          </div>
+
+          <!-- Apply to chart -->
+          <div id="lab-apply-strip" class="lab-apply-strip hidden">
+            <div id="lab-apply-text" class="lab-apply-text"></div>
+            <button type="button" id="lab-apply-btn" class="lab-apply-btn">Applica ↗</button>
+          </div>
+
         </div>
       </div>
 
