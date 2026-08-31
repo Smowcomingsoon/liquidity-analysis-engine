@@ -218,18 +218,8 @@
           </div>
           <div id="strategy-select-slot" class="strategy-select-slot"></div>
 
-          <h4 class="backtest-heading">Backtest <span id="backtest-interval-tag" class="backtest-interval-tag"></span></h4>
-          <div class="eq-hero-wrap">
-            <div id="equity-chart" class="equity-chart"></div>
-            <div class="equity-hero-stamp">
-              <div id="equity-stamp-pct" class="equity-stamp-pct">—</div>
-              <div id="equity-stamp-sub" class="equity-stamp-sub">—</div>
-            </div>
-          </div>
-          <div id="backtest-chips" class="backtest-chips"></div>
-
           <details class="params-details" open>
-            <summary>Parametri strategia &amp; backtest</summary>
+            <summary>Parametri strategia</summary>
             <form id="params-form" class="params-form">
               <fieldset>
                 <legend>Strategia</legend>
@@ -237,22 +227,8 @@
                 <p id="optimize-strategy-result" class="optimize-result hidden"></p>
                 <div id="strategy-params-fields"></div>
               </fieldset>
-              <fieldset>
-                <legend>Backtest</legend>
-                <label>Capitale iniziale <input type="number" name="initial_capital" value="10000" min="1" /></label>
-                <label>% equity per trade <input type="number" name="qty_pct_of_equity" value="30" min="1" max="100" step="1" /></label>
-                <label>Commissione % <input type="number" name="commission_pct" value="0.06" min="0" step="0.01" /></label>
-                <label>Slippage % <input type="number" name="slippage_pct" value="0.02" min="0" step="0.01" /></label>
-                <label>Stop-loss % <input type="number" name="stop_loss_pct" value="0" min="0" step="0.5" title="0 = disattivato" /></label>
-                <label>Take-profit % <input type="number" name="take_profit_pct" value="0" min="0" step="0.5" title="0 = disattivato" /></label>
-              </fieldset>
               <button type="submit">Applica e ricalcola</button>
             </form>
-          </details>
-
-          <details class="params-details">
-            <summary>Dettagli backtest</summary>
-            <div id="backtest-details" class="backtest-details"></div>
           </details>
 
           <div class="operations-head">
@@ -274,7 +250,40 @@
       </div>
 
       <div class="tab-content" data-tab-content="backtest">
-        <div class="panel lab-panel">
+        <div class="panel">
+          <!-- Chart backtest result (same symbol/strategy as chart) -->
+          <h4 class="backtest-heading">Backtest <span id="backtest-interval-tag" class="backtest-interval-tag"></span></h4>
+          <div class="eq-hero-wrap">
+            <div id="equity-chart" class="equity-chart"></div>
+            <div class="equity-hero-stamp">
+              <div id="equity-stamp-pct" class="equity-stamp-pct">—</div>
+              <div id="equity-stamp-sub" class="equity-stamp-sub">—</div>
+            </div>
+          </div>
+          <div id="backtest-chips" class="backtest-chips"></div>
+
+          <details class="params-details">
+            <summary>Parametri backtest</summary>
+            <div class="params-form">
+              <fieldset>
+                <legend>Backtest</legend>
+                <label>Capitale iniziale <input type="number" name="initial_capital" form="params-form" value="10000" min="1" /></label>
+                <label>% equity per trade <input type="number" name="qty_pct_of_equity" form="params-form" value="30" min="1" max="100" step="1" /></label>
+                <label>Commissione % <input type="number" name="commission_pct" form="params-form" value="0.06" min="0" step="0.01" /></label>
+                <label>Slippage % <input type="number" name="slippage_pct" form="params-form" value="0.02" min="0" step="0.01" /></label>
+                <label>Stop-loss % <input type="number" name="stop_loss_pct" form="params-form" value="0" min="0" step="0.5" title="0 = disattivato" /></label>
+                <label>Take-profit % <input type="number" name="take_profit_pct" form="params-form" value="0" min="0" step="0.5" title="0 = disattivato" /></label>
+              </fieldset>
+            </div>
+          </details>
+
+          <details class="params-details">
+            <summary>Dettagli backtest</summary>
+            <div id="backtest-details" class="backtest-details"></div>
+          </details>
+        </div>
+
+        <div class="panel lab-panel" style="margin-top:8px">
 
           <!-- Ticker hero -->
           <div class="lab-ticker-hero" id="lab-ticker-hero">
