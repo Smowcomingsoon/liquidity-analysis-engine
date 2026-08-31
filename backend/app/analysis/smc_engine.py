@@ -21,7 +21,7 @@ def _cap_recent_per_type(levels: list[LiquidityLevel]) -> list[LiquidityLevel]:
         grouped.setdefault(lvl.type, []).append(lvl)
     out: list[LiquidityLevel] = []
     for level_type, group in grouped.items():
-        group.sort(key=lambda l: l.start_time, reverse=True)
+        group.sort(key=lambda l: l.start_time, reverse=True)  # noqa: E741
         out.extend(group[: _LEVEL_LIMIT_PER_TYPE.get(level_type, 6)])
     return out
 

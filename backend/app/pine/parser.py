@@ -1,6 +1,6 @@
 from app.pine import ast_nodes as ast
 from app.pine.errors import PineParseError, PineUnsupportedError
-from app.pine.lexer import Token, indent_of, preprocess, tokenize_line
+from app.pine.lexer import Token, preprocess, tokenize_line
 
 _TYPE_KEYWORDS = {"float", "int", "bool", "string", "color", "line", "label", "box", "table", "array", "matrix"}
 _COMPARISON_OPS = {"==", "!=", ">", "<", ">=", "<="}

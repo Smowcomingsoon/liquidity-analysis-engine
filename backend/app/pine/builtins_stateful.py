@@ -115,12 +115,12 @@ class Rsi:
         change = src - self.prev
         self.prev = src
         g = self.gain.update(max(change, 0.0))
-        l = self.loss.update(max(-change, 0.0))
-        if g is None or l is None:
+        loss_val = self.loss.update(max(-change, 0.0))
+        if g is None or loss_val is None:
             return None
-        if l == 0:
+        if loss_val == 0:
             return 100.0
-        rs = g / l
+        rs = g / loss_val
         return 100 - 100 / (1 + rs)
 
 

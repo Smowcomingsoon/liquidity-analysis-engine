@@ -3,6 +3,7 @@ import hashlib
 import itertools
 import logging
 import sys
+import time as _time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
@@ -74,6 +75,7 @@ from app.timeframes import (
     IntervalChoice,
     drop_unclosed_candle,
 )
+from starlette.middleware.gzip import GZipMiddleware
 
 logger = logging.getLogger(__name__)
 if getattr(sys, "frozen", False):
@@ -230,11 +232,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Liquidity Analysis Engine", lifespan=lifespan)
-
-from starlette.middleware.gzip import GZipMiddleware
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
-import time as _time
 _app_start = _time.time()
 
 @app.get("/api/health")

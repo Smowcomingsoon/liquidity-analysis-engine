@@ -22,7 +22,7 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from . import PublicSpotKlineV3Api_pb2 as PublicSpotKlineV3Api__pb2
+from . import PublicSpotKlineV3Api_pb2 as PublicSpotKlineV3Api__pb2  # noqa: E402, F401
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1aPushDataV3ApiWrapper.proto\x1a\x1aPublicSpotKlineV3Api.proto\"\xf2\x01\n\x14PushDataV3ApiWrapper\x12\x0f\n\x07\x63hannel\x18\x01 \x01(\t\x12\x31\n\x0fpublicSpotKline\x18\xb4\x02 \x01(\x0b\x32\x15.PublicSpotKlineV3ApiH\x00\x12\x13\n\x06symbol\x18\x03 \x01(\tH\x01\x88\x01\x01\x12\x15\n\x08symbolId\x18\x04 \x01(\tH\x02\x88\x01\x01\x12\x17\n\ncreateTime\x18\x05 \x01(\x03H\x03\x88\x01\x01\x12\x15\n\x08sendTime\x18\x06 \x01(\x03H\x04\x88\x01\x01\x42\x06\n\x04\x62odyB\t\n\x07_symbolB\x0b\n\t_symbolIdB\r\n\x0b_createTimeB\x0b\n\t_sendTimeb\x06proto3')

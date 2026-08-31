@@ -85,12 +85,12 @@ def _long_term_context(current_price: float, htf_analysis: TimeframeAnalysis) ->
     above = [lvl for lvl in unmitigated if (lvl.price_high + lvl.price_low) / 2 > current_price]
 
     if below:
-        lvl = max(below, key=lambda l: (l.price_high + l.price_low) / 2)
+        lvl = max(below, key=lambda l: (l.price_high + l.price_low) / 2)  # noqa: E741
         mid = (lvl.price_high + lvl.price_low) / 2
         dist_pct = (mid - current_price) / current_price * 100
         lines.append(f"Livello HTF non mitigato più vicino sotto: {lvl.label} a {mid:.4g} ({dist_pct:+.1f}%).")
     if above:
-        lvl = min(above, key=lambda l: (l.price_high + l.price_low) / 2)
+        lvl = min(above, key=lambda l: (l.price_high + l.price_low) / 2)  # noqa: E741
         mid = (lvl.price_high + lvl.price_low) / 2
         dist_pct = (mid - current_price) / current_price * 100
         lines.append(f"Livello HTF non mitigato più vicino sopra: {lvl.label} a {mid:.4g} ({dist_pct:+.1f}%).")
