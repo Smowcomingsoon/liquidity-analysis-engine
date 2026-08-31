@@ -202,54 +202,14 @@
       </div>
 
       <div class="tabs">
-        <button type="button" class="tab active" data-tab="strategia">Strategia</button>
-        <button type="button" class="tab" data-tab="backtest">Backtest</button>
+        <button type="button" class="tab active" data-tab="backtest">Backtest</button>
         <button type="button" class="tab" data-tab="watchlist">Watchlist</button>
         <button type="button" class="tab" data-tab="alert">Alert</button>
         <button type="button" class="tab" data-tab="analisi">Analisi</button>
         <button type="button" class="tab hidden" id="balances-tab-btn" data-tab="saldi">Saldi</button>
       </div>
 
-      <div class="tab-content active" data-tab-content="strategia">
-        <div class="panel">
-          <div class="panel-title-row">
-            <h3>Strategia</h3>
-            <span id="strategy-position-badge" class="position-badge flat">FLAT</span>
-          </div>
-          <div id="strategy-select-slot" class="strategy-select-slot"></div>
-
-          <details class="params-details" open>
-            <summary>Parametri strategia</summary>
-            <form id="params-form" class="params-form">
-              <fieldset>
-                <legend>Strategia</legend>
-                <button type="button" id="optimize-strategy-btn" class="optimize-btn hidden">🎯 Ottimizza parametri automaticamente</button>
-                <p id="optimize-strategy-result" class="optimize-result hidden"></p>
-                <div id="strategy-params-fields"></div>
-              </fieldset>
-              <button type="submit">Applica e ricalcola</button>
-            </form>
-          </details>
-
-          <div class="operations-head">
-            <span>Operazioni</span>
-            <span id="operations-count" class="operations-count"></span>
-          </div>
-          <ul id="operations-list" class="operations-list"></ul>
-
-          <p class="marker-legend legend-thin">
-            <span class="legend-item"><span class="legend-swatch bull">▲</span>Long</span>
-            <span class="legend-item"><span class="legend-swatch bear">▼</span>Short</span>
-            <span class="legend-item"><span class="legend-swatch">●</span>Uscita</span>
-            <span class="legend-item"><span class="legend-swatch stamp">◆</span>Inversione</span>
-          </p>
-          <p class="strategy-disclaimer">
-            Simulazione storica su dati passati. Le performance passate non garantiscono risultati futuri.
-          </p>
-        </div>
-      </div>
-
-      <div class="tab-content" data-tab-content="backtest">
+      <div class="tab-content active" data-tab-content="backtest">
         <div class="panel lab-panel" id="lab-panel">
 
           <!-- Ticker hero -->
@@ -648,11 +608,6 @@
         <path d="M12 3 L21 8.5 L12 14 L3 8.5 Z"/>
         <path d="M3 14.5 L12 20 L21 14.5" stroke-linecap="round"/>
       </svg>Livelli
-    </button>
-    <button type="button" class="mobile-nav-btn" data-mobile-target="strategia">
-      <svg class="mobile-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="3 17 8 11 13 14 21 6"/><polyline points="16 6 21 6 21 11"/>
-      </svg>Strategia
     </button>
     <button type="button" class="mobile-nav-btn" data-mobile-target="alert">
       <svg class="mobile-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">

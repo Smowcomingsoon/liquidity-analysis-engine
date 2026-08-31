@@ -3840,17 +3840,14 @@
   }
 
   // Mobile app-shell: five real full-screen destinations reached from the
-  // bottom nav — Grafico, Livelli, Strategia, Alert, Altro — not overlay
+  // bottom nav — Grafico, Livelli, Backtest, Alert, Altro — not overlay
   // sheets with a backdrop. Each tap shows exactly one screen and hides the
   // rest; there is no "tap again to close" ambiguity like the old drawer
-  // model had. Strategia and Alert reuse the same underlying .right-panel
-  // (and its internal .tabs) that desktop already has — Strategia activates
-  // both the "strategia" and "analisi" tab-contents together (merged into
-  // one scroll on mobile, since they're two views of the same reading), and
-  // Alert activates just "alert". Script Pine and Saldi are reached through
-  // the Altro menu, not the bottom nav itself, so they still map onto the
-  // same mechanism without a 6th/7th tab.
-  const RIGHT_PANEL_TITLES = { strategia: "Strategia", backtest: "Backtest", alert: "Alert", saldi: "Saldi", analisi: "Analisi", watchlist: "Watchlist" };
+  // model had. Backtest and Alert reuse the same underlying .right-panel
+  // (and its internal .tabs) that desktop already has. Script Pine and Saldi
+  // are reached through the Altro menu, not the bottom nav itself, so they
+  // still map onto the same mechanism without a 6th/7th tab.
+  const RIGHT_PANEL_TITLES = { backtest: "Backtest", alert: "Alert", saldi: "Saldi", analisi: "Analisi", watchlist: "Watchlist" };
 
   function showMobileScreen(target) {
     if (!window.matchMedia("(max-width: 760px)").matches) return;
@@ -3880,7 +3877,7 @@
     } else if (target === "altro") {
       el("altro-panel").classList.add("mobile-open");
     } else {
-      // strategia | alert | saldi | analisi — shared right-panel, pick the internal tab
+      // backtest | alert | saldi | analisi — shared right-panel, pick the internal tab
       const panel = document.querySelector(".right-panel");
       panel.classList.add("mobile-open");
       panel.querySelector(".drawer-header span").textContent = RIGHT_PANEL_TITLES[target] || "Pannello";
