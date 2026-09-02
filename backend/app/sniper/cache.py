@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 POLL_INTERVAL_SECONDS = 300  # 5 min
 
 SCORE_MIN = 5
-TOKENOMICS_MIN = 1
+TOKENOMICS_MIN = 0
 UTILITY_MIN = 0
 
 LOG_MAX_ENTRIES = 5000
