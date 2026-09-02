@@ -305,17 +305,9 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
   /* .body must also be column so console stacks above results */
   .body { flex-direction:column; }
 
-  /* ── console: collapsed by default on mobile ── */
-  .console-pane {
-    width:100%; min-width:unset; border-right:none;
-    border-bottom:1px solid var(--border);
-    height:36px; overflow:hidden;
-    transition:height .25s ease; flex-shrink:0;
-  }
-  .console-pane.expanded { height:200px; }
-  .console-toggle { display:block; }
-  /* hide the console-head (we use the toggle button as the header) */
-  .console-head { display:none; }
+  /* ── console: fully hidden on mobile ── */
+  .console-pane { display:none !important; }
+  .console-toggle { display:none; }
 
   /* ── results pane: all remaining space ── */
   .results-pane { flex:1; min-height:0; display:flex; flex-direction:column; }
