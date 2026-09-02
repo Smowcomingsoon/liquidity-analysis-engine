@@ -354,6 +354,15 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
   cursor:pointer; font-weight:600; white-space:nowrap;
 }
 .export-btn:hover{ color:var(--fg); border-color:var(--fg); }
+.sort-chip.top5-chip{ border-color:var(--amber); color:var(--amber); }
+.sort-chip.top5-chip.active{ background:var(--amber); color:#1a0f00; border-color:var(--amber); }
+.top5-rank{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:20px; height:20px; border-radius:50%; font-size:11px; font-weight:700;
+  background:var(--amber); color:#1a0f00; flex-shrink:0; margin-right:4px;
+}
+tbody tr.top5-row{ background: rgba(240,180,41,.06); }
+tbody tr.top5-row:hover{ background: rgba(240,180,41,.12); }
 </style>
 </head>
 <body>
@@ -391,6 +400,7 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
         <button class="sort-chip" data-sort="market_cap">MC ↓</button>
         <button class="sort-chip" data-sort="liquidity_usd">Liquidità ↓</button>
         <button class="sort-chip" data-sort="score_total">Score ↓</button>
+        <button class="sort-chip top5-chip" data-sort="top5">⚡ Top 5</button>
         <button class="export-btn" id="exportBtn" onclick="exportExcel()">⬇ Excel</button>
       </div>
       <div class="filters" id="chainFilters">
@@ -781,9 +791,24 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
     } catch(e){ /* ignore */ }
   }
 
+  function compositeRank(c){
+    // Weighted composite: score 30%, buy pressure 25%, vol/liq momentum 25%, recency 20%
+    const scoreN   = (c.score_total || 0) / Math.max(c.score_max || 13, 1);
+    const bsN      = Math.min((c.buy_sell_ratio || 1) - 1, 2) / 2;  // 0-2 above 1x → 0-1
+    const volLiq   = c.liquidity_usd > 0 ? Math.min((c.volume_h24 || 0) / c.liquidity_usd, 10) / 10 : 0;
+    const ageDecay = Math.max(0, 1 - (c.age_hours || 0) / 720);     // fresher = higher
+    return scoreN * 0.30 + bsN * 0.25 + volLiq * 0.25 + ageDecay * 0.20;
+  }
+
   function renderTable(){
     let filtered = activeChain === 'all' ? [...candidates] : candidates.filter(c => c.chain_id === activeChain);
-    filtered.sort((a, b) => (b[activeSort] || 0) - (a[activeSort] || 0));
+    const isTop5 = activeSort === 'top5';
+    if(isTop5){
+      filtered.sort((a, b) => compositeRank(b) - compositeRank(a));
+      filtered = filtered.slice(0, 5);
+    } else {
+      filtered.sort((a, b) => (b[activeSort] || 0) - (a[activeSort] || 0));
+    }
     if(filtered.length === 0){
       resultsTable.style.display = 'none';
       emptyState.style.display = 'flex';
@@ -792,11 +817,15 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
     emptyState.style.display = 'none';
     resultsTable.style.display = 'table';
     resultsBody.innerHTML = '';
-    for(const c of filtered){
+    filtered.forEach((c, idx) => {
       const tr = document.createElement('tr');
-      if(candidates._newIds && candidates._newIds.has(c.token_address)) tr.className = 'new-row';
+      const isNew = candidates._newIds && candidates._newIds.has(c.token_address);
+      tr.className = isTop5 ? 'top5-row' : (isNew ? 'new-row' : '');
+      const rankBadge = isTop5
+        ? `<span class="top5-rank">${idx + 1}</span>`
+        : '';
       tr.innerHTML = `
-        <td class="sym-cell">${esc(c.symbol)}<span class="chain">${esc(c.chain_id)}</span></td>
+        <td class="sym-cell">${rankBadge}${esc(c.symbol)}<span class="chain">${esc(c.chain_id)}</span></td>
         <td><span class="score-badge">${c.score_total}/${c.score_max}</span></td>
         <td>${fmtUsd(c.market_cap)}</td>
         <td>${fmtUsd(c.liquidity_usd)}</td>
@@ -807,7 +836,7 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
       `;
       tr.addEventListener('click', () => openSidebar(c));
       resultsBody.appendChild(tr);
-    }
+    });
   }
 
   chainFilters.addEventListener('click', (e) => {
