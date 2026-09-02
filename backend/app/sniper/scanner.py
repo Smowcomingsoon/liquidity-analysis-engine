@@ -184,26 +184,40 @@ def _parse_gecko_pool(chain_id: str, pool: dict) -> Optional["RawToken"]:
         return None
 
 
-async def _fetch_gecko_chain(client: httpx.AsyncClient, chain_id: str) -> list[RawToken]:
-    """New pools on one chain, straight from GeckoTerminal — this is what
-    guarantees every supported chain is actually explored each scan,
-    instead of relying on DEXScreener's single global "latest profiles"
-    feed to happen to include it."""
-    network = GECKO_NETWORKS[chain_id]
-    try:
-        resp = await client.get(f"{GECKOTERMINAL_BASE}/networks/{network}/new_pools")
-        if resp.status_code != 200:
-            return []
-        pools: list[dict] = resp.json().get("data") or []
-    except Exception as exc:
-        logger.warning("GeckoTerminal fetch error (%s): %s", chain_id, exc)
-        return []
+GECKO_PAGES_PER_CHAIN = 6  # ~20 pools/page -> up to ~120 pools/chain/scan
 
-    tokens = []
-    for pool in pools:
-        token = _parse_gecko_pool(chain_id, pool)
-        if token:
-            tokens.append(token)
+
+async def _fetch_gecko_chain(client: httpx.AsyncClient, chain_id: str) -> list[RawToken]:
+    """New pools on one chain, straight from GeckoTerminal, paginated — this
+    is what guarantees every supported chain is actually explored (and with
+    real depth, not just the first page) each scan, instead of relying on
+    DEXScreener's single global "latest profiles" feed to happen to include
+    it. Pages are fetched sequentially with a small delay to stay well
+    within GeckoTerminal's public rate limit; a chain's other pages aren't
+    skipped just because one page comes back empty — GeckoTerminal can
+    return an empty page and non-empty ones after it."""
+    network = GECKO_NETWORKS[chain_id]
+    tokens: list[RawToken] = []
+    for page in range(1, GECKO_PAGES_PER_CHAIN + 1):
+        try:
+            resp = await client.get(
+                f"{GECKOTERMINAL_BASE}/networks/{network}/new_pools", params={"page": page}
+            )
+            if resp.status_code != 200:
+                break
+            pools: list[dict] = resp.json().get("data") or []
+        except Exception as exc:
+            logger.warning("GeckoTerminal fetch error (%s, page %d): %s", chain_id, page, exc)
+            break
+
+        for pool in pools:
+            token = _parse_gecko_pool(chain_id, pool)
+            if token:
+                tokens.append(token)
+
+        if page < GECKO_PAGES_PER_CHAIN:
+            await asyncio.sleep(0.15)
+
     return tokens
 
 
