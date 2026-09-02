@@ -372,11 +372,18 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
     if(d.type === 'scan_start'){
       logLine('INFO', 'info', 'Avvio scansione — recupero profili DEXScreener…', ts);
     } else if(d.type === 'fetched'){
-      logLine('INFO', 'info', `${d.count} token trovati dopo i filtri primari (MC, liquidità, età, volume)`, ts);
+      const unsupportedTxt = d.unsupported_chain ? `, ${d.unsupported_chain} su chain non supportate (ignorati)` : '';
+      logLine('INFO', 'info', `${d.count} token recuperati da DEXScreener (${d.supported} su chain supportate${unsupportedTxt}) — verifico i filtri primari uno per uno…`, ts);
     } else if(d.type === 'fetch_error'){
       logLine('ERR', 'err', 'Errore nel recupero dati: ' + esc(d.message), ts);
+    } else if(d.type === 'primary'){
+      if(d.passed){
+        logLine('OK', 'pass', `<span class="sym">${esc(d.symbol) || '?'}</span> <span class="dim">(${esc(d.chain)})</span> supera i filtri primari — passo alla valutazione on-chain`, ts);
+      } else {
+        logLine('FILT', 'fail', `<span class="sym">${esc(d.symbol) || '?'}</span> <span class="dim">(${esc(d.chain)})</span> escluso dai filtri primari (${esc(d.reason)})`, ts);
+      }
     } else if(d.type === 'evaluating'){
-      logLine('...', 'fail', `Analisi <span class="sym">${esc(d.symbol) || '?'}</span> <span class="dim">(${esc(d.chain)})</span>`, ts);
+      logLine('...', 'fail', `Analisi on-chain <span class="sym">${esc(d.symbol) || '?'}</span> <span class="dim">(${esc(d.chain)})</span>`, ts);
     } else if(d.type === 'result'){
       if(d.passed){
         logLine('PASS', 'pass', `<span class="sym">${esc(d.symbol)}</span> score ${d.score}/${d.score_max} — supera la soglia, aggiunto ai candidati`, ts);
@@ -386,7 +393,7 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
     } else if(d.type === 'error'){
       logLine('ERR', 'err', `${esc(d.symbol) || '?'}: ${esc(d.message)}`, ts);
     } else if(d.type === 'scan_end'){
-      logLine('DONE', 'info', `Scansione completata in ${d.duration.toFixed(1)}s — ${d.scanned} analizzati, ${d.added} candidati, ${d.total} in archivio`, ts);
+      logLine('DONE', 'info', `Scansione completata in ${d.duration.toFixed(1)}s — ${d.fetched ?? '?'} recuperati, ${d.scanned} superano i filtri primari, ${d.added} candidati, ${d.total} in archivio`, ts);
     }
   }
 

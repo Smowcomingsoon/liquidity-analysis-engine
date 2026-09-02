@@ -15,7 +15,7 @@ from typing import Optional
 
 import httpx
 
-from .scanner import RawToken, fetch_candidates
+from .scanner import RawToken, fetch_all_tokens
 from .scorer import TokenScore, score
 
 logger = logging.getLogger(__name__)
@@ -174,7 +174,7 @@ async def run_scan() -> int:
         t0 = time.time()
         _broadcast({"type": "scan_start", "ts": t0})
         try:
-            tokens: list[RawToken] = await fetch_candidates()
+            fetch_result = await fetch_all_tokens()
         except Exception as exc:
             logger.error("Sniper fetch error: %s", exc)
             _broadcast({"type": "fetch_error", "message": str(exc)})
@@ -183,7 +183,26 @@ async def run_scan() -> int:
             _save_log()
             return 0
 
-        _broadcast({"type": "fetched", "count": len(tokens)})
+        all_tokens = fetch_result.results
+        _broadcast({
+            "type": "fetched",
+            "count": fetch_result.total_profiles,
+            "supported": len(all_tokens),
+            "unsupported_chain": fetch_result.unsupported_chain,
+        })
+
+        tokens: list[RawToken] = []
+        for token, primary_ok, primary_reason in all_tokens:
+            _broadcast({
+                "type": "primary",
+                "symbol": token.symbol,
+                "chain": token.chain_id,
+                "address": token.token_address,
+                "passed": primary_ok,
+                "reason": None if primary_ok else primary_reason,
+            })
+            if primary_ok:
+                tokens.append(token)
 
         added = 0
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -265,6 +284,7 @@ async def run_scan() -> int:
             "type": "scan_end",
             "added": added,
             "total": len(_store),
+            "fetched": len(all_tokens),
             "scanned": len(tokens),
             "duration": time.time() - t0,
         })

@@ -112,18 +112,31 @@ def _parse_pair(
         return None
 
 
-async def fetch_candidates() -> list[RawToken]:
-    """Fetch recent DEXScreener token profiles and return those passing primary filters."""
-    candidates: list[RawToken] = []
+@dataclass
+class ScanFetchResult:
+    results: list[tuple[RawToken, bool, str]]
+    total_profiles: int
+    unsupported_chain: int
+
+
+async def fetch_all_tokens() -> ScanFetchResult:
+    """Fetch recent DEXScreener token profiles and return every one that could
+    be parsed into a supported-chain pair, each tagged with its primary-filter
+    verdict (pass/fail + reason) — including the ones that fail, so callers
+    can show the full picture of what the scanner looked at, not just the
+    tokens that made it through. Also reports how many profiles were on
+    chains this scanner doesn't support at all."""
+    results: list[tuple[RawToken, bool, str]] = []
+    unsupported_chain = 0
     async with httpx.AsyncClient(timeout=20.0) as client:
         try:
             resp = await client.get(f"{DEXSCREENER_BASE}/token-profiles/latest/v1")
             profiles: list[dict] = resp.json() if resp.status_code == 200 else []
         except Exception:
-            return []
+            return ScanFetchResult(results=[], total_profiles=0, unsupported_chain=0)
 
         if not profiles:
-            return []
+            return ScanFetchResult(results=[], total_profiles=0, unsupported_chain=0)
 
         # Build profile metadata indexed by token address
         meta: dict[str, dict] = {}
@@ -169,10 +182,19 @@ async def fetch_candidates() -> list[RawToken]:
 
             for addr, pair in best.items():
                 m = meta.get(addr, {})
+                if pair.get("chainId") not in SUPPORTED_CHAINS:
+                    unsupported_chain += 1
+                    continue
                 token = _parse_pair(pair, m.get("socials", []), m.get("website"), m.get("description"))
                 if token:
-                    ok, _ = _passes_primary(token)
-                    if ok:
-                        candidates.append(token)
+                    ok, reason = _passes_primary(token)
+                    results.append((token, ok, reason))
 
-    return candidates
+    return ScanFetchResult(
+        results=results, total_profiles=len(profiles), unsupported_chain=unsupported_chain
+    )
+
+
+async def fetch_candidates() -> list[RawToken]:
+    """Fetch recent DEXScreener token profiles and return those passing primary filters."""
+    return [token for token, ok, _ in (await fetch_all_tokens()).results if ok]
