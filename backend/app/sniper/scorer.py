@@ -26,7 +26,17 @@ from dataclasses import dataclass, field
 
 import httpx
 
-from .security import GoplusResult, RugcheckResult, check_goplus, check_rugcheck
+from .security import (
+    CoingeckoResult,
+    GoplusResult,
+    HoneypotIsResult,
+    RugcheckResult,
+    check_coingecko,
+    check_goplus,
+    check_honeypot_is,
+    check_jupiter_price,
+    check_rugcheck,
+)
 
 ETHERSCAN_KEY = os.environ.get("ETHERSCAN_API_KEY", "")
 BSCSCAN_KEY = os.environ.get("BSCSCAN_API_KEY", "")
@@ -94,19 +104,57 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
     base_url, api_key = EXPLORERS.get(chain, (None, None))  # type: ignore[misc]
     has_api = bool(base_url and api_key)
 
-    # ── Fetch security data (GoPlus + Rugcheck) in parallel ──────────────────
+    # ── Fetch security + enrichment data in parallel ──────────────────────────
     gp: GoplusResult | None
     rc: RugcheckResult | None
+    hi: HoneypotIsResult | None
+    cg: CoingeckoResult | None
+
+    async def _none():
+        return None
+
     if chain == "solana":
-        gp_task = asyncio.create_task(check_goplus(chain, addr, client))
-        rc_task = asyncio.create_task(check_rugcheck(addr, client))
-        gp, rc = await asyncio.gather(gp_task, rc_task)
+        gp, rc, hi, cg, jup_price = await asyncio.gather(
+            check_goplus(chain, addr, client),
+            check_rugcheck(addr, client),
+            _none(),  # no honeypot.is for Solana
+            check_coingecko(chain, addr, client),
+            check_jupiter_price(addr, client),
+        )
     else:
-        gp = await check_goplus(chain, addr, client)
+        gp, hi, cg = await asyncio.gather(
+            check_goplus(chain, addr, client),
+            check_honeypot_is(chain, addr, client),
+            check_coingecko(chain, addr, client),
+        )
         rc = None
+        jup_price = None
 
     has_goplus = gp is not None
-    has_security = has_goplus or rc is not None
+    has_honeypot_is = hi is not None and hi.simulation_success
+    has_security = has_goplus or rc is not None or has_honeypot_is
+
+    # Enrich token metadata from CoinGecko when DexScreener didn't provide it
+    description = token.description
+    website = token.website
+    socials = list(token.socials or [])
+    if cg is not None:
+        if not description and cg.description:
+            description = cg.description
+        if not website and cg.website:
+            website = cg.website
+        if cg.twitter and not any(
+            "twitter.com" in (s.get("url") or "") for s in socials
+        ):
+            socials.append({"type": "twitter", "url": cg.twitter})
+        if cg.telegram and not any(
+            "t.me" in (s.get("url") or "") for s in socials
+        ):
+            socials.append({"type": "telegram", "url": cg.telegram})
+        if cg.github and not any(
+            "github.com" in (s.get("url") or "") for s in socials
+        ):
+            socials.append({"type": "github", "url": cg.github})
 
     # ── TOKENOMICS (4 pts) ───────────────────────────────────────────────────
 
@@ -227,6 +275,15 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
         not_honeypot = not gp.is_honeypot  # type: ignore[union-attr]
         measured_hp = True
         note_hp = "GoPlus: non è un honeypot" if not_honeypot else "⚠️ GoPlus: HONEYPOT rilevato"
+        # Confirm with honeypot.is when GoPlus says it's safe (false positives exist)
+        if not_honeypot and has_honeypot_is and hi.is_honeypot is True:  # type: ignore[union-attr]
+            not_honeypot = False
+            note_hp = "⚠️ Honeypot.is: simulazione fallita (GoPlus safe)"
+    elif has_honeypot_is and hi.is_honeypot is not None:  # type: ignore[union-attr]
+        not_honeypot = not hi.is_honeypot  # type: ignore[union-attr]
+        measured_hp = True
+        note_hp = ("Honeypot.is: simulazione OK" if not_honeypot
+                   else "⚠️ Honeypot.is: HONEYPOT rilevato")
     elif rc is not None:
         danger_risks = [r for r in (rc.risks or []) if r.get("level") == "danger"]
         not_honeypot = not rc.rugged and len(danger_risks) == 0
@@ -254,6 +311,11 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
         tax_ok = total_tax <= 10.0
         measured_tax = True
         note_tax = f"Buy {gp.buy_tax:.1f}% + Sell {gp.sell_tax:.1f}% = {total_tax:.1f}%"  # type: ignore[union-attr]
+    elif has_honeypot_is and hi.buy_tax is not None and hi.sell_tax is not None:  # type: ignore[union-attr]
+        total_tax = (hi.buy_tax or 0) + (hi.sell_tax or 0)  # type: ignore[union-attr]
+        tax_ok = total_tax <= 10.0
+        measured_tax = True
+        note_tax = f"Honeypot.is: Buy {hi.buy_tax:.1f}% + Sell {hi.sell_tax:.1f}% = {total_tax:.1f}%"  # type: ignore[union-attr]
     elif rc is not None:
         tax_risks = [r for r in (rc.risks or []) if "tax" in r.get("name", "").lower()]
         tax_ok = len(tax_risks) == 0
@@ -297,17 +359,19 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
                            note=note_restr))
 
     # ── UTILITÀ (3 pts) ───────────────────────────────────────────────────────
-    has_desc = bool(token.description and len(token.description) > 50)
-    has_website = bool(token.website)
-    has_social = bool(token.socials)
+    has_desc = bool(description and len(description) > 50)
+    has_website = bool(website)
+    has_social = bool(socials)
+    desc_source = "CoinGecko" if (cg and cg.description and not token.description) else "DexScreener"
 
     items.append(ScoreItem("Utilità", "Use case identificabile",
                            1 if has_desc else 0, auto=True, measured=True,
-                           note="Descrizione presente" if has_desc else "Nessuna descrizione"))
+                           note=f"Descrizione presente ({desc_source})" if has_desc
+                           else "Nessuna descrizione"))
     # MVP: always manual — excluded from denominator
     items.append(ScoreItem("Utilità", "MVP o prodotto esistente",
                            0, auto=False, measured=False,
-                           note=f"Verifica manuale: {token.website}" if has_website
+                           note=f"Verifica manuale: {website}" if has_website
                            else "Nessun sito web"))
     items.append(ScoreItem("Utilità", "Presenza web + social completa",
                            1 if (has_website and has_social) else 0, auto=True, measured=True,
@@ -329,7 +393,7 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
                            measured=measured_verified,
                            note="Source code pubblico" if verified else "Non verificato"))
 
-    has_github = any("github.com" in (s.get("url") or "") for s in (token.socials or []))
+    has_github = any("github.com" in (s.get("url") or "") for s in socials)
     items.append(ScoreItem("Team", "Sviluppo attivo (GitHub presente)",
                            1 if has_github else 0, auto=True, measured=True,
                            note="GitHub link nei socials" if has_github else "Nessun GitHub"))

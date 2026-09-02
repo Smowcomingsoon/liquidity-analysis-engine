@@ -16,7 +16,12 @@ from dataclasses import dataclass
 
 import httpx
 
-from .scanner import _passes_primary, fetch_dexscreener_boosted, fetch_pumpfun_trending
+from .scanner import (
+    _passes_primary,
+    fetch_dexscreener_boosted,
+    fetch_geckoterminal_trending,
+    fetch_pumpfun_trending,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -245,6 +250,67 @@ async def _market_harvest_loop() -> None:
             status.running = False
 
 
+# ── GeckoTerminalTrendingAgent ────────────────────────────────────────────────
+
+async def _geckoterminal_trending_loop() -> None:
+    """Fetch GeckoTerminal trending pools every 15 min.
+    Trending pools rank by volume/activity (≠ new_pools by creation date), so
+    this surfaces established-but-still-hot tokens that the other agents miss."""
+    name = "gecko_trending"
+    status = AgentStatus(name=name, label="GeckoTerminal Trending", interval_s=900)
+    _registry[name] = status
+
+    while True:
+        await asyncio.sleep(status.interval_s)
+        status.running = True
+        status.error = None
+        _broadcast_sniper({"type": "agent_start", "agent": name, "label": status.label})
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                tokens = await fetch_geckoterminal_trending(client)
+
+            from .cache import _save_candidates
+            added = 0
+            for token in tokens:
+                ok, _reason = _passes_primary(token)
+                if not ok:
+                    continue
+                if _add_to_sniper(token):
+                    added += 1
+                    _broadcast_sniper({
+                        "type": "result",
+                        "symbol": token.symbol,
+                        "chain": token.chain_id,
+                        "address": token.token_address,
+                        "score": 0,
+                        "score_max": 0,
+                        "passed": True,
+                        "reason": None,
+                        "agent": name,
+                    })
+
+            if added:
+                _save_candidates()
+
+            status.last_run = time.time()
+            status.last_count = added
+            _broadcast_sniper({
+                "type": "agent_done",
+                "agent": name,
+                "label": status.label,
+                "fetched": len(tokens),
+                "added": added,
+            })
+            logger.info("GeckoTerminalTrendingAgent: %d/%d tokens added", added, len(tokens))
+
+        except Exception as exc:
+            status.error = str(exc)
+            logger.warning("GeckoTerminalTrendingAgent error: %s", exc)
+            _broadcast_sniper({"type": "agent_error", "agent": name, "message": str(exc)})
+        finally:
+            status.running = False
+
+
 # ── coordinator ───────────────────────────────────────────────────────────────
 
 async def start_all() -> list[asyncio.Task]:
@@ -252,6 +318,7 @@ async def start_all() -> list[asyncio.Task]:
     tasks = [
         asyncio.create_task(_pump_fun_loop(), name="agent:pump_fun"),
         asyncio.create_task(_dexscreener_boost_loop(), name="agent:dex_boost"),
+        asyncio.create_task(_geckoterminal_trending_loop(), name="agent:gecko_trending"),
         asyncio.create_task(_market_harvest_loop(), name="agent:market_harvest"),
     ]
     logger.info("Started %d discovery agents", len(tasks))

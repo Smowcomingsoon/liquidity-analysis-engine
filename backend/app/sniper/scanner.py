@@ -9,7 +9,6 @@ import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
 
 import httpx
 
@@ -99,7 +98,7 @@ def _parse_pair(
     socials: list,
     website: str | None,
     description: str | None,
-) -> Optional["RawToken"]:
+) -> "RawToken | None":
     try:
         chain = pair.get("chainId", "")
         if chain not in SUPPORTED_CHAINS:
@@ -136,7 +135,7 @@ def _parse_pair(
         return None
 
 
-def _parse_gecko_pool(chain_id: str, pool: dict) -> Optional["RawToken"]:
+def _parse_gecko_pool(chain_id: str, pool: dict) -> "RawToken | None":
     try:
         attrs = pool.get("attributes") or {}
         created = attrs.get("pool_created_at")
@@ -252,6 +251,35 @@ async def _fetch_gecko_chain(client: httpx.AsyncClient, chain_id: str) -> list[R
     page) each scan, instead of relying on DEXScreener's single global
     "latest profiles" feed to happen to include it."""
     return await _fetch_gecko_pages(client, chain_id, "new_pools", GECKO_PAGES_PER_CHAIN)
+
+
+async def fetch_geckoterminal_trending(client: httpx.AsyncClient) -> list[RawToken]:
+    """Fetch trending pools across all supported chains from GeckoTerminal.
+    Trending = highest volume/activity in the last 24h, distinct from new_pools
+    (which ranks by creation date).  Surfaces established-but-still-hot tokens
+    that new_pools misses."""
+    tokens: list[RawToken] = []
+    seen: set[tuple[str, str]] = set()
+    for chain_id in GECKO_NETWORKS:
+        try:
+            network = GECKO_NETWORKS[chain_id]
+            resp = await client.get(
+                f"{GECKOTERMINAL_BASE}/networks/{network}/trending_pools",
+                params={"page": 1},
+            )
+            if resp.status_code == 200:
+                pools = resp.json().get("data") or []
+                for pool in pools:
+                    token = _parse_gecko_pool(chain_id, pool)
+                    if token:
+                        key = (token.chain_id, token.token_address)
+                        if key not in seen:
+                            seen.add(key)
+                            tokens.append(token)
+        except Exception as exc:
+            logger.debug("GeckoTerminal trending failed %s: %s", chain_id, exc)
+        await asyncio.sleep(1.0)  # stay inside free-tier rate limit
+    return tokens
 
 
 async def fetch_market_chain(client: httpx.AsyncClient, chain_id: str) -> list[RawToken]:
