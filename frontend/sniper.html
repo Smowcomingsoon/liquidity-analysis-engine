@@ -181,7 +181,7 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
 
 <div class="hdr">
   <h1><a href="/">Liquidity Engine</a> <span class="dot">·</span> Token Sniper</h1>
-  <div class="status-pill" id="statusPill"><span class="led"></span><span id="statusText">Inattivo</span></div>
+  <div class="status-pill" id="statusPill"><span class="led"></span><span id="statusText">Connessione…</span></div>
   <div class="spacer"></div>
   <div class="meta" id="metaInfo">Nessuna scansione ancora eseguita</div>
   <a class="back-link" href="/">← Grafico</a>
@@ -328,7 +328,7 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
       }
     } else {
       statusPill.classList.remove('scanning');
-      statusText.textContent = 'Inattivo';
+      statusText.textContent = 'In ascolto — auto ogni 5 min';
       scanBtn.disabled = false;
       scanBtn.textContent = 'Scansiona ora';
       const cl = document.getElementById('cursorLine');
@@ -336,20 +336,35 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
     }
   }
 
-  function startScan(){
+  // The backend scans automatically every 5 minutes on its own (no button
+  // needed) — this connection just relays whatever scan is happening, live,
+  // to this tab. It stays open for the life of the page and reconnects on
+  // drop, so an automatic scan shows up here even if nobody ever clicks
+  // "Scansiona ora".
+  function connectStream(){
     if(es) return;
-    setScanning(true);
     es = new EventSource('/api/sniper/scan-stream');
+    es.onopen = () => { statusText.textContent = 'In ascolto — auto ogni 5 min'; };
     es.onmessage = (ev) => {
       let d;
       try { d = JSON.parse(ev.data); } catch(e){ return; }
       handleEvent(d);
     };
     es.onerror = () => {
-      es.close(); es = null;
+      if(es){ es.close(); es = null; }
       setScanning(false);
-      loadCandidates();
+      statusText.textContent = 'Riconnessione…';
+      setTimeout(connectStream, 3000);
     };
+  }
+
+  async function triggerScan(){
+    scanBtn.disabled = true;
+    try{
+      await fetch('/api/sniper/scan', { method: 'POST' });
+    } catch(e){
+      scanBtn.disabled = false;
+    }
   }
 
   function renderLogEvent(d){
@@ -377,8 +392,9 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
 
   function handleEvent(d){
     renderLogEvent(d);
-    if(d.type === 'scan_end'){
-      es.close(); es = null;
+    if(d.type === 'scan_start'){
+      setScanning(true);
+    } else if(d.type === 'scan_end'){
       setScanning(false);
       loadCandidates();
     }
@@ -435,7 +451,7 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
     renderTable();
   });
 
-  scanBtn.addEventListener('click', startScan);
+  scanBtn.addEventListener('click', triggerScan);
 
   // Sidebar
   const sidebar = document.getElementById('sidebar');
@@ -500,6 +516,7 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
 
   loadHistory();
   loadCandidates();
+  connectStream();
 })();
 </script>
 </body>
