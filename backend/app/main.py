@@ -1197,9 +1197,28 @@ async def optimize_strategy_endpoint(
 
 
 @app.get("/api/sniper/candidates")
-async def sniper_candidates() -> dict:
+async def sniper_candidates(
+    chain: str = Query("", description="Filter by chain_id"),
+    min_score: int = Query(0, ge=0, description="Minimum score_total"),
+    min_liq: float = Query(0.0, ge=0, description="Minimum liquidity_usd"),
+    max_mc: float = Query(0.0, ge=0, description="Maximum market_cap (0 = no limit)"),
+    exclude_cex: bool = Query(False, description="Exclude CEX-listed tokens"),
+    limit: int = Query(0, ge=0, description="Max results (0 = all)"),
+) -> dict:
     from app.sniper import cache as sniper_cache
     candidates = sniper_cache.get_candidates()
+    if chain:
+        candidates = [c for c in candidates if c.chain_id == chain]
+    if min_score:
+        candidates = [c for c in candidates if c.score_total >= min_score]
+    if min_liq:
+        candidates = [c for c in candidates if c.liquidity_usd >= min_liq]
+    if max_mc:
+        candidates = [c for c in candidates if c.market_cap is None or c.market_cap <= max_mc]
+    if exclude_cex:
+        candidates = [c for c in candidates if c.cex_listed is not True]
+    if limit:
+        candidates = candidates[:limit]
     return {
         "candidates": [
             {
@@ -1224,6 +1243,7 @@ async def sniper_candidates() -> dict:
                 "score_items": c.score_items,
                 "first_seen": c.first_seen,
                 "last_updated": c.last_updated,
+                "cex_listed": c.cex_listed,
             }
             for c in candidates
         ],

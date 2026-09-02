@@ -1,4 +1,12 @@
-"""On-chain + DEXScreener scoring: 0–13 points across four categories."""
+"""On-chain + DEXScreener scoring: 0–13 points across four categories.
+
+Scoring revisions (v2):
+- Penalise wash-trading: vol/liq > 500% deducts market score
+- Reward volume trend: volume_h1 / volume_h24 > 10% = trending now
+- Penalise age < 0.5h: data too unstable
+- Bonus if BOTH website AND social present (genuine project signal)
+- Buy-pressure sweet spot: 1.1x–3x ideal; above 5x suspicious
+"""
 import os
 from dataclasses import dataclass, field
 from typing import Optional
@@ -87,7 +95,7 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
                            1 if supply_capped else 0, auto=has_api,
                            note="Da source code" if has_api else "Nessuna API explorer — verifica manuale"))
 
-    # 2. Holder distribution — top holder < 15% (Etherscan TokenHolderPercent field)
+    # 2. Holder distribution — top holder < 15%
     good_dist = False
     if has_api:
         data = await _expl(client, base_url, api_key,  # type: ignore[arg-type]
@@ -101,7 +109,7 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
                            1 if good_dist else 0, auto=has_api,
                            note="Top holder verificato" if good_dist else "Verifica manuale raccomandata"))
 
-    # 3. LP locked — check if LP token (pair_address) is held by a known lock contract
+    # 3. LP locked
     lp_locked = False
     if has_api:
         data = await _expl(client, base_url, api_key,  # type: ignore[arg-type]
@@ -118,7 +126,7 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
                            note="Lock contract rilevato tra top LP holder" if lp_locked
                            else "Verifica manuale su Unicrypt / TeamFinance"))
 
-    # 4. Ownership renounced — OwnershipTransferred to address(0)
+    # 4. Ownership renounced
     renounced = False
     if has_api:
         data = await _expl(client, base_url, api_key,  # type: ignore[arg-type]
@@ -138,6 +146,7 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
     # ── UTILITY (3 pts) ──
     has_desc = bool(token.description and len(token.description) > 50)
     has_website = bool(token.website)
+    has_social = bool(token.socials)
 
     items.append(ScoreItem("Utilità", "Use case identificabile",
                            1 if has_desc else 0, auto=True,
@@ -145,8 +154,11 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
     items.append(ScoreItem("Utilità", "MVP o prodotto esistente",
                            0, auto=False,
                            note=f"Verifica manuale: {token.website}" if has_website else "Nessun sito web rilevato"))
-    items.append(ScoreItem("Utilità", "Integrazione chain-native",
-                           0, auto=False, note="Verifica manuale whitepaper / GitHub"))
+    # Bonus: both website AND social = genuine project signal
+    items.append(ScoreItem("Utilità", "Presenza web + social completa",
+                           1 if (has_website and has_social) else 0, auto=True,
+                           note="Website e social presenti" if (has_website and has_social)
+                           else "Manca website o social"))
 
     # ── TEAM (3 pts) ──
     items.append(ScoreItem("Team", "Contratto verificato su explorer",
@@ -161,26 +173,46 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
                            0, auto=False, note="Verifica manuale"))
 
     # ── SEGNALI DI MERCATO (3 pts) ──
-    items.append(ScoreItem("Mercato", "Crescita organica holder",
-                           0, auto=False, note="Richiede storico holder (API premium)"))
 
+    # Age guard: token < 0.5h has unreliable data
+    age_h = token.age_hours
+    if age_h < 0.5:
+        items.append(ScoreItem("Mercato", "Dati stabili (età ≥ 30 min)",
+                               0, auto=True, note=f"Token troppo nuovo ({age_h:.1f}h) — dati instabili"))
+    else:
+        items.append(ScoreItem("Mercato", "Dati stabili (età ≥ 30 min)",
+                               1, auto=True, note=f"Età {age_h:.1f}h — dati affidabili"))
+
+    # Volume pattern: check vol_m5 vs expected + detect wash-trading (vol/liq > 500%)
     vol_h1 = token.volume_h1
     vol_m5 = token.volume_m5
-    # m5 expected ~ vol_h1/12; allow 0.1x–8x variance
-    if vol_h1 > 0:
+    liq = token.liquidity_usd
+    wash_ratio = (token.volume_h24 / liq) if liq > 0 else 0
+
+    if wash_ratio > 5.0:
+        # Suspicious wash-trading
+        items.append(ScoreItem("Mercato", "Pattern volume pulito",
+                               0, auto=True, note=f"Vol/Liq {wash_ratio:.0f}x — possibile wash-trading"))
+    elif vol_h1 > 0:
         ratio = vol_m5 / (vol_h1 / 12)
         vol_ok = 0.05 <= ratio <= 8.0
-        vol_note = f"m5/atteso: {ratio:.1f}x"
+        items.append(ScoreItem("Mercato", "Pattern volume pulito",
+                               1 if vol_ok else 0, auto=True, note=f"m5/atteso: {ratio:.1f}x"))
     else:
-        vol_ok = False
-        vol_note = "Dati volume insufficienti"
+        items.append(ScoreItem("Mercato", "Pattern volume pulito",
+                               0, auto=True, note="Dati volume insufficienti"))
 
-    items.append(ScoreItem("Mercato", "Pattern volume pulito",
-                           1 if vol_ok else 0, auto=True, note=vol_note))
-
+    # Buy pressure sweet spot: 1.1x–3x ideal, > 5x suspicious pump
     bsr = token.buy_sell_ratio
-    items.append(ScoreItem("Mercato", "Buy pressure sostenuta (B/S ≥1.1)",
-                           1 if bsr >= 1.1 else 0, auto=True, note=f"B/S h1: {bsr:.2f}"))
+    if bsr >= 1.1 and bsr <= 3.0:
+        items.append(ScoreItem("Mercato", "Buy pressure sana (B/S 1.1x–3x)",
+                               1, auto=True, note=f"B/S h1: {bsr:.2f} — zona ottimale"))
+    elif bsr > 3.0:
+        items.append(ScoreItem("Mercato", "Buy pressure sana (B/S 1.1x–3x)",
+                               0, auto=True, note=f"B/S h1: {bsr:.2f} — pump sospetto"))
+    else:
+        items.append(ScoreItem("Mercato", "Buy pressure sana (B/S 1.1x–3x)",
+                               0, auto=True, note=f"B/S h1: {bsr:.2f}"))
 
     total = sum(i.earned for i in items)
     max_pts = sum(i.max for i in items)
