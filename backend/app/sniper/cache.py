@@ -189,6 +189,7 @@ async def run_scan() -> int:
             "count": fetch_result.total_profiles,
             "supported": len(all_tokens),
             "unsupported_chain": fetch_result.unsupported_chain,
+            "per_chain_new_pools": fetch_result.per_chain_new_pools,
         })
 
         tokens: list[RawToken] = []

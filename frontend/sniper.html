@@ -370,10 +370,10 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
   function renderLogEvent(d){
     const ts = d.ts;
     if(d.type === 'scan_start'){
-      logLine('INFO', 'info', 'Avvio scansione — recupero profili DEXScreener…', ts);
+      logLine('INFO', 'info', 'Avvio scansione — DEXScreener + nuove pool per ogni chain (ETH/BSC/BASE/ARB/AVAX/SOL)…', ts);
     } else if(d.type === 'fetched'){
       const unsupportedTxt = d.unsupported_chain ? `, ${d.unsupported_chain} su chain non supportate (ignorati)` : '';
-      logLine('INFO', 'info', `${d.count} token recuperati da DEXScreener (${d.supported} su chain supportate${unsupportedTxt}) — verifico i filtri primari uno per uno…`, ts);
+      logLine('INFO', 'info', `${d.count} profili DEXScreener${unsupportedTxt} + ${d.per_chain_new_pools} nuove pool esplorate per chain — ${d.supported} token unici da verificare…`, ts);
     } else if(d.type === 'fetch_error'){
       logLine('ERR', 'err', 'Errore nel recupero dati: ' + esc(d.message), ts);
     } else if(d.type === 'primary'){
