@@ -271,84 +271,125 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
 
 /* ── mobile console toggle btn ── */
 .console-toggle{
-  display:none; width:100%; padding:7px 14px; background:var(--panel-2);
+  display:none; width:100%; padding:8px 14px; background:var(--panel-2);
   border:none; border-top:1px solid var(--border); color:var(--fg-dim);
   font-family:inherit; font-size:11px; text-align:left; cursor:pointer;
   letter-spacing:0.05em; text-transform:uppercase; flex-shrink:0;
 }
 .console-toggle .arrow{float:right;}
 
-/* ── responsive ── */
+/* ══════════════════════════════════════════
+   MOBILE — iPhone-first redesign
+   ══════════════════════════════════════════ */
 @media (max-width: 767px) {
-  body { font-size:12px; }
+  /* ── base ── */
+  body { font-size:13px; overflow:hidden; }
 
-  /* header */
-  .hdr { padding:8px 12px; gap:8px; }
-  .meta { display:none; }
-  .back-link { display:none; }
-  .hdr h1 { font-size:14px; }
-  button.scan-btn { padding:7px 12px; font-size:11px; }
+  /* ── header: slim single row ── */
+  .hdr {
+    padding:10px 14px; gap:10px;
+    flex-wrap:nowrap; align-items:center;
+  }
+  .hdr h1 { font-size:13px; white-space:nowrap; }
+  .meta, .back-link { display:none; }
+  button.scan-btn { padding:8px 14px; font-size:11px; flex-shrink:0; }
+  .status-pill { font-size:10px; padding:3px 8px; }
+  .spacer { display:none; }
 
-  /* tabs */
-  .tab-bar button { padding:10px 14px; font-size:12px; flex:1; text-align:center; }
+  /* ── tabs: full width ── */
+  .tab-bar button { padding:11px 0; font-size:12px; flex:1; text-align:center; }
 
-  /* sniper panel: stack vertically */
-  #sniper-panel { flex-direction:column; }
-  #market-panel { flex-direction:column; }
+  /* ── panels: single column ── */
+  #sniper-panel, #market-panel { flex-direction:column; }
 
-  /* console pane on mobile */
+  /* .body must also be column so console stacks above results */
+  .body { flex-direction:column; }
+
+  /* ── console: collapsed by default on mobile ── */
   .console-pane {
-    width:100%; min-width:unset;
-    height:180px; border-right:none;
+    width:100%; min-width:unset; border-right:none;
     border-bottom:1px solid var(--border);
-    transition:height .2s ease;
+    height:36px; overflow:hidden;
+    transition:height .25s ease; flex-shrink:0;
   }
-  .console-pane.collapsed { height:36px; overflow:hidden; }
+  .console-pane.expanded { height:200px; }
   .console-toggle { display:block; }
+  /* hide the console-head (we use the toggle button as the header) */
+  .console-head { display:none; }
 
-  /* results pane fills remaining space */
-  .results-pane { flex:1; min-height:0; }
+  /* ── results pane: all remaining space ── */
+  .results-pane { flex:1; min-height:0; display:flex; flex-direction:column; }
 
-  /* tables: horizontal scroll, hide secondary columns */
-  .table-wrap, .mkt-table-wrap { overflow-x:auto; }
-  table { min-width:480px; }
+  /* ── token search bar: compact ── */
+  .token-search-bar { padding:8px 10px; gap:6px; }
+  .token-search-label { display:none; }
+  .token-search-input { font-size:13px; padding:9px 10px; border-radius:8px; }
+  .token-search-btn { padding:9px 14px; font-size:12px; border-radius:8px; }
 
-  /* filters: scrollable horizontally */
-  .filters, .mkt-chain-filters {
-    flex-wrap:nowrap; overflow-x:auto;
-    padding-bottom:4px; -webkit-overflow-scrolling:touch;
+  /* ── sort bar: single scrollable row ── */
+  .sort-bar {
+    flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    padding:8px 10px; gap:6px; scrollbar-width:none;
   }
-  .chip { flex-shrink:0; }
+  .sort-bar::-webkit-scrollbar { display:none; }
+  .sort-bar > span { display:none; } /* hide "Ordina:" label */
+  .sort-chip { padding:6px 11px; font-size:12px; flex-shrink:0; border-radius:7px; }
+  .no-cex-btn { padding:6px 11px; font-size:12px; flex-shrink:0; border-radius:7px; }
+  .export-btn { padding:6px 11px; font-size:12px; flex-shrink:0; margin-left:0; border-radius:7px; }
 
-  /* agent bar */
-  #agentBar { flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  /* ── chain filters: scrollable row ── */
+  .filters, .mkt-chain-filters {
+    flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    padding:8px 10px; gap:6px; scrollbar-width:none;
+  }
+  .filters::-webkit-scrollbar, .mkt-chain-filters::-webkit-scrollbar { display:none; }
+  .chip { flex-shrink:0; padding:6px 13px; font-size:12px; border-radius:7px; }
 
-  /* market toolbar */
-  .mkt-toolbar { gap:6px; }
-  .mkt-search { width:120px; }
+  /* ── agent bar ── */
+  #agentBar {
+    flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none; padding:6px 10px;
+  }
+  #agentBar::-webkit-scrollbar { display:none; }
 
-  /* market console btns */
-  .mkt-console-btns { padding:6px 10px; gap:4px; }
+  /* ── table: full-width, touch-friendly rows ── */
+  .table-wrap, .mkt-table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  table { min-width:0; width:100%; }
+  thead th { padding:8px 10px; font-size:10px; }
+  tbody td { padding:11px 10px; font-size:12px; }
+  tbody tr { -webkit-tap-highlight-color:rgba(63,214,124,.15); }
 
-  /* sidebar: full width on mobile */
+  /* ── sidebar: full-screen sheet ── */
   .sidebar { width:100%; max-width:100%; }
+  .sidebar-actions { flex-wrap:wrap; gap:6px; }
+  .btn-primary, .btn-secondary { padding:12px 10px; font-size:12px; }
 
-  /* pagination */
-  .mkt-pagination { padding:6px 10px; }
-
-  /* thead: smaller text */
-  thead th { padding:7px 8px; font-size:9.5px; }
-  tbody td { padding:7px 8px; }
+  /* ── market toolbar: wrap tightly ── */
+  .mkt-toolbar { padding:6px 10px; gap:6px; flex-wrap:wrap; }
+  .mkt-search { width:100%; }
+  .mkt-select { flex:1; }
+  .mkt-info { margin-left:0; width:100%; }
+  .mkt-console-btns { padding:6px 10px; gap:6px; }
+  .mkt-pagination { padding:8px 10px; }
 }
 
-@media (max-width: 480px) {
+/* ── very small screens: hide low-priority columns ── */
+@media (max-width: 420px) {
+  /* sniper table: keep Token, Score, Liq; hide Vol24h, B/S, Età, MC */
+  #resultsTable thead th:nth-child(4),
+  #resultsTable tbody td:nth-child(4),
+  #resultsTable thead th:nth-child(5),
+  #resultsTable tbody td:nth-child(5),
   #resultsTable thead th:nth-child(6),
   #resultsTable tbody td:nth-child(6),
   #resultsTable thead th:nth-child(8),
   #resultsTable tbody td:nth-child(8) { display:none; }
 
+  /* market table: keep Token, Liq, MC; hide DEX, Vol24h, Price, B/S */
   #mktTable thead th:nth-child(3),
   #mktTable tbody td:nth-child(3),
+  #mktTable thead th:nth-child(5),
+  #mktTable tbody td:nth-child(5),
   #mktTable thead th:nth-child(7),
   #mktTable tbody td:nth-child(7),
   #mktTable thead th:nth-child(9),
@@ -417,7 +458,7 @@ tbody tr.top5-row:hover{ background: rgba(240,180,41,.12); }
         <span id="consoleCount">0 eventi</span>
       </div>
       <div class="console-log" id="consoleLog"></div>
-      <button class="console-toggle" id="consoleToggleBtn" onclick="toggleConsole('sniperConsolePc','consoleToggleBtn')">Console <span class="arrow">▲</span></button>
+      <button class="console-toggle" id="consoleToggleBtn" onclick="toggleConsole('sniperConsolePc','consoleToggleBtn')">Console <span class="arrow">▼</span></button>
     </div>
 
     <div class="results-pane">
@@ -482,7 +523,7 @@ tbody tr.top5-row:hover{ background: rgba(240,180,41,.12); }
       <span id="mktConsoleCount">0 eventi</span>
     </div>
     <div class="console-log" id="mktConsoleLog"></div>
-    <button class="console-toggle" id="mktConsoleToggleBtn" onclick="toggleConsole('mktConsolePc','mktConsoleToggleBtn')">Console <span class="arrow">▲</span></button>
+    <button class="console-toggle" id="mktConsoleToggleBtn" onclick="toggleConsole('mktConsolePc','mktConsoleToggleBtn')">Console <span class="arrow">▼</span></button>
     <div class="mkt-console-btns">
       <button class="scan-btn" id="mktScanBtn" onclick="triggerMarketScan()">Scansiona mercato</button>
       <button class="import-btn" id="mktImportBtn" disabled onclick="triggerMarketImport()">Importa su Sniper</button>
@@ -634,8 +675,8 @@ tbody tr.top5-row:hover{ background: rgba(240,180,41,.12); }
   window.toggleConsole = function(paneId, btnId){
     const pane = document.getElementById(paneId);
     const btn = document.getElementById(btnId);
-    const collapsed = pane.classList.toggle('collapsed');
-    btn.querySelector('.arrow').textContent = collapsed ? '▼' : '▲';
+    const expanded = pane.classList.toggle('expanded');
+    btn.querySelector('.arrow').textContent = expanded ? '▲' : '▼';
   };
 
   /* ── sort bar ── */
