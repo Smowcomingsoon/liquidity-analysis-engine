@@ -310,8 +310,6 @@ async def run_import() -> int:
         Candidate,
         _store as sniper_store,
         _save_candidates,
-        passes_threshold,
-        fail_reason,
     )
     from .scorer import score, TokenScore
 
