@@ -209,6 +209,19 @@
         <button type="button" class="tab hidden" id="balances-tab-btn" data-tab="saldi">Saldi</button>
       </div>
 
+      <!-- Strategia tab removed from UI but DOM elements kept for JS compatibility -->
+      <div hidden>
+        <span id="strategy-position-badge" class="position-badge flat">FLAT</span>
+        <div id="strategy-select-slot"></div>
+        <form id="params-form">
+          <div id="strategy-params-fields"></div>
+          <button type="button" id="optimize-strategy-btn" hidden></button>
+          <p id="optimize-strategy-result" hidden></p>
+        </form>
+        <span id="operations-count"></span>
+        <ul id="operations-list"></ul>
+      </div>
+
       <div class="tab-content active" data-tab-content="backtest">
         <div class="panel lab-panel" id="lab-panel">
 
