@@ -286,7 +286,15 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
         <button class="chip" data-chain="arbitrum">ARB</button>
         <button class="chip" data-chain="avalanche">AVAX</button>
         <button class="chip" data-chain="solana">SOL</button>
+        <button class="chip" data-chain="polygon">POL</button>
+        <button class="chip" data-chain="tron">TRX</button>
+        <button class="chip" data-chain="ton">TON</button>
+        <button class="chip" data-chain="sui">SUI</button>
       </div>
+
+      <!-- agent status bar -->
+      <div id="agentBar" style="display:flex;gap:8px;padding:6px 12px;flex-wrap:wrap;border-bottom:1px solid var(--border);flex-shrink:0;"></div>
+
       <div class="table-wrap" id="tableWrap">
         <div class="empty-state" id="emptyState">
           <div class="big">Nessun candidato ancora</div>
@@ -547,6 +555,14 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
       logLine('ERR', 'err', `${esc(d.symbol)||'?'}: ${esc(d.message)}`, ts);
     } else if(d.type === 'scan_end'){
       logLine('DONE', 'info', `Scansione completata in ${d.duration.toFixed(1)}s — ${d.fetched??'?'} recuperati, ${d.scanned} superano i filtri primari, ${d.added} candidati, ${d.total} in archivio`, ts);
+    } else if(d.type === 'agent_start'){
+      logLine('🤖', 'info', `Agente <b>${esc(d.label)}</b> avviato…`, ts);
+    } else if(d.type === 'agent_done'){
+      const n = d.added ?? 0;
+      logLine(n > 0 ? '🟢' : '🔵', n > 0 ? 'pass' : 'info',
+        `Agente <b>${esc(d.label)}</b> — ${n > 0 ? `<b style="color:var(--accent)">+${n} nuovi candidati</b>` : 'nessun nuovo candidato'}`, ts);
+    } else if(d.type === 'agent_error'){
+      logLine('⚠️', 'err', `Agente ${esc(d.agent)}: ${esc(d.message)}`, ts);
     }
   }
 
@@ -554,6 +570,7 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
     renderLogEvent(d);
     if(d.type === 'scan_start') setScanning(true);
     else if(d.type === 'scan_end'){ setScanning(false); loadCandidates(); }
+    else if(d.type === 'agent_done' && (d.added ?? 0) > 0){ loadCandidates(); document.dispatchEvent(new Event('agent-update')); }
   }
 
   async function loadCandidates(){
@@ -917,6 +934,45 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
     }
   }
 
+  // ── Agent status bar ─────────────────────────────────────────────────────
+  const agentBar = document.getElementById('agentBar');
+  const AGENT_LABELS = {
+    pump_fun: { icon: '🎯', label: 'Pump.fun' },
+    market_harvest: { icon: '🌾', label: 'Market Harvest' },
+  };
+
+  async function refreshAgents(){
+    try{
+      const r = await fetch('/api/sniper/agents');
+      const data = await r.json();
+      const agents = data.agents || [];
+      agentBar.innerHTML = agents.map(a => {
+        const meta = AGENT_LABELS[a.name] || { icon: '🤖', label: a.label };
+        const ago = a.last_run > 0
+          ? `${Math.round((Date.now()/1000 - a.last_run) / 60)}m fa`
+          : 'mai';
+        const nextIn = a.last_run > 0
+          ? Math.max(0, Math.round((a.last_run + a.interval_s - Date.now()/1000) / 60))
+          : Math.round(a.interval_s / 60);
+        const state = a.running ? 'running' : a.error ? 'err' : 'idle';
+        const stateColor = { running:'var(--green)', err:'var(--red)', idle:'var(--fg-dim)' }[state];
+        const stateTxt = { running:'in corso…', err:'errore', idle:`prossimo ~${nextIn}m` }[state];
+        return `<span style="display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;border:1px solid var(--border);font-size:11px;color:${stateColor}">
+          <span>${meta.icon}</span>
+          <span style="color:var(--fg)">${meta.label}</span>
+          <span style="color:var(--fg-dim)">·</span>
+          <span>${stateTxt}</span>
+          ${a.last_count > 0 ? `<span style="color:var(--accent);font-weight:700">+${a.last_count}</span>` : ''}
+        </span>`;
+      }).join('');
+    } catch(e){ /* ignore */ }
+  }
+
+  refreshAgents();
+  setInterval(refreshAgents, 30000);
+  document.addEventListener('agent-update', refreshAgents);
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Connect to market stream immediately so events from ongoing scans are captured
   connectMarketStream();
   loadMktHistory();

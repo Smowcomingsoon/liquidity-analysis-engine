@@ -228,11 +228,15 @@ async def _watchlist_alert_loop() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.sniper import cache as sniper_cache
+    from app.sniper import agents as sniper_agents
     t1 = asyncio.create_task(_watchlist_alert_loop())
     t2 = asyncio.create_task(sniper_cache.polling_loop())
+    agent_tasks = await sniper_agents.start_all()
     yield
     t1.cancel()
     t2.cancel()
+    for t in agent_tasks:
+        t.cancel()
 
 
 app = FastAPI(title="Liquidity Analysis Engine", lifespan=lifespan)
@@ -1343,6 +1347,12 @@ async def sniper_market_import() -> dict:
 async def sniper_market_log(limit: int = 500) -> dict:
     from app.sniper import market as sniper_market_mod
     return {"events": sniper_market_mod.get_log(limit=limit)}
+
+
+@app.get("/api/sniper/agents")
+async def sniper_agents_status() -> dict:
+    from app.sniper import agents as sniper_agents
+    return {"agents": sniper_agents.get_status()}
 
 
 @app.get("/api/sniper/market-stream")

@@ -38,13 +38,10 @@ GECKO_NETWORKS = {
 # tokens surfacing via a fresh LP at the other) — these thresholds still
 # cut both of those, just with more headroom for genuinely early but not
 # yet fully "seasoned" projects in between.
-MC_MIN = 10_000
-MC_MAX = 10_000_000
-LIQUIDITY_MIN = 5_000
-AGE_MIN_H = 0.25
+MC_MIN = 1_000
+MC_MAX = 15_000_000
+LIQUIDITY_MIN = 500
 AGE_MAX_H = 720.0
-VOL_MC_RATIO_MIN = 0.03
-BUY_SELL_RATIO_MIN = 1.0
 
 
 @dataclass
@@ -82,21 +79,18 @@ class RawToken:
 
 
 def _passes_primary(token: RawToken) -> tuple[bool, str]:
-    if not token.market_cap:
-        return False, "market_cap non disponibile"
-    if not (MC_MIN <= token.market_cap <= MC_MAX):
-        return False, f"MC ${token.market_cap:,.0f}"
+    mc = token.market_cap
+    # Only filter on MC when the data is actually present
+    if mc is not None:
+        if mc < MC_MIN:
+            return False, f"MC ${mc:,.0f} troppo basso"
+        if mc > MC_MAX:
+            return False, f"MC ${mc:,.0f} troppo alto"
     if token.liquidity_usd < LIQUIDITY_MIN:
         return False, f"Liquidity ${token.liquidity_usd:,.0f}"
     age = token.age_hours
-    if not (AGE_MIN_H <= age <= AGE_MAX_H):
-        return False, f"Age {age:.1f}h"
-    if token.volume_h24 and token.market_cap:
-        ratio = token.volume_h24 / token.market_cap
-        if ratio < VOL_MC_RATIO_MIN:
-            return False, f"Vol/MC {ratio:.2f}"
-    if token.buy_sell_ratio < BUY_SELL_RATIO_MIN:
-        return False, f"B/S {token.buy_sell_ratio:.2f}"
+    if age > AGE_MAX_H:
+        return False, f"Troppo vecchio {age:.0f}h"
     return True, "ok"
 
 
