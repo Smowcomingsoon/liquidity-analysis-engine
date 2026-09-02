@@ -12,7 +12,7 @@ Agent status (name, last_run, last_count, error) is exposed via get_status().
 import asyncio
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 import httpx
@@ -55,8 +55,7 @@ def get_status() -> list[dict]:
 
 def _add_to_sniper(token, score_items=None) -> bool:
     """Add a RawToken directly to the sniper candidate archive. Returns True if new."""
-    from .cache import _store as sniper_store, _save_candidates, Candidate
-    from .scorer import TokenScore, ScoreItem
+    from .cache import _store as sniper_store, Candidate
 
     existing = sniper_store.get(token.token_address)
     c = Candidate(
@@ -109,7 +108,7 @@ async def _pump_fun_loop() -> None:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 tokens = await fetch_pumpfun_trending(client)
 
-            from .cache import _store as sniper_store, _save_candidates
+            from .cache import _save_candidates
             added = 0
             for token in tokens:
                 ok, reason = _passes_primary(token)
