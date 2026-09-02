@@ -248,6 +248,112 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
 ::-webkit-scrollbar{width:9px; height:9px;}
 ::-webkit-scrollbar-thumb{background:var(--border); border-radius:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
+
+/* ── mobile console toggle btn ── */
+.console-toggle{
+  display:none; width:100%; padding:7px 14px; background:var(--panel-2);
+  border:none; border-top:1px solid var(--border); color:var(--fg-dim);
+  font-family:inherit; font-size:11px; text-align:left; cursor:pointer;
+  letter-spacing:0.05em; text-transform:uppercase; flex-shrink:0;
+}
+.console-toggle .arrow{float:right;}
+
+/* ── responsive ── */
+@media (max-width: 767px) {
+  body { font-size:12px; }
+
+  /* header */
+  .hdr { padding:8px 12px; gap:8px; }
+  .meta { display:none; }
+  .back-link { display:none; }
+  .hdr h1 { font-size:14px; }
+  button.scan-btn { padding:7px 12px; font-size:11px; }
+
+  /* tabs */
+  .tab-bar button { padding:10px 14px; font-size:12px; flex:1; text-align:center; }
+
+  /* sniper panel: stack vertically */
+  #sniper-panel { flex-direction:column; }
+  #market-panel { flex-direction:column; }
+
+  /* console pane on mobile */
+  .console-pane {
+    width:100%; min-width:unset;
+    height:180px; border-right:none;
+    border-bottom:1px solid var(--border);
+    transition:height .2s ease;
+  }
+  .console-pane.collapsed { height:36px; overflow:hidden; }
+  .console-toggle { display:block; }
+
+  /* results pane fills remaining space */
+  .results-pane { flex:1; min-height:0; }
+
+  /* tables: horizontal scroll, hide secondary columns */
+  .table-wrap, .mkt-table-wrap { overflow-x:auto; }
+  table { min-width:480px; }
+
+  /* filters: scrollable horizontally */
+  .filters, .mkt-chain-filters {
+    flex-wrap:nowrap; overflow-x:auto;
+    padding-bottom:4px; -webkit-overflow-scrolling:touch;
+  }
+  .chip { flex-shrink:0; }
+
+  /* agent bar */
+  #agentBar { flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+  /* market toolbar */
+  .mkt-toolbar { gap:6px; }
+  .mkt-search { width:120px; }
+
+  /* market console btns */
+  .mkt-console-btns { padding:6px 10px; gap:4px; }
+
+  /* sidebar: full width on mobile */
+  .sidebar { width:100%; max-width:100%; }
+
+  /* pagination */
+  .mkt-pagination { padding:6px 10px; }
+
+  /* thead: smaller text */
+  thead th { padding:7px 8px; font-size:9.5px; }
+  tbody td { padding:7px 8px; }
+}
+
+@media (max-width: 480px) {
+  #resultsTable thead th:nth-child(6),
+  #resultsTable tbody td:nth-child(6),
+  #resultsTable thead th:nth-child(8),
+  #resultsTable tbody td:nth-child(8) { display:none; }
+
+  #mktTable thead th:nth-child(3),
+  #mktTable tbody td:nth-child(3),
+  #mktTable thead th:nth-child(7),
+  #mktTable tbody td:nth-child(7),
+  #mktTable thead th:nth-child(9),
+  #mktTable tbody td:nth-child(9) { display:none; }
+}
+
+/* ── sort bar & export ── */
+.sort-bar{
+  display:flex; align-items:center; gap:6px; padding:6px 12px;
+  border-bottom:1px solid var(--border); flex-shrink:0; flex-wrap:wrap;
+  background:var(--panel-2);
+}
+.sort-bar span{ color:var(--fg-dim); font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; margin-right:2px; }
+.sort-chip{
+  background:var(--panel); border:1px solid var(--border); color:var(--fg-dim);
+  border-radius:5px; padding:3px 9px; font-size:11px; font-family:inherit;
+  cursor:pointer; font-weight:600;
+}
+.sort-chip.active{ color:var(--bg); background:var(--fg-dim); border-color:var(--fg-dim); }
+.export-btn{
+  margin-left:auto; background:none; border:1px solid var(--border); color:var(--fg-dim);
+  border-radius:5px; padding:3px 10px; font-size:11px; font-family:inherit;
+  cursor:pointer; font-weight:600; white-space:nowrap;
+}
+.export-btn:hover{ color:var(--fg); border-color:var(--fg); }
 </style>
 </head>
 <body>
@@ -269,15 +375,24 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
 <!-- ── Sniper Panel ── -->
 <div class="tab-panel active" id="sniper-panel">
   <div class="body">
-    <div class="console-pane">
+    <div class="console-pane" id="sniperConsolePc">
       <div class="console-head">
         <span>Console scansione</span>
         <span id="consoleCount">0 eventi</span>
       </div>
       <div class="console-log" id="consoleLog"></div>
+      <button class="console-toggle" id="consoleToggleBtn" onclick="toggleConsole('sniperConsolePc','consoleToggleBtn')">Console <span class="arrow">▲</span></button>
     </div>
 
     <div class="results-pane">
+      <div class="sort-bar">
+        <span>Ordina:</span>
+        <button class="sort-chip active" data-sort="last_updated">Recenti ↓</button>
+        <button class="sort-chip" data-sort="market_cap">MC ↓</button>
+        <button class="sort-chip" data-sort="liquidity_usd">Liquidità ↓</button>
+        <button class="sort-chip" data-sort="score_total">Score ↓</button>
+        <button class="export-btn" id="exportBtn" onclick="exportExcel()">⬇ Excel</button>
+      </div>
       <div class="filters" id="chainFilters">
         <button class="chip active" data-chain="all">Tutte</button>
         <button class="chip" data-chain="ethereum">ETH</button>
@@ -317,12 +432,13 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
 <!-- ── Market Screener Panel ── -->
 <div class="tab-panel" id="market-panel">
   <!-- LEFT: scan console -->
-  <div class="console-pane">
+  <div class="console-pane" id="mktConsolePc">
     <div class="console-head">
       <span>Log scansione mercato</span>
       <span id="mktConsoleCount">0 eventi</span>
     </div>
     <div class="console-log" id="mktConsoleLog"></div>
+    <button class="console-toggle" id="mktConsoleToggleBtn" onclick="toggleConsole('mktConsolePc','mktConsoleToggleBtn')">Console <span class="arrow">▲</span></button>
     <div class="mkt-console-btns">
       <button class="scan-btn" id="mktScanBtn" onclick="triggerMarketScan()">Scansiona mercato</button>
       <button class="import-btn" id="mktImportBtn" disabled onclick="triggerMarketImport()">Importa su Sniper</button>
@@ -404,6 +520,7 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 (function(){
   /* ── shared utils ── */
@@ -458,9 +575,86 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
 
   let candidates = [];
   let activeChain = 'all';
+  let activeSort = 'last_updated';
   let eventCount = 0;
   let es = null;
   let lastLogDate = null;
+
+  /* ── mobile console toggle ── */
+  window.toggleConsole = function(paneId, btnId){
+    const pane = document.getElementById(paneId);
+    const btn = document.getElementById(btnId);
+    const collapsed = pane.classList.toggle('collapsed');
+    btn.querySelector('.arrow').textContent = collapsed ? '▼' : '▲';
+  };
+
+  /* ── sort bar ── */
+  document.querySelector('.sort-bar').addEventListener('click', (e) => {
+    const chip = e.target.closest('.sort-chip');
+    if(!chip) return;
+    document.querySelectorAll('.sort-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeSort = chip.dataset.sort;
+    renderTable();
+  });
+
+  /* ── excel export ── */
+  window.exportExcel = function(){
+    if(!candidates.length){ alert('Nessun candidato da esportare.'); return; }
+    const rows = candidates.map(c => ({
+      'Simbolo': c.symbol,
+      'Nome': c.name,
+      'Chain': c.chain_id,
+      'DEX': c.dex_id,
+      'Score': c.score_total + '/' + c.score_max,
+      'Market Cap ($)': c.market_cap || '',
+      'Liquidità ($)': c.liquidity_usd,
+      'Volume 24h ($)': c.volume_h24,
+      'Volume 1h ($)': c.volume_h1 || '',
+      'Prezzo ($)': c.price_usd,
+      'Buy/Sell h1': c.buy_sell_ratio,
+      'Età (h)': Math.round(c.age_hours * 10) / 10,
+      'Prima volta': new Date(c.first_seen * 1000).toLocaleString('it-IT'),
+      'Ultimo agg.': new Date(c.last_updated * 1000).toLocaleString('it-IT'),
+      'Website': c.website || '',
+      'Pair URL': c.pair_url || '',
+      'Criteri superati': (c.score_items || []).filter(i => i.earned).map(i => i.criterion).join('; '),
+      'Criteri mancati': (c.score_items || []).filter(i => !i.earned).map(i => i.criterion).join('; '),
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    // column widths
+    ws['!cols'] = [
+      {wch:10},{wch:20},{wch:10},{wch:16},{wch:8},
+      {wch:14},{wch:14},{wch:14},{wch:12},{wch:12},
+      {wch:10},{wch:8},{wch:20},{wch:20},
+      {wch:30},{wch:50},{wch:60},{wch:60},
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Candidati Sniper');
+
+    // insights sheet
+    const now = new Date();
+    const insightRows = [
+      ['Esportato il', now.toLocaleString('it-IT')],
+      ['Totale candidati', candidates.length],
+      ['Per chain', ''],
+    ];
+    const byChain = {};
+    candidates.forEach(c => { byChain[c.chain_id] = (byChain[c.chain_id] || 0) + 1; });
+    Object.entries(byChain).sort((a,b) => b[1]-a[1]).forEach(([chain, n]) => {
+      insightRows.push(['  ' + chain, n]);
+    });
+    insightRows.push(['', '']);
+    insightRows.push(['Score medio', Math.round(candidates.reduce((s,c) => s + c.score_total, 0) / candidates.length * 10) / 10]);
+    insightRows.push(['Liquidità media ($)', Math.round(candidates.reduce((s,c) => s + c.liquidity_usd, 0) / candidates.length)]);
+    insightRows.push(['MC media ($)', Math.round(candidates.filter(c => c.market_cap).reduce((s,c) => s + c.market_cap, 0) / candidates.filter(c => c.market_cap).length)]);
+    const wsI = XLSX.utils.aoa_to_sheet(insightRows);
+    wsI['!cols'] = [{wch:30},{wch:20}];
+    XLSX.utils.book_append_sheet(wb, wsI, 'Insights');
+
+    const date = now.toISOString().slice(0,10);
+    XLSX.writeFile(wb, `sniper-candidati-${date}.xlsx`);
+  };
 
   function logLine(tag, tagClass, html, ts){
     const stamp = ts || (Date.now() / 1000);
@@ -588,7 +782,8 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
   }
 
   function renderTable(){
-    const filtered = activeChain === 'all' ? candidates : candidates.filter(c => c.chain_id === activeChain);
+    let filtered = activeChain === 'all' ? [...candidates] : candidates.filter(c => c.chain_id === activeChain);
+    filtered.sort((a, b) => (b[activeSort] || 0) - (a[activeSort] || 0));
     if(filtered.length === 0){
       resultsTable.style.display = 'none';
       emptyState.style.display = 'flex';
