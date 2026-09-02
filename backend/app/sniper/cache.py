@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 
 POLL_INTERVAL_SECONDS = 300  # 5 min
 
-SCORE_MIN = 8
-TOKENOMICS_MIN = 2
-UTILITY_MIN = 1
+SCORE_MIN = 5
+TOKENOMICS_MIN = 1
+UTILITY_MIN = 0
 
 LOG_MAX_ENTRIES = 5000
 
@@ -151,13 +151,13 @@ def _broadcast(event: dict) -> None:
         q.put_nowait(event)
 
 
-def _passes_threshold(s: TokenScore) -> bool:
+def passes_threshold(s: TokenScore) -> bool:
     tok = sum(i.earned for i in s.items if i.category == "Tokenomics")
     uti = sum(i.earned for i in s.items if i.category == "Utilità")
     return s.total >= SCORE_MIN and tok >= TOKENOMICS_MIN and uti >= UTILITY_MIN
 
 
-def _fail_reason(s: TokenScore) -> str:
+def fail_reason(s: TokenScore) -> str:
     tok = sum(i.earned for i in s.items if i.category == "Tokenomics")
     uti = sum(i.earned for i in s.items if i.category == "Utilità")
     if tok < TOKENOMICS_MIN:
@@ -165,6 +165,11 @@ def _fail_reason(s: TokenScore) -> str:
     if uti < UTILITY_MIN:
         return f"utilità {uti}/{UTILITY_MIN} min"
     return f"score {s.total}/{SCORE_MIN} min"
+
+
+# private aliases kept for backward compat inside this module
+_passes_threshold = passes_threshold
+_fail_reason = fail_reason
 
 
 async def run_scan() -> int:

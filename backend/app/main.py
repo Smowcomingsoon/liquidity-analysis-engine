@@ -1326,6 +1326,19 @@ async def sniper_market_trigger_scan() -> dict:
     return {"ok": True, "added": added}
 
 
+@app.post("/api/sniper/market-import")
+async def sniper_market_import() -> dict:
+    """Apply the sniper's primary filter + on-chain scoring to every token
+    currently in the market store and add qualifying ones to the sniper
+    candidate archive. Progress is streamed via /api/sniper/market-stream."""
+    from app.sniper import market as sniper_market_mod
+
+    if sniper_market_mod.import_in_progress():
+        return {"ok": False, "error": "Import already in progress"}
+    added = await sniper_market_mod.run_import()
+    return {"ok": True, "added": added}
+
+
 @app.get("/api/sniper/market-stream")
 async def sniper_market_stream() -> StreamingResponse:
     """SSE feed of market-scan progress (per-chain, since this is a heavier

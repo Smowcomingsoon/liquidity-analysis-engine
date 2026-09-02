@@ -19,7 +19,7 @@ from typing import Optional
 
 import httpx
 
-from .scanner import GECKO_NETWORKS, RawToken, fetch_market_chain
+from .scanner import GECKO_NETWORKS, RawToken, _passes_primary, fetch_market_chain
 
 logger = logging.getLogger(__name__)
 
@@ -186,4 +186,155 @@ async def run_market_scan() -> int:
             "duration": time.time() - t0,
         })
         logger.info("Market screener scan complete: %d tokens stored", len(_store))
+        return added
+
+
+_import_lock = asyncio.Lock()
+
+
+def import_in_progress() -> bool:
+    return _import_lock.locked()
+
+
+def _market_to_raw(t: MarketToken) -> RawToken:
+    """Convert a MarketToken back to a RawToken so the scorer pipeline can run on it."""
+    pair_created_at_ms = int((time.time() - t.age_hours * 3600) * 1000)
+    sells = max(1, round(10 / max(t.buy_sell_ratio, 0.01)))
+    buys = round(t.buy_sell_ratio * sells)
+    return RawToken(
+        chain_id=t.chain_id,
+        token_address=t.token_address,
+        pair_address=t.pair_address,
+        symbol=t.symbol,
+        name=t.name,
+        dex_id=t.dex_id,
+        price_usd=t.price_usd,
+        market_cap=t.market_cap,
+        liquidity_usd=t.liquidity_usd,
+        volume_h24=t.volume_h24,
+        volume_h1=0.0,
+        volume_m5=0.0,
+        buys_h1=buys,
+        sells_h1=sells,
+        pair_created_at_ms=pair_created_at_ms,
+    )
+
+
+async def run_import() -> int:
+    """Apply the sniper's primary filter + on-chain scoring to every token in
+    the market store. Tokens that pass are added to the sniper candidate
+    archive. Progress is broadcast on the market SSE stream so the market
+    console can show it in real time. Returns the number of new candidates."""
+    from .cache import (
+        Candidate,
+        _store as sniper_store,
+        _save_candidates,
+        passes_threshold,
+        fail_reason,
+    )
+    from .scorer import score, TokenScore
+
+    async with _import_lock:
+        t0 = time.time()
+        raw_tokens = [_market_to_raw(t) for t in list(_store.values())]
+        _broadcast({"type": "import_start", "total": len(raw_tokens)})
+
+        passing: list[RawToken] = []
+        for token in raw_tokens:
+            ok, reason = _passes_primary(token)
+            _broadcast({
+                "type": "primary",
+                "symbol": token.symbol,
+                "chain": token.chain_id,
+                "address": token.token_address,
+                "passed": ok,
+                "reason": None if ok else reason,
+            })
+            if ok:
+                passing.append(token)
+
+        added = 0
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            for token in passing:
+                _broadcast({
+                    "type": "evaluating",
+                    "symbol": token.symbol,
+                    "chain": token.chain_id,
+                    "address": token.token_address,
+                })
+                try:
+                    s: TokenScore = await score(token, client)
+                except Exception as exc:
+                    logger.warning("Import score error %s: %s", token.symbol, exc)
+                    _broadcast({
+                        "type": "error",
+                        "symbol": token.symbol,
+                        "chain": token.chain_id,
+                        "message": str(exc),
+                    })
+                    continue
+
+                passed = passes_threshold(s)
+                _broadcast({
+                    "type": "result",
+                    "symbol": token.symbol,
+                    "chain": token.chain_id,
+                    "address": token.token_address,
+                    "score": s.total,
+                    "score_max": s.max,
+                    "passed": passed,
+                    "reason": None if passed else fail_reason(s),
+                })
+                if not passed:
+                    continue
+
+                c = Candidate(
+                    chain_id=token.chain_id,
+                    token_address=token.token_address,
+                    pair_address=token.pair_address,
+                    symbol=token.symbol,
+                    name=token.name,
+                    dex_id=token.dex_id,
+                    pair_url=token.pair_url,
+                    price_usd=token.price_usd,
+                    market_cap=token.market_cap,
+                    liquidity_usd=token.liquidity_usd,
+                    volume_h24=token.volume_h24,
+                    volume_h1=token.volume_h1,
+                    age_hours=token.age_hours,
+                    buy_sell_ratio=token.buy_sell_ratio,
+                    website=token.website,
+                    socials=token.socials,
+                    score_total=s.total,
+                    score_max=s.max,
+                    score_items=[
+                        {
+                            "category": i.category,
+                            "criterion": i.criterion,
+                            "earned": i.earned,
+                            "max": i.max,
+                            "auto": i.auto,
+                            "note": i.note,
+                        }
+                        for i in s.items
+                    ],
+                    first_seen=sniper_store[token.token_address].first_seen
+                    if token.token_address in sniper_store
+                    else time.time(),
+                    last_updated=time.time(),
+                )
+                sniper_store[token.token_address] = c
+                added += 1
+
+        if added:
+            _save_candidates()
+        _broadcast({
+            "type": "import_end",
+            "added": added,
+            "total": len(sniper_store),
+            "scanned": len(passing),
+            "fetched": len(raw_tokens),
+            "duration": time.time() - t0,
+        })
+        logger.info("Market import complete: %d new sniper candidates", added)
         return added

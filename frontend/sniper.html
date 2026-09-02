@@ -194,16 +194,27 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
 .overlay.open{opacity:1; pointer-events:auto;}
 
 /* ── market screener panel ── */
-#market-panel{flex-direction:column;}
+#market-panel{flex-direction:row;}
+.mkt-console-btns{
+  display:flex; gap:6px; padding:8px 14px; border-top:1px solid var(--border); flex-shrink:0;
+}
+.mkt-console-btns button{flex:1;}
+button.import-btn{
+  background:var(--amber); color:#1a0f00; border:none; border-radius:6px;
+  font-family:inherit; font-weight:700; font-size:12px; letter-spacing:0.03em;
+  padding:8px 16px; cursor:pointer; text-transform:uppercase; transition:filter .15s;
+}
+button.import-btn:hover{filter:brightness(1.1);}
+button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); cursor:not-allowed;}
 .mkt-toolbar{
-  display:flex; align-items:center; gap:8px; padding:10px 16px;
+  display:flex; align-items:center; gap:8px; padding:8px 12px;
   border-bottom:1px solid var(--border); flex-shrink:0; flex-wrap:wrap;
   background:var(--panel);
 }
 .mkt-search{
   background:var(--panel-2); border:1px solid var(--border); color:var(--fg-bright);
   border-radius:6px; padding:6px 12px; font-family:inherit; font-size:12px;
-  width:180px; outline:none;
+  width:160px; outline:none;
 }
 .mkt-search:focus{border-color:var(--accent);}
 .mkt-select{
@@ -212,37 +223,15 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
   outline:none;
 }
 .mkt-select:focus{border-color:var(--accent);}
-.mkt-spacer{flex:1;}
-.mkt-info{color:var(--fg-dim); font-size:11.5px; white-space:nowrap;}
+.mkt-info{color:var(--fg-dim); font-size:11px; white-space:nowrap; margin-left:auto;}
 .mkt-info b{color:var(--fg);}
-
-.mkt-progress{
-  padding:10px 16px; border-bottom:1px solid var(--border);
-  background:var(--panel-2); flex-shrink:0; display:none;
-}
-.mkt-progress.active{display:block;}
-.mkt-progress-title{
-  font-size:11px; text-transform:uppercase; letter-spacing:0.08em;
-  color:var(--amber); margin-bottom:8px; font-weight:700;
-}
-.mkt-chains{display:flex; gap:8px; flex-wrap:wrap;}
-.mkt-chain-item{
-  display:flex; align-items:center; gap:5px; padding:4px 10px;
-  border-radius:5px; border:1px solid var(--border); font-size:11px; font-weight:600;
-  color:var(--fg-dim); background:var(--panel); transition:all .2s;
-}
-.mkt-chain-item.loading{color:var(--amber); border-color:var(--amber);}
-.mkt-chain-item.done{color:var(--green); border-color:var(--green-dim);}
-.mkt-chain-item .spin{display:inline-block; animation:spin .8s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-
 .mkt-chain-filters{
-  display:flex; gap:6px; padding:8px 16px; border-bottom:1px solid var(--border);
+  display:flex; gap:6px; padding:8px 12px; border-bottom:1px solid var(--border);
   flex-wrap:wrap; flex-shrink:0;
 }
 .mkt-table-wrap{flex:1; overflow:auto; min-height:0;}
 .mkt-pagination{
-  display:flex; align-items:center; gap:10px; padding:10px 16px;
+  display:flex; align-items:center; gap:10px; padding:8px 12px;
   border-top:1px solid var(--border); flex-shrink:0; background:var(--panel);
 }
 .mkt-pagination button{
@@ -251,9 +240,10 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
 }
 .mkt-pagination button:hover:not(:disabled){color:var(--fg); border-color:var(--fg-dim);}
 .mkt-pagination button:disabled{opacity:.3; cursor:not-allowed;}
-.mkt-pagination .page-info{color:var(--fg-dim); font-size:11.5px;}
+.mkt-pagination .page-info{color:var(--fg-dim); font-size:11px;}
 .dex-link{color:var(--accent); text-decoration:none; font-size:11px; padding:2px 6px; border:1px solid var(--green-dim); border-radius:4px;}
 .dex-link:hover{border-color:var(--accent);}
+@keyframes spin{to{transform:rotate(360deg);}}
 
 ::-webkit-scrollbar{width:9px; height:9px;}
 ::-webkit-scrollbar-thumb{background:var(--border); border-radius:5px;}
@@ -318,62 +308,61 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
 
 <!-- ── Market Screener Panel ── -->
 <div class="tab-panel" id="market-panel">
-  <div class="mkt-toolbar">
-    <input class="mkt-search" id="mktSearch" type="text" placeholder="Cerca simbolo…" />
-    <select class="mkt-select" id="mktSort">
-      <option value="liquidity">Liquidità ↓</option>
-      <option value="volume">Volume ↓</option>
-      <option value="market_cap">Market Cap ↓</option>
-      <option value="age">Più recenti</option>
-    </select>
-    <div class="mkt-spacer"></div>
-    <div class="mkt-info" id="mktInfo">Nessuna scansione ancora</div>
-    <button class="scan-btn" id="mktScanBtn" onclick="triggerMarketScan()">Scansiona mercato</button>
-  </div>
-
-  <div class="mkt-progress" id="mktProgress">
-    <div class="mkt-progress-title">Scansione mercato in corso…</div>
-    <div class="mkt-chains" id="mktChains">
-      <div class="mkt-chain-item" id="mktc-ethereum">ETH</div>
-      <div class="mkt-chain-item" id="mktc-bsc">BSC</div>
-      <div class="mkt-chain-item" id="mktc-base">BASE</div>
-      <div class="mkt-chain-item" id="mktc-arbitrum">ARB</div>
-      <div class="mkt-chain-item" id="mktc-avalanche">AVAX</div>
-      <div class="mkt-chain-item" id="mktc-solana">SOL</div>
+  <!-- LEFT: scan console -->
+  <div class="console-pane">
+    <div class="console-head">
+      <span>Log scansione mercato</span>
+      <span id="mktConsoleCount">0 eventi</span>
+    </div>
+    <div class="console-log" id="mktConsoleLog"></div>
+    <div class="mkt-console-btns">
+      <button class="scan-btn" id="mktScanBtn" onclick="triggerMarketScan()">Scansiona mercato</button>
+      <button class="import-btn" id="mktImportBtn" disabled onclick="triggerMarketImport()">Importa su Sniper</button>
     </div>
   </div>
 
-  <div class="mkt-chain-filters" id="mktChainFilters">
-    <button class="chip active" data-chain="all">Tutte</button>
-    <button class="chip" data-chain="ethereum">ETH</button>
-    <button class="chip" data-chain="bsc">BSC</button>
-    <button class="chip" data-chain="base">BASE</button>
-    <button class="chip" data-chain="arbitrum">ARB</button>
-    <button class="chip" data-chain="avalanche">AVAX</button>
-    <button class="chip" data-chain="solana">SOL</button>
-  </div>
-
-  <div class="mkt-table-wrap" id="mktTableWrap">
-    <div class="empty-state" id="mktEmpty">
-      <div class="big">Nessun dato di mercato</div>
-      <div>Premi "Scansiona mercato" per caricare migliaia di token da GeckoTerminal.</div>
+  <!-- RIGHT: results pane -->
+  <div class="results-pane">
+    <div class="mkt-toolbar">
+      <input class="mkt-search" id="mktSearch" type="text" placeholder="Cerca simbolo…" />
+      <select class="mkt-select" id="mktSort">
+        <option value="liquidity">Liquidità ↓</option>
+        <option value="volume">Volume ↓</option>
+        <option value="market_cap">Market Cap ↓</option>
+        <option value="age">Più recenti</option>
+      </select>
+      <div class="mkt-info" id="mktInfo">Nessuna scansione ancora</div>
     </div>
-    <table id="mktTable" style="display:none">
-      <thead>
-        <tr>
-          <th>Token</th><th>Chain</th><th>DEX</th>
-          <th>Liquidità</th><th>Volume 24h</th><th>Market Cap</th>
-          <th>Prezzo</th><th>Età</th><th>B/S</th><th></th>
-        </tr>
-      </thead>
-      <tbody id="mktBody"></tbody>
-    </table>
-  </div>
-
-  <div class="mkt-pagination" id="mktPager" style="display:none">
-    <button id="mktPrev" onclick="mktPage(-1)" disabled>← Prec</button>
-    <span class="page-info" id="mktPageInfo">—</span>
-    <button id="mktNext" onclick="mktPage(1)">Succ →</button>
+    <div class="mkt-chain-filters" id="mktChainFilters">
+      <button class="chip active" data-chain="all">Tutte</button>
+      <button class="chip" data-chain="ethereum">ETH</button>
+      <button class="chip" data-chain="bsc">BSC</button>
+      <button class="chip" data-chain="base">BASE</button>
+      <button class="chip" data-chain="arbitrum">ARB</button>
+      <button class="chip" data-chain="avalanche">AVAX</button>
+      <button class="chip" data-chain="solana">SOL</button>
+    </div>
+    <div class="mkt-table-wrap" id="mktTableWrap">
+      <div class="empty-state" id="mktEmpty">
+        <div class="big">Nessun dato di mercato</div>
+        <div>Premi "Scansiona mercato" per caricare migliaia di token da GeckoTerminal.</div>
+      </div>
+      <table id="mktTable" style="display:none">
+        <thead>
+          <tr>
+            <th>Token</th><th>Chain</th><th>DEX</th>
+            <th>Liquidità</th><th>Volume 24h</th><th>Market Cap</th>
+            <th>Prezzo</th><th>Età</th><th>B/S</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="mktBody"></tbody>
+      </table>
+    </div>
+    <div class="mkt-pagination" id="mktPager" style="display:none">
+      <button id="mktPrev" onclick="mktPage(-1)" disabled>← Prec</button>
+      <span class="page-info" id="mktPageInfo">—</span>
+      <button id="mktNext" onclick="mktPage(1)">Succ →</button>
+    </div>
   </div>
 </div>
 
@@ -437,6 +426,7 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
     } else {
       document.getElementById('scanBtn').style.display = 'none';
       if(!mktLoaded) loadMarketData();
+      connectMarketStream();
     }
   };
 
@@ -691,6 +681,99 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
   let mktLoaded = false;
   let mktScanEs = null;
   let mktSearchTimer = null;
+  let mktEventCount = 0;
+  let mktLastLogDate = null;
+
+  const mktConsoleLog = document.getElementById('mktConsoleLog');
+  const mktConsoleCount = document.getElementById('mktConsoleCount');
+
+  function mktLogLine(tag, tagClass, html, ts){
+    const stamp = ts || (Date.now() / 1000);
+    const dayKey = fmtDate(stamp);
+    if(dayKey !== mktLastLogDate){
+      mktLastLogDate = dayKey;
+      const sep = document.createElement('div');
+      sep.className = 'day-sep';
+      sep.textContent = '── ' + dayKey + ' ──';
+      mktConsoleLog.appendChild(sep);
+    }
+    const el = document.createElement('div');
+    el.className = 'line';
+    el.innerHTML = `<span class="ts">${fmtTime(stamp)}</span><span class="tag ${tagClass}">${tag}</span><span class="msg">${html}</span>`;
+    mktConsoleLog.appendChild(el);
+    mktConsoleLog.scrollTop = mktConsoleLog.scrollHeight;
+    mktEventCount++;
+    mktConsoleCount.textContent = mktEventCount + ' eventi';
+    while(mktConsoleLog.children.length > 1200) mktConsoleLog.removeChild(mktConsoleLog.firstChild);
+  }
+
+  function renderMktEvent(d){
+    const ts = d.ts;
+    if(d.type === 'market_scan_start'){
+      mktLogLine('INFO', 'info', 'Avvio scansione mercato — recupero pool da GeckoTerminal per ogni chain…', ts);
+    } else if(d.type === 'market_chain_start'){
+      mktLogLine('SCAN', 'fail', `Recupero pool su chain <span class="sym">${esc(d.chain)}</span>…`, ts);
+    } else if(d.type === 'market_chain_done'){
+      mktLogLine('OK', 'pass', `<span class="sym">${esc(d.chain)}</span> — ${d.count} token recuperati`, ts);
+    } else if(d.type === 'market_scan_end'){
+      mktLogLine('DONE', 'info', `Scansione completata in ${d.duration.toFixed(1)}s — ${d.total} token totali in archivio`, ts);
+    } else if(d.type === 'import_start'){
+      mktLogLine('INFO', 'info', `Avvio importazione — ${d.total} token da analizzare con filtri primari + scoring on-chain…`, ts);
+    } else if(d.type === 'primary'){
+      if(d.passed){
+        mktLogLine('OK', 'pass', `<span class="sym">${esc(d.symbol)||'?'}</span> <span class="dim">(${esc(d.chain)})</span> supera i filtri primari`, ts);
+      } else {
+        mktLogLine('FILT', 'fail', `<span class="sym">${esc(d.symbol)||'?'}</span> <span class="dim">(${esc(d.chain)})</span> escluso (${esc(d.reason)})`, ts);
+      }
+    } else if(d.type === 'evaluating'){
+      mktLogLine('...', 'fail', `Analisi on-chain <span class="sym">${esc(d.symbol)||'?'}</span> <span class="dim">(${esc(d.chain)})</span>`, ts);
+    } else if(d.type === 'result'){
+      if(d.passed){
+        mktLogLine('PASS', 'pass', `<span class="sym">${esc(d.symbol)}</span> score ${d.score}/${d.score_max} — aggiunto ai candidati sniper`, ts);
+      } else {
+        mktLogLine('SKIP', 'fail', `<span class="sym">${esc(d.symbol)}</span> score ${d.score}/${d.score_max} — scartato (${esc(d.reason)})`, ts);
+      }
+    } else if(d.type === 'error'){
+      mktLogLine('ERR', 'err', `${esc(d.symbol)||'?'}: ${esc(d.message)}`, ts);
+    } else if(d.type === 'import_end'){
+      mktLogLine('DONE', 'info', `Importazione completata in ${d.duration.toFixed(1)}s — ${d.added} nuovi candidati, ${d.total} in archivio sniper`, ts);
+    }
+  }
+
+  function handleMarketEvent(d){
+    renderMktEvent(d);
+    const scanBtn = document.getElementById('mktScanBtn');
+    const importBtn = document.getElementById('mktImportBtn');
+    if(d.type === 'market_scan_start'){
+      scanBtn.disabled = true; scanBtn.textContent = 'Scansione…';
+      importBtn.disabled = true;
+    } else if(d.type === 'market_scan_end'){
+      scanBtn.disabled = false; scanBtn.textContent = 'Scansiona mercato';
+      importBtn.disabled = false;
+      mktOffset = 0;
+      loadMarketData();
+    } else if(d.type === 'import_start'){
+      importBtn.disabled = true; importBtn.textContent = 'Importazione…';
+      scanBtn.disabled = true;
+    } else if(d.type === 'import_end'){
+      importBtn.disabled = false; importBtn.textContent = 'Importa su Sniper';
+      scanBtn.disabled = false;
+      loadCandidates();
+    }
+  }
+
+  function connectMarketStream(){
+    if(mktScanEs) return;
+    mktScanEs = new EventSource('/api/sniper/market-stream');
+    mktScanEs.onmessage = (ev) => {
+      let d; try { d = JSON.parse(ev.data); } catch(e){ return; }
+      handleMarketEvent(d);
+    };
+    mktScanEs.onerror = () => {
+      if(mktScanEs){ mktScanEs.close(); mktScanEs = null; }
+      setTimeout(connectMarketStream, 5000);
+    };
+  }
 
   document.getElementById('mktSearch').addEventListener('input', (e) => {
     clearTimeout(mktSearchTimer);
@@ -737,7 +820,7 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
       updateMktPager();
       if(data.last_scan && data.last_scan > 0){
         document.getElementById('mktInfo').innerHTML =
-          `Ultimo aggiornamento: <b>${fmtTime(data.last_scan)}</b> · <b>${data.total}</b> token`;
+          `Aggiornato: <b>${fmtTime(data.last_scan)}</b> · <b>${data.total}</b> token`;
       } else {
         document.getElementById('mktInfo').textContent = 'Nessuna scansione ancora';
       }
@@ -786,51 +869,27 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
 
   window.triggerMarketScan = async function(){
     const btn = document.getElementById('mktScanBtn');
-    btn.disabled = true;
-    btn.textContent = 'Scansione…';
-    connectMarketStream();
+    btn.disabled = true; btn.textContent = 'Scansione…';
     try{
       await fetch('/api/sniper/market-scan', { method: 'POST' });
-    } catch(e){ /* scan may still succeed */ }
+    } catch(e){ btn.disabled = false; btn.textContent = 'Scansiona mercato'; }
   };
 
-  function connectMarketStream(){
-    if(mktScanEs) return;
-    const progress = document.getElementById('mktProgress');
-    progress.classList.add('active');
-    // reset chain items
-    ['ethereum','bsc','base','arbitrum','avalanche','solana'].forEach(ch => {
-      const el = document.getElementById('mktc-' + ch);
-      if(el){ el.className = 'mkt-chain-item'; el.innerHTML = el.textContent.split(' ')[0]; }
-    });
-
-    mktScanEs = new EventSource('/api/sniper/market-stream');
-    mktScanEs.onmessage = (ev) => {
-      let d; try { d = JSON.parse(ev.data); } catch(e){ return; }
-      handleMarketEvent(d);
-    };
-    mktScanEs.onerror = () => {
-      if(mktScanEs){ mktScanEs.close(); mktScanEs = null; }
-    };
-  }
-
-  function handleMarketEvent(d){
-    if(d.type === 'market_chain_start'){
-      const el = document.getElementById('mktc-' + d.chain);
-      if(el){ el.className = 'mkt-chain-item loading'; el.innerHTML = '<span class="spin">⟳</span> ' + el.textContent.trim().split(' ').pop(); }
-    } else if(d.type === 'market_chain_done'){
-      const el = document.getElementById('mktc-' + d.chain);
-      if(el){ el.className = 'mkt-chain-item done'; el.innerHTML = '✓ ' + el.textContent.trim().split(' ').pop() + ' <span style="color:var(--fg-dim);font-size:10px;">' + d.count + '</span>'; }
-    } else if(d.type === 'market_scan_end'){
-      if(mktScanEs){ mktScanEs.close(); mktScanEs = null; }
-      document.getElementById('mktProgress').classList.remove('active');
-      const btn = document.getElementById('mktScanBtn');
-      btn.disabled = false;
-      btn.textContent = 'Scansiona mercato';
-      mktOffset = 0;
-      loadMarketData();
+  window.triggerMarketImport = async function(){
+    const importBtn = document.getElementById('mktImportBtn');
+    const scanBtn = document.getElementById('mktScanBtn');
+    importBtn.disabled = true; importBtn.textContent = 'Importazione…';
+    scanBtn.disabled = true;
+    try{
+      await fetch('/api/sniper/market-import', { method: 'POST' });
+    } catch(e){
+      importBtn.disabled = false; importBtn.textContent = 'Importa su Sniper';
+      scanBtn.disabled = false;
     }
-  }
+  };
+
+  // Connect to market stream immediately so events from ongoing scans are captured
+  connectMarketStream();
 })();
 </script>
 </body>
