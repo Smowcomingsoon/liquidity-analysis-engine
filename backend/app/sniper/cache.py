@@ -52,11 +52,33 @@ class Candidate:
 _store: dict[str, Candidate] = {}  # key = token_address
 _last_scan: float = 0.0
 _scan_lock = asyncio.Lock()
+_subscribers: list[asyncio.Queue] = []
 
 
 def get_candidates() -> list[Candidate]:
     """Return all candidates sorted by score descending."""
     return sorted(_store.values(), key=lambda c: c.score_total, reverse=True)
+
+
+def subscribe() -> asyncio.Queue:
+    """Register a new console listener; returns a queue fed with scan log events."""
+    q: asyncio.Queue = asyncio.Queue()
+    _subscribers.append(q)
+    return q
+
+
+def unsubscribe(q: asyncio.Queue) -> None:
+    if q in _subscribers:
+        _subscribers.remove(q)
+
+
+def scan_in_progress() -> bool:
+    return _scan_lock.locked()
+
+
+def _broadcast(event: dict) -> None:
+    for q in list(_subscribers):
+        q.put_nowait(event)
 
 
 def _passes_threshold(s: TokenScore) -> bool:
@@ -65,26 +87,67 @@ def _passes_threshold(s: TokenScore) -> bool:
     return s.total >= SCORE_MIN and tok >= TOKENOMICS_MIN and uti >= UTILITY_MIN
 
 
+def _fail_reason(s: TokenScore) -> str:
+    tok = sum(i.earned for i in s.items if i.category == "Tokenomics")
+    uti = sum(i.earned for i in s.items if i.category == "Utilità")
+    if tok < TOKENOMICS_MIN:
+        return f"tokenomics {tok}/{TOKENOMICS_MIN} min"
+    if uti < UTILITY_MIN:
+        return f"utilità {uti}/{UTILITY_MIN} min"
+    return f"score {s.total}/{SCORE_MIN} min"
+
+
 async def run_scan() -> int:
     """Fetch candidates, score them, update store. Returns count of added/updated."""
     global _last_scan
     async with _scan_lock:
+        t0 = time.time()
+        _broadcast({"type": "scan_start", "ts": t0})
         try:
             tokens: list[RawToken] = await fetch_candidates()
         except Exception as exc:
             logger.error("Sniper fetch error: %s", exc)
+            _broadcast({"type": "fetch_error", "message": str(exc)})
+            _broadcast({"type": "scan_end", "added": 0, "total": len(_store),
+                        "scanned": 0, "duration": time.time() - t0})
             return 0
+
+        _broadcast({"type": "fetched", "count": len(tokens)})
 
         added = 0
         async with httpx.AsyncClient(timeout=10.0) as client:
             for token in tokens:
+                _broadcast({
+                    "type": "evaluating",
+                    "symbol": token.symbol,
+                    "chain": token.chain_id,
+                    "address": token.token_address,
+                })
                 try:
                     s: TokenScore = await score(token, client)
                 except Exception as exc:
                     logger.warning("Sniper score error %s: %s", token.symbol, exc)
+                    _broadcast({
+                        "type": "error",
+                        "symbol": token.symbol,
+                        "chain": token.chain_id,
+                        "message": str(exc),
+                    })
                     continue
 
-                if not _passes_threshold(s):
+                passed = _passes_threshold(s)
+                _broadcast({
+                    "type": "result",
+                    "symbol": token.symbol,
+                    "chain": token.chain_id,
+                    "address": token.token_address,
+                    "score": s.total,
+                    "score_max": s.max,
+                    "passed": passed,
+                    "reason": None if passed else _fail_reason(s),
+                })
+
+                if not passed:
                     continue
 
                 c = Candidate(
@@ -127,6 +190,13 @@ async def run_scan() -> int:
 
         _last_scan = time.time()
         logger.info("Sniper scan complete: %d candidates stored", len(_store))
+        _broadcast({
+            "type": "scan_end",
+            "added": added,
+            "total": len(_store),
+            "scanned": len(tokens),
+            "duration": time.time() - t0,
+        })
         return added
 
 

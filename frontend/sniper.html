@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="it" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<title>Token Sniper</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+:root{
+  --bg:#0a0c10; --panel:#10131a; --panel-2:#151922; --border:#1f2530;
+  --fg:#c9d1d9; --fg-dim:#6b7280; --fg-bright:#f0f3f7;
+  --green:#3fd67c; --green-dim:#1f6b3e; --amber:#f0b429; --red:#f16565;
+  --accent:#5fe0a8;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:var(--bg); color:var(--fg);
+  font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  font-size:13px; line-height:1.5;
+  display:flex; flex-direction:column; height:100vh; overflow:hidden;
+}
+.hdr{
+  display:flex; align-items:center; gap:16px;
+  padding:12px 20px; border-bottom:1px solid var(--border);
+  background:var(--panel); flex-shrink:0; flex-wrap:wrap;
+}
+.hdr h1{
+  font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:700;
+  letter-spacing:0.02em; color:var(--fg-bright); margin:0; white-space:nowrap;
+}
+.hdr h1 a{color:inherit; text-decoration:none;}
+.hdr h1 .dot{color:var(--accent);}
+.status-pill{
+  display:flex; align-items:center; gap:6px;
+  padding:4px 10px; border-radius:99px; border:1px solid var(--border);
+  font-size:11px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;
+  color:var(--fg-dim);
+}
+.status-pill .led{width:7px;height:7px;border-radius:50%;background:var(--fg-dim);}
+.status-pill.scanning{color:var(--accent); border-color:var(--green-dim);}
+.status-pill.scanning .led{background:var(--green); animation:pulse 1.1s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1; box-shadow:0 0 0 0 rgba(63,214,124,.5);}50%{opacity:.55; box-shadow:0 0 0 4px rgba(63,214,124,0);}}
+.spacer{flex:1;}
+.meta{color:var(--fg-dim); font-size:11.5px; white-space:nowrap;}
+.meta b{color:var(--fg);}
+button.scan-btn{
+  background:var(--green); color:#06130c; border:none; border-radius:6px;
+  font-family:inherit; font-weight:700; font-size:12px; letter-spacing:0.03em;
+  padding:8px 16px; cursor:pointer; text-transform:uppercase;
+  transition:filter .15s;
+}
+button.scan-btn:hover{filter:brightness(1.1);}
+button.scan-btn:disabled{background:var(--panel-2); color:var(--fg-dim); cursor:not-allowed;}
+a.back-link{color:var(--fg-dim); text-decoration:none; font-size:11.5px; border:1px solid var(--border); border-radius:6px; padding:7px 10px;}
+a.back-link:hover{color:var(--fg); border-color:var(--fg-dim);}
+
+.body{flex:1; display:flex; min-height:0;}
+
+.console-pane{
+  width:46%; min-width:340px; display:flex; flex-direction:column;
+  border-right:1px solid var(--border); background:#000;
+  min-height:0;
+}
+.console-head{
+  padding:8px 14px; border-bottom:1px solid var(--border);
+  color:var(--fg-dim); font-size:11px; text-transform:uppercase; letter-spacing:0.08em;
+  display:flex; justify-content:space-between; flex-shrink:0;
+}
+.console-log{
+  flex:1; overflow-y:auto; padding:10px 14px 20px; font-size:12.5px;
+}
+.console-log .line{
+  display:flex; gap:8px; padding:1px 0; white-space:pre-wrap; word-break:break-word;
+  animation:fadein .15s ease-out;
+}
+@keyframes fadein{from{opacity:0; transform:translateY(-2px);}to{opacity:1; transform:translateY(0);}}
+.console-log .ts{color:#3a4150; flex-shrink:0;}
+.console-log .tag{flex-shrink:0; font-weight:700;}
+.console-log .tag.pass{color:var(--green);}
+.console-log .tag.fail{color:#556070;}
+.console-log .tag.info{color:var(--amber);}
+.console-log .tag.err{color:var(--red);}
+.console-log .msg{color:#d7dde5;}
+.console-log .msg .sym{color:var(--fg-bright); font-weight:700;}
+.cursor-line{display:flex; align-items:center; gap:6px; color:var(--green); padding-top:4px;}
+.cursor-blink{width:7px; height:14px; background:var(--green); animation:blink 1s step-end infinite;}
+@keyframes blink{0%,50%{opacity:1;}50.01%,100%{opacity:0;}}
+
+.results-pane{flex:1; display:flex; flex-direction:column; min-height:0; background:var(--bg);}
+.filters{
+  display:flex; gap:6px; padding:10px 16px; border-bottom:1px solid var(--border);
+  flex-wrap:wrap; flex-shrink:0;
+}
+.chip{
+  background:var(--panel); border:1px solid var(--border); color:var(--fg-dim);
+  border-radius:6px; padding:5px 11px; font-size:11.5px; font-family:inherit;
+  cursor:pointer; font-weight:600;
+}
+.chip.active{color:var(--bg); background:var(--accent); border-color:var(--accent);}
+.table-wrap{flex:1; overflow:auto; min-height:0;}
+table{width:100%; border-collapse:collapse; font-size:12.5px;}
+thead th{
+  position:sticky; top:0; background:var(--panel); text-align:left;
+  padding:9px 12px; color:var(--fg-dim); font-weight:600; text-transform:uppercase;
+  font-size:10.5px; letter-spacing:0.05em; border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+tbody td{padding:9px 12px; border-bottom:1px solid var(--border); white-space:nowrap; font-variant-numeric:tabular-nums;}
+tbody tr{cursor:pointer;}
+tbody tr:hover{background:var(--panel-2);}
+tbody tr.new-row{animation:rowflash 1.6s ease-out;}
+@keyframes rowflash{0%{background:rgba(63,214,124,.18);}100%{background:transparent;}}
+.sym-cell{color:var(--fg-bright); font-weight:700;}
+.sym-cell .chain{color:var(--fg-dim); font-weight:500; font-size:10.5px; margin-left:6px;}
+.score-badge{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:38px; padding:3px 6px; border-radius:5px; font-weight:700;
+  background:var(--green-dim); color:var(--green);
+}
+.empty-state{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  color:var(--fg-dim); gap:8px; text-align:center; padding:40px;
+}
+.empty-state .big{font-size:15px; color:var(--fg); font-family:'Space Grotesk',sans-serif; font-weight:600;}
+
+.sidebar{
+  position:fixed; top:0; right:0; height:100%; width:380px; max-width:92vw;
+  background:var(--panel); border-left:1px solid var(--border);
+  transform:translateX(100%); transition:transform .2s ease; z-index:20;
+  display:flex; flex-direction:column; overflow-y:auto;
+}
+.sidebar.open{transform:translateX(0);}
+.sidebar-hdr{padding:16px 18px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:flex-start;}
+.sidebar-hdr h2{margin:0; font-family:'Space Grotesk',sans-serif; font-size:17px; color:var(--fg-bright);}
+.sidebar-hdr .chain-tag{color:var(--fg-dim); font-size:11px; text-transform:uppercase;}
+.sidebar-close{background:none; border:none; color:var(--fg-dim); font-size:18px; cursor:pointer; line-height:1;}
+.sidebar-body{padding:16px 18px; display:flex; flex-direction:column; gap:14px;}
+.stat-row{display:flex; justify-content:space-between; font-size:12px;}
+.stat-row span:first-child{color:var(--fg-dim);}
+.stat-row span:last-child{font-weight:600;}
+.score-total-box{
+  display:flex; align-items:baseline; gap:6px; background:var(--panel-2);
+  border-radius:8px; padding:10px 14px; border:1px solid var(--border);
+}
+.score-total-box .n{font-size:26px; font-weight:700; color:var(--accent); font-family:'Space Grotesk',sans-serif;}
+.score-total-box .d{color:var(--fg-dim); font-size:13px;}
+.cat-group{margin-top:6px;}
+.cat-title{font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--fg-dim); margin:10px 0 6px;}
+.crit-row{display:flex; gap:8px; padding:5px 0; align-items:flex-start; font-size:11.5px;}
+.crit-mark{width:15px; flex-shrink:0; font-weight:700;}
+.crit-mark.on{color:var(--green);}
+.crit-mark.off{color:var(--fg-dim);}
+.crit-text .name{color:var(--fg);}
+.crit-text .note{color:var(--fg-dim); font-size:10.5px;}
+.crit-text .manual{color:var(--amber);}
+.sidebar-actions{display:flex; gap:8px; padding:14px 18px; border-top:1px solid var(--border); margin-top:auto;}
+.btn-primary{
+  flex:1; background:var(--accent); color:#06130c; border:none; border-radius:6px;
+  padding:10px; font-family:inherit; font-weight:700; font-size:12px; cursor:pointer; text-align:center;
+  text-decoration:none;
+}
+.btn-secondary{
+  background:var(--panel-2); color:var(--fg); border:1px solid var(--border); border-radius:6px;
+  padding:10px 12px; font-family:inherit; font-size:12px; cursor:pointer; text-decoration:none;
+}
+.overlay{position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:15; opacity:0; pointer-events:none; transition:opacity .2s;}
+.overlay.open{opacity:1; pointer-events:auto;}
+
+::-webkit-scrollbar{width:9px; height:9px;}
+::-webkit-scrollbar-thumb{background:var(--border); border-radius:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1><a href="/">Liquidity Engine</a> <span class="dot">·</span> Token Sniper</h1>
+  <div class="status-pill" id="statusPill"><span class="led"></span><span id="statusText">Inattivo</span></div>
+  <div class="spacer"></div>
+  <div class="meta" id="metaInfo">Nessuna scansione ancora eseguita</div>
+  <a class="back-link" href="/">← Grafico</a>
+  <button class="scan-btn" id="scanBtn">Scansiona ora</button>
+</div>
+
+<div class="body">
+  <div class="console-pane">
+    <div class="console-head">
+      <span>Console scansione</span>
+      <span id="consoleCount">0 eventi</span>
+    </div>
+    <div class="console-log" id="consoleLog"></div>
+  </div>
+
+  <div class="results-pane">
+    <div class="filters" id="chainFilters">
+      <button class="chip active" data-chain="all">Tutte</button>
+      <button class="chip" data-chain="ethereum">ETH</button>
+      <button class="chip" data-chain="bsc">BSC</button>
+      <button class="chip" data-chain="base">BASE</button>
+      <button class="chip" data-chain="arbitrum">ARB</button>
+      <button class="chip" data-chain="avalanche">AVAX</button>
+      <button class="chip" data-chain="solana">SOL</button>
+    </div>
+    <div class="table-wrap" id="tableWrap">
+      <div class="empty-state" id="emptyState">
+        <div class="big">Nessun candidato ancora</div>
+        <div>Avvia una scansione per popolare la lista.</div>
+      </div>
+      <table id="resultsTable" style="display:none">
+        <thead>
+          <tr>
+            <th>Token</th><th>Score</th><th>MC</th><th>Liquidità</th>
+            <th>Vol 24h</th><th>B/S h1</th><th>Età</th><th>Rilevato</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-hdr">
+    <div>
+      <h2 id="sbSymbol">—</h2>
+      <div class="chain-tag" id="sbChain">—</div>
+    </div>
+    <button class="sidebar-close" id="sbClose">✕</button>
+  </div>
+  <div class="sidebar-body">
+    <div class="score-total-box">
+      <span class="n" id="sbScoreN">0</span><span class="d">/ 13 punti</span>
+    </div>
+    <div class="stat-row"><span>Market Cap</span><span id="sbMc">—</span></div>
+    <div class="stat-row"><span>Liquidità</span><span id="sbLiq">—</span></div>
+    <div class="stat-row"><span>Volume 24h</span><span id="sbVol">—</span></div>
+    <div class="stat-row"><span>Buy/Sell h1</span><span id="sbBs">—</span></div>
+    <div class="stat-row"><span>Età</span><span id="sbAge">—</span></div>
+    <div id="sbCategories"></div>
+  </div>
+  <div class="sidebar-actions">
+    <a class="btn-primary" id="sbAnalyze" href="#">Analizza sul grafico ↗</a>
+    <a class="btn-secondary" id="sbDex" href="#" target="_blank" rel="noopener">DEXScreener</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  const consoleLog = document.getElementById('consoleLog');
+  const consoleCount = document.getElementById('consoleCount');
+  const statusPill = document.getElementById('statusPill');
+  const statusText = document.getElementById('statusText');
+  const metaInfo = document.getElementById('metaInfo');
+  const scanBtn = document.getElementById('scanBtn');
+  const resultsBody = document.getElementById('resultsBody');
+  const resultsTable = document.getElementById('resultsTable');
+  const emptyState = document.getElementById('emptyState');
+  const chainFilters = document.getElementById('chainFilters');
+
+  let candidates = [];
+  let activeChain = 'all';
+  let eventCount = 0;
+  let es = null;
+
+  function fmtUsd(n){
+    if(n === null || n === undefined) return '—';
+    if(n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+    if(n >= 1e3) return '$' + (n/1e3).toFixed(1) + 'K';
+    return '$' + n.toFixed(0);
+  }
+  function fmtAge(h){
+    if(h < 24) return h.toFixed(1) + 'h';
+    return (h/24).toFixed(1) + 'd';
+  }
+  function fmtTime(ts){
+    return new Date(ts*1000).toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  }
+  function nowStamp(){
+    return new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  }
+
+  function logLine(tag, tagClass, html){
+    const el = document.createElement('div');
+    el.className = 'line';
+    el.innerHTML = `<span class="ts">${nowStamp()}</span><span class="tag ${tagClass}">${tag}</span><span class="msg">${html}</span>`;
+    consoleLog.appendChild(el);
+    consoleLog.scrollTop = consoleLog.scrollHeight;
+    eventCount++;
+    consoleCount.textContent = eventCount + ' eventi';
+    while(consoleLog.children.length > 400) consoleLog.removeChild(consoleLog.firstChild);
+  }
+
+  function setScanning(on){
+    if(on){
+      statusPill.classList.add('scanning');
+      statusText.textContent = 'Scansione in corso';
+      scanBtn.disabled = true;
+      scanBtn.textContent = 'Scansione...';
+      if(!document.getElementById('cursorLine')){
+        const cl = document.createElement('div');
+        cl.id = 'cursorLine';
+        cl.className = 'cursor-line';
+        cl.innerHTML = '<span class="cursor-blink"></span><span>in ascolto…</span>';
+        consoleLog.appendChild(cl);
+        consoleLog.scrollTop = consoleLog.scrollHeight;
+      }
+    } else {
+      statusPill.classList.remove('scanning');
+      statusText.textContent = 'Inattivo';
+      scanBtn.disabled = false;
+      scanBtn.textContent = 'Scansiona ora';
+      const cl = document.getElementById('cursorLine');
+      if(cl) cl.remove();
+    }
+  }
+
+  function startScan(){
+    if(es) return;
+    setScanning(true);
+    es = new EventSource('/api/sniper/scan-stream');
+    es.onmessage = (ev) => {
+      let d;
+      try { d = JSON.parse(ev.data); } catch(e){ return; }
+      handleEvent(d);
+    };
+    es.onerror = () => {
+      es.close(); es = null;
+      setScanning(false);
+      loadCandidates();
+    };
+  }
+
+  function handleEvent(d){
+    if(d.type === 'scan_start'){
+      logLine('INFO', 'info', 'Avvio scansione — recupero profili DEXScreener…');
+    } else if(d.type === 'fetched'){
+      logLine('INFO', 'info', `${d.count} token trovati dopo i filtri primari (MC, liquidità, età, volume)`);
+    } else if(d.type === 'fetch_error'){
+      logLine('ERR', 'err', 'Errore nel recupero dati: ' + d.message);
+    } else if(d.type === 'evaluating'){
+      logLine('...', 'fail', `Analisi <span class="sym">${d.symbol || '?'}</span> <span style="color:var(--fg-dim)">(${d.chain})</span>`);
+    } else if(d.type === 'result'){
+      if(d.passed){
+        logLine('PASS', 'pass', `<span class="sym">${d.symbol}</span> score ${d.score}/${d.score_max} — supera la soglia, aggiunto ai candidati`);
+      } else {
+        logLine('SKIP', 'fail', `<span class="sym">${d.symbol}</span> score ${d.score}/${d.score_max} — scartato (${d.reason})`);
+      }
+    } else if(d.type === 'error'){
+      logLine('ERR', 'err', `${d.symbol || '?'}: ${d.message}`);
+    } else if(d.type === 'scan_end'){
+      logLine('DONE', 'info', `Scansione completata in ${d.duration.toFixed(1)}s — ${d.scanned} analizzati, ${d.added} candidati, ${d.total} in archivio`);
+      es.close(); es = null;
+      setScanning(false);
+      loadCandidates();
+    }
+  }
+
+  async function loadCandidates(){
+    try{
+      const r = await fetch('/api/sniper/candidates');
+      const data = await r.json();
+      const prevIds = new Set(candidates.map(c => c.token_address));
+      candidates = data.candidates || [];
+      candidates._newIds = new Set(candidates.filter(c => !prevIds.has(c.token_address)).map(c => c.token_address));
+      renderTable();
+      if(data.last_scan){
+        metaInfo.innerHTML = `Ultima scansione: <b>${fmtTime(data.last_scan)}</b> · <b>${data.count}</b> candidati in archivio`;
+      }
+    } catch(e){ /* ignore */ }
+  }
+
+  function renderTable(){
+    const filtered = activeChain === 'all' ? candidates : candidates.filter(c => c.chain_id === activeChain);
+    if(filtered.length === 0){
+      resultsTable.style.display = 'none';
+      emptyState.style.display = 'flex';
+      return;
+    }
+    emptyState.style.display = 'none';
+    resultsTable.style.display = 'table';
+    resultsBody.innerHTML = '';
+    for(const c of filtered){
+      const tr = document.createElement('tr');
+      if(candidates._newIds && candidates._newIds.has(c.token_address)) tr.className = 'new-row';
+      tr.innerHTML = `
+        <td class="sym-cell">${c.symbol}<span class="chain">${c.chain_id}</span></td>
+        <td><span class="score-badge">${c.score_total}/${c.score_max}</span></td>
+        <td>${fmtUsd(c.market_cap)}</td>
+        <td>${fmtUsd(c.liquidity_usd)}</td>
+        <td>${fmtUsd(c.volume_h24)}</td>
+        <td>${c.buy_sell_ratio}x</td>
+        <td>${fmtAge(c.age_hours)}</td>
+        <td>${fmtTime(c.last_updated)}</td>
+      `;
+      tr.addEventListener('click', () => openSidebar(c));
+      resultsBody.appendChild(tr);
+    }
+  }
+
+  chainFilters.addEventListener('click', (e) => {
+    const btn = e.target.closest('.chip');
+    if(!btn) return;
+    chainFilters.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    activeChain = btn.dataset.chain;
+    renderTable();
+  });
+
+  scanBtn.addEventListener('click', startScan);
+
+  // Sidebar
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  document.getElementById('sbClose').addEventListener('click', closeSidebar);
+  overlay.addEventListener('click', closeSidebar);
+  function closeSidebar(){
+    sidebar.classList.remove('open');
+    overlay.classList.remove('open');
+  }
+  function openSidebar(c){
+    document.getElementById('sbSymbol').textContent = c.symbol;
+    document.getElementById('sbChain').textContent = c.chain_id + ' · ' + c.dex_id;
+    document.getElementById('sbScoreN').textContent = c.score_total;
+    document.getElementById('sbMc').textContent = fmtUsd(c.market_cap);
+    document.getElementById('sbLiq').textContent = fmtUsd(c.liquidity_usd);
+    document.getElementById('sbVol').textContent = fmtUsd(c.volume_h24);
+    document.getElementById('sbBs').textContent = c.buy_sell_ratio + 'x';
+    document.getElementById('sbAge').textContent = fmtAge(c.age_hours);
+    document.getElementById('sbAnalyze').href = `/?ticker=${encodeURIComponent(c.symbol)}&exchange=mexc&asset=crypto`;
+    document.getElementById('sbDex').href = c.pair_url;
+
+    const cats = {};
+    for(const it of (c.score_items || [])){
+      (cats[it.category] = cats[it.category] || []).push(it);
+    }
+    const catsEl = document.getElementById('sbCategories');
+    catsEl.innerHTML = '';
+    for(const [cat, items] of Object.entries(cats)){
+      const g = document.createElement('div');
+      g.className = 'cat-group';
+      let rows = items.map(it => `
+        <div class="crit-row">
+          <span class="crit-mark ${it.earned ? 'on' : 'off'}">${it.earned ? '✓' : '·'}</span>
+          <div class="crit-text">
+            <div class="name">${it.criterion}</div>
+            <div class="note ${it.auto ? '' : 'manual'}">${it.note}</div>
+          </div>
+        </div>`).join('');
+      g.innerHTML = `<div class="cat-title">${cat}</div>${rows}`;
+      catsEl.appendChild(g);
+    }
+
+    sidebar.classList.add('open');
+    overlay.classList.add('open');
+  }
+
+  logLine('INFO', 'info', 'Console pronta. Carico candidati esistenti…');
+  loadCandidates();
+})();
+</script>
+</body>
+</html>

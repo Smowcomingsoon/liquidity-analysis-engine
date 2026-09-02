@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import itertools
+import json
 import logging
 import sys
 import time as _time
@@ -9,7 +10,7 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -1231,6 +1232,28 @@ async def sniper_trigger_scan() -> dict:
     return {"ok": True, "added": added, "total": len(sniper_cache.get_candidates())}
 
 
+@app.get("/api/sniper/scan-stream")
+async def sniper_scan_stream() -> StreamingResponse:
+    """SSE feed of live scan log events. Starts a scan if none is running,
+    otherwise attaches to the one already in progress."""
+    from app.sniper import cache as sniper_cache
+
+    async def event_gen():
+        q = sniper_cache.subscribe()
+        try:
+            if not sniper_cache.scan_in_progress():
+                asyncio.create_task(sniper_cache.run_scan())
+            while True:
+                event = await q.get()
+                yield f"data: {json.dumps(event)}\n\n"
+                if event.get("type") == "scan_end":
+                    break
+        finally:
+            sniper_cache.unsubscribe(q)
+
+    return StreamingResponse(event_gen(), media_type="text/event-stream")
+
+
 @app.websocket("/ws/live")
 async def live_feed(websocket: WebSocket) -> None:
     params = websocket.query_params
@@ -1284,6 +1307,18 @@ _INDEX_HTML = (
 )
 
 
+_SNIPER_HTML = (
+    (FRONTEND_DIR / "sniper.html")
+    .read_text(encoding="utf-8")
+    .replace('href="/static/style.css"', f'href="/static/style.css?v={_ASSET_VERSION}"')
+)
+
+
 @app.get("/")
 async def index() -> HTMLResponse:
     return HTMLResponse(_INDEX_HTML)
+
+
+@app.get("/sniper")
+async def sniper_app() -> HTMLResponse:
+    return HTMLResponse(_SNIPER_HTML)

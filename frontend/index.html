@@ -207,7 +207,7 @@
         <button type="button" class="tab" data-tab="alert">Alert</button>
         <button type="button" class="tab" data-tab="analisi">Analisi</button>
         <button type="button" class="tab hidden" id="balances-tab-btn" data-tab="saldi">Saldi</button>
-        <button type="button" class="tab" data-tab="sniper">Sniper</button>
+        <a href="/sniper" class="tab tab-link" title="Apre il Token Sniper in una nuova app">Sniper ↗</a>
       </div>
 
       <!-- Strategia tab removed from UI but DOM elements kept for JS compatibility -->
@@ -559,47 +559,6 @@
       </div>
     </div>
 
-      <div class="tab-content" data-tab-content="sniper">
-        <div class="panel sniper-panel">
-          <div class="sniper-header">
-            <div class="sniper-title-row">
-              <span class="section-eyebrow">Token Sniper</span>
-              <span id="sniper-last-scan" class="sniper-last-scan"></span>
-            </div>
-            <button type="button" id="sniper-refresh-btn" class="sniper-refresh-btn" title="Scansiona ora">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-              Scansiona
-            </button>
-          </div>
-          <p class="panel-hint">Token micro-cap (&lt;500k MC) con score ≥8/13. Aggiornato ogni 5 min. Clicca un token per aprirlo sul grafico.</p>
-          <div class="sniper-analyze-bar">
-            <input type="text" id="sniper-ticker-input" class="sniper-analyze-input" placeholder="Ticker da analizzare (es. PEPE)" autocomplete="off" />
-            <button type="button" id="sniper-analyze-btn" class="sniper-analyze-btn">Analizza ↗</button>
-          </div>
-          <div id="sniper-status" class="sniper-status hidden"></div>
-          <div id="sniper-empty" class="sniper-empty hidden">
-            <span class="sniper-empty-icon">🔍</span>
-            <span>Nessun candidato trovato. La scansione è in corso — ricontrolla tra qualche minuto.</span>
-          </div>
-          <div id="sniper-table-wrap" class="sniper-table-wrap hidden">
-            <table class="sniper-table">
-              <thead>
-                <tr>
-                  <th class="sniper-col-score">Score</th>
-                  <th class="sniper-col-token">Token</th>
-                  <th class="sniper-col-chain">Chain</th>
-                  <th class="sniper-col-mc">MC</th>
-                  <th class="sniper-col-liq">Liq.</th>
-                  <th class="sniper-col-age">Età</th>
-                  <th class="sniper-col-bs">B/S</th>
-                  <th class="sniper-col-link"></th>
-                </tr>
-              </thead>
-              <tbody id="sniper-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
     </div>
   </main>
 
