@@ -305,7 +305,10 @@ async def run_import() -> int:
                     })
                     continue
 
-                passed = passes_threshold(s)
+                # Market import uses a looser gate: save everything that passed
+                # primary filters. Score is computed for display only — without
+                # an Etherscan API key, on-chain tokenomics criteria score 0 and
+                # the normal threshold would reject every candidate.
                 _broadcast({
                     "type": "result",
                     "symbol": token.symbol,
@@ -313,11 +316,9 @@ async def run_import() -> int:
                     "address": token.token_address,
                     "score": s.total,
                     "score_max": s.max,
-                    "passed": passed,
-                    "reason": None if passed else fail_reason(s),
+                    "passed": True,
+                    "reason": None,
                 })
-                if not passed:
-                    continue
 
                 c = Candidate(
                     chain_id=token.chain_id,
