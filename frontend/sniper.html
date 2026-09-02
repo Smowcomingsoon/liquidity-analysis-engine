@@ -433,7 +433,7 @@ tbody tr.top5-row:hover{ background: rgba(240,180,41,.12); }
         <button class="sort-chip" data-sort="liquidity_usd">Liquidità ↓</button>
         <button class="sort-chip" data-sort="score_total">Score ↓</button>
         <button class="sort-chip top5-chip" data-sort="top5">⚡ Top 5</button>
-        <button class="sort-chip top5-chip" data-sort="top5fund">🏆 Top 5 Fund.</button>
+        <button class="sort-chip top5-chip" data-sort="top5fund">🏆 Top 25 Fund.</button>
         <button class="no-cex-btn" id="noCexBtn" title="Escludi token già listati su CEX">🚫 CEX</button>
         <button class="export-btn" id="exportBtn" onclick="exportExcel()">⬇ Excel</button>
       </div>
@@ -893,8 +893,9 @@ tbody tr.top5-row:hover{ background: rgba(240,180,41,.12); }
       filtered.sort((a, b) => compositeRank(b) - compositeRank(a));
       filtered = filtered.slice(0, 5);
     } else if(activeSort === 'top5fund'){
+      filtered = filtered.filter(c => c.market_cap === null || c.market_cap === undefined || c.market_cap < 2_000_000);
       filtered.sort((a, b) => fundamentalRank(b) - fundamentalRank(a));
-      filtered = filtered.slice(0, 5);
+      filtered = filtered.slice(0, 25);
     } else {
       filtered.sort((a, b) => (b[activeSort] || 0) - (a[activeSort] || 0));
     }
