@@ -226,9 +226,12 @@ async def _watchlist_alert_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(_watchlist_alert_loop())
+    from app.sniper import cache as sniper_cache
+    t1 = asyncio.create_task(_watchlist_alert_loop())
+    t2 = asyncio.create_task(sniper_cache.polling_loop())
     yield
-    task.cancel()
+    t1.cancel()
+    t2.cancel()
 
 
 app = FastAPI(title="Liquidity Analysis Engine", lifespan=lifespan)
@@ -1183,6 +1186,49 @@ async def optimize_strategy_endpoint(
         out_of_sample_return_pct=oos_return,
         overfitted=overfitted,
     )
+
+
+@app.get("/api/sniper/candidates")
+async def sniper_candidates() -> dict:
+    from app.sniper import cache as sniper_cache
+    candidates = sniper_cache.get_candidates()
+    return {
+        "candidates": [
+            {
+                "chain_id": c.chain_id,
+                "token_address": c.token_address,
+                "pair_address": c.pair_address,
+                "symbol": c.symbol,
+                "name": c.name,
+                "dex_id": c.dex_id,
+                "pair_url": c.pair_url,
+                "price_usd": c.price_usd,
+                "market_cap": c.market_cap,
+                "liquidity_usd": c.liquidity_usd,
+                "volume_h24": c.volume_h24,
+                "volume_h1": c.volume_h1,
+                "age_hours": round(c.age_hours, 1),
+                "buy_sell_ratio": round(c.buy_sell_ratio, 2),
+                "website": c.website,
+                "socials": c.socials,
+                "score_total": c.score_total,
+                "score_max": c.score_max,
+                "score_items": c.score_items,
+                "first_seen": c.first_seen,
+                "last_updated": c.last_updated,
+            }
+            for c in candidates
+        ],
+        "last_scan": sniper_cache.last_scan_ts(),
+        "count": len(candidates),
+    }
+
+
+@app.post("/api/sniper/scan")
+async def sniper_trigger_scan() -> dict:
+    from app.sniper import cache as sniper_cache
+    added = await sniper_cache.run_scan()
+    return {"ok": True, "added": added, "total": len(sniper_cache.get_candidates())}
 
 
 @app.websocket("/ws/live")

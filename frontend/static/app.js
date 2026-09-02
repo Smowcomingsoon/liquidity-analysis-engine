@@ -4685,6 +4685,7 @@
     initCharts();
     bindUI();
     bindLabUI();
+    bindSniperUI();
     bindMobileNav();
     bindRail();
     bindTabs();
@@ -4711,4 +4712,152 @@
       }, 150);
     });
   });
+  // ── Token Sniper ───────────────────────────────────────────────────────
+  const sniperState = { candidates: [], timer: null, scanning: false };
+
+  function _fmtMc(v) {
+    if (!v) return "—";
+    if (v >= 1e6) return "$" + (v / 1e6).toFixed(1) + "M";
+    return "$" + (v / 1e3).toFixed(0) + "k";
+  }
+
+  function _fmtAge(h) {
+    if (h < 24) return h.toFixed(1) + "h";
+    return (h / 24).toFixed(1) + "d";
+  }
+
+  function _chainLabel(id) {
+    return { ethereum: "ETH", bsc: "BSC", base: "BASE", arbitrum: "ARB", avalanche: "AVAX", solana: "SOL" }[id] || id.toUpperCase();
+  }
+
+  function _scoreBar(total, max) {
+    const pct = Math.round((total / max) * 100);
+    const cls = total >= 10 ? "sniper-score-hi" : total >= 8 ? "sniper-score-mid" : "sniper-score-lo";
+    return `<span class="sniper-score ${cls}">${total}<span class="sniper-score-max">/${max}</span></span>`;
+  }
+
+  function renderSniperTable() {
+    const tbody = document.getElementById("sniper-tbody");
+    const wrap = document.getElementById("sniper-table-wrap");
+    const empty = document.getElementById("sniper-empty");
+    if (!tbody) return;
+
+    if (!sniperState.candidates.length) {
+      wrap.classList.add("hidden");
+      empty.classList.remove("hidden");
+      return;
+    }
+    empty.classList.add("hidden");
+    wrap.classList.remove("hidden");
+
+    tbody.innerHTML = sniperState.candidates.map((c) => {
+      const chainLbl = _chainLabel(c.chain_id);
+      const scoreHtml = _scoreBar(c.score_total, c.score_max);
+      const bsClass = c.buy_sell_ratio >= 1.5 ? "sniper-bs-hi" : "";
+      const scoreTitle = (c.score_items || [])
+        .map((i) => `${i.earned}/${i.max} ${i.criterion}`)
+        .join("\n");
+      return `<tr class="sniper-row" data-symbol="${c.symbol}" data-chain="${c.chain_id}" title="${scoreTitle}">
+        <td class="sniper-col-score">${scoreHtml}</td>
+        <td class="sniper-col-token">
+          <span class="sniper-sym">${c.symbol}</span>
+          <span class="sniper-name">${c.name}</span>
+        </td>
+        <td class="sniper-col-chain"><span class="sniper-chain-badge">${chainLbl}</span></td>
+        <td class="sniper-col-mc">${_fmtMc(c.market_cap)}</td>
+        <td class="sniper-col-liq">${_fmtMc(c.liquidity_usd)}</td>
+        <td class="sniper-col-age">${_fmtAge(c.age_hours)}</td>
+        <td class="sniper-col-bs"><span class="${bsClass}">${c.buy_sell_ratio.toFixed(2)}</span></td>
+        <td class="sniper-col-link"><a href="${c.pair_url}" target="_blank" rel="noopener" class="sniper-link" title="Apri su DEXScreener" onclick="event.stopPropagation()">↗</a></td>
+      </tr>`;
+    }).join("");
+
+    tbody.querySelectorAll(".sniper-row").forEach((row) => {
+      row.addEventListener("click", () => {
+        const sym = row.dataset.symbol;
+        if (!sym) return;
+        state.assetType = "crypto";
+        state.cryptoExchange = "mexc";
+        el("ticker-input").value = sym;
+        runAnalysis(sym);
+        // Switch to backtest tab
+        document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "backtest"));
+        document.querySelectorAll(".tab-content").forEach((c) => c.classList.toggle("active", c.dataset.tabContent === "backtest"));
+      });
+    });
+  }
+
+  async function loadSniperCandidates() {
+    const status = document.getElementById("sniper-status");
+    try {
+      const resp = await fetch("/api/sniper/candidates");
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      const data = await resp.json();
+      sniperState.candidates = data.candidates || [];
+      const ts = data.last_scan;
+      const lastEl = document.getElementById("sniper-last-scan");
+      if (lastEl && ts) {
+        const d = new Date(ts * 1000);
+        lastEl.textContent = "Ultima scan: " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+      }
+      renderSniperTable();
+    } catch (err) {
+      if (status) { status.textContent = "Errore caricamento: " + err.message; status.classList.remove("hidden"); }
+    }
+  }
+
+  async function triggerSniperScan() {
+    if (sniperState.scanning) return;
+    sniperState.scanning = true;
+    const btn = document.getElementById("sniper-refresh-btn");
+    const status = document.getElementById("sniper-status");
+    if (btn) { btn.disabled = true; btn.classList.add("sniper-scanning"); }
+    if (status) { status.textContent = "Scansione in corso…"; status.classList.remove("hidden"); }
+    try {
+      await fetch("/api/sniper/scan", { method: "POST" });
+      await loadSniperCandidates();
+      if (status) status.classList.add("hidden");
+    } catch (err) {
+      if (status) { status.textContent = "Errore scan: " + err.message; status.classList.remove("hidden"); }
+    } finally {
+      sniperState.scanning = false;
+      if (btn) { btn.disabled = false; btn.classList.remove("sniper-scanning"); }
+    }
+  }
+
+  function bindSniperUI() {
+    const btn = document.getElementById("sniper-refresh-btn");
+    if (btn) btn.addEventListener("click", triggerSniperScan);
+
+    const analyzeBtn = document.getElementById("sniper-analyze-btn");
+    const analyzeInput = document.getElementById("sniper-ticker-input");
+    function runSniperAnalyze() {
+      const sym = (analyzeInput ? analyzeInput.value.trim() : "").toUpperCase();
+      if (!sym) return;
+      state.assetType = "crypto";
+      state.cryptoExchange = "mexc";
+      el("ticker-input").value = sym;
+      runAnalysis(sym);
+      document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "backtest"));
+      document.querySelectorAll(".tab-content").forEach((c) => c.classList.toggle("active", c.dataset.tabContent === "backtest"));
+    }
+    if (analyzeBtn) analyzeBtn.addEventListener("click", runSniperAnalyze);
+    if (analyzeInput) analyzeInput.addEventListener("keydown", (e) => { if (e.key === "Enter") runSniperAnalyze(); });
+
+    // Auto-refresh every 5 min when sniper tab is visible
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && sniperState.timer === null) {
+        sniperState.timer = setInterval(loadSniperCandidates, 300_000);
+      }
+    });
+    sniperState.timer = setInterval(loadSniperCandidates, 300_000);
+
+    // Load on tab switch
+    document.querySelectorAll(".tab[data-tab='sniper']").forEach((t) => {
+      t.addEventListener("click", () => {
+        if (!sniperState.candidates.length) loadSniperCandidates();
+      });
+    });
+  }
+
 })();
