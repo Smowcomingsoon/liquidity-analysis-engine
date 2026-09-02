@@ -29,13 +29,18 @@ GECKO_NETWORKS = {
     "solana": "solana",
 }
 
-MC_MIN = 50_000
-MC_MAX = 500_000
-LIQUIDITY_MIN = 30_000
-AGE_MIN_H = 1.0
-AGE_MAX_H = 168.0
-VOL_MC_RATIO_MIN = 0.15
-BUY_SELL_RATIO_MIN = 1.3
+# Deliberately loose: real-world scans showed the excluded pool is bimodal
+# (near-worthless launches seconds old at one end, already-established
+# tokens surfacing via a fresh LP at the other) — these thresholds still
+# cut both of those, just with more headroom for genuinely early but not
+# yet fully "seasoned" projects in between.
+MC_MIN = 20_000
+MC_MAX = 1_000_000
+LIQUIDITY_MIN = 15_000
+AGE_MIN_H = 0.5
+AGE_MAX_H = 336.0
+VOL_MC_RATIO_MIN = 0.08
+BUY_SELL_RATIO_MIN = 1.1
 
 
 @dataclass
