@@ -408,6 +408,7 @@ tbody tr.top5-row:hover{ background: rgba(240,180,41,.12); }
         <button class="sort-chip" data-sort="liquidity_usd">Liquidità ↓</button>
         <button class="sort-chip" data-sort="score_total">Score ↓</button>
         <button class="sort-chip top5-chip" data-sort="top5">⚡ Top 5</button>
+        <button class="sort-chip top5-chip" data-sort="top5fund">🏆 Top 5 Fund.</button>
         <button class="no-cex-btn" id="noCexBtn" title="Escludi token già listati su CEX">🚫 CEX</button>
         <button class="export-btn" id="exportBtn" onclick="exportExcel()">⬇ Excel</button>
       </div>
@@ -532,9 +533,14 @@ tbody tr.top5-row:hover{ background: rgba(240,180,41,.12); }
     <div class="stat-row"><span>Età</span><span id="sbAge">—</span></div>
     <div id="sbCategories"></div>
   </div>
+  <div id="sbResearchPanel" style="display:none;padding:14px 18px;border-top:1px solid var(--border);">
+    <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-dim);margin-bottom:10px;">Analisi web</div>
+    <div id="sbResearchContent"></div>
+  </div>
   <div class="sidebar-actions">
     <a class="btn-primary" id="sbAnalyze" href="#">Analizza sul grafico ↗</a>
-    <a class="btn-secondary" id="sbDex" href="#" target="_blank" rel="noopener">DEXScreener</a>
+    <button class="btn-secondary" id="sbResearchBtn" onclick="runResearch()">🔍 Analisi</button>
+    <a class="btn-secondary" id="sbDex" href="#" target="_blank" rel="noopener">DEX</a>
   </div>
 </div>
 
@@ -808,20 +814,61 @@ tbody tr.top5-row:hover{ background: rgba(240,180,41,.12); }
   }
 
   function compositeRank(c){
-    // Weighted composite: score 30%, buy pressure 25%, vol/liq momentum 25%, recency 20%
+    // Quick composite: score 30%, buy pressure 25%, vol/liq momentum 25%, recency 20%
     const scoreN   = (c.score_total || 0) / Math.max(c.score_max || 13, 1);
-    const bsN      = Math.min((c.buy_sell_ratio || 1) - 1, 2) / 2;  // 0-2 above 1x → 0-1
+    const bsN      = Math.min((c.buy_sell_ratio || 1) - 1, 2) / 2;
     const volLiq   = c.liquidity_usd > 0 ? Math.min((c.volume_h24 || 0) / c.liquidity_usd, 10) / 10 : 0;
-    const ageDecay = Math.max(0, 1 - (c.age_hours || 0) / 720);     // fresher = higher
+    const ageDecay = Math.max(0, 1 - (c.age_hours || 0) / 720);
     return scoreN * 0.30 + bsN * 0.25 + volLiq * 0.25 + ageDecay * 0.20;
+  }
+
+  function fundamentalRank(c){
+    // ── 1. Liquidità reale (log scale, 500$–500k$) ──────────── 25%
+    const liq = c.liquidity_usd || 0;
+    const liqN = liq < 500 ? 0 : Math.min(Math.log10(liq / 500) / Math.log10(1000), 1);
+
+    // ── 2. Volume/Liq autenticità: sweet spot 10%–300% ────────── 20%
+    //    troppo basso = token morto, troppo alto = wash-trading
+    const vlr = liq > 0 ? (c.volume_h24 || 0) / liq : 0;
+    const vlN = vlr < 0.05 ? 0
+      : vlr < 0.5  ? vlr / 0.5 * 0.7      // salendo verso ottimale
+      : vlr < 3.0  ? 0.7 + (vlr - 0.5) / 2.5 * 0.3  // zona ottimale
+      : Math.max(0, 1 - (vlr - 3) / 10);  // troppo alto → wash sospetto
+
+    // ── 3. MC/Liquidità: efficienza di mercato ─────────────────── 15%
+    //    basso MC/Liq = ancora poco scoperto
+    const mc = c.market_cap || 0;
+    const mcLiq = mc > 0 && liq > 0 ? mc / liq : 999;
+    const mcN = mcLiq > 200 ? 0 : mcLiq < 2 ? 1 : 1 - (mcLiq - 2) / 198;
+
+    // ── 4. Presenza web/social ─────────────────────────────────── 20%
+    const hasWeb = c.website ? 0.5 : 0;
+    const hasSoc = (c.socials && c.socials.length > 0) ? 0.5 : 0;
+    const socialN = hasWeb + hasSoc;
+
+    // ── 5. Buy pressure reale (B/S 1.1x–2.5x sweet spot) ────────── 10%
+    const bs = c.buy_sell_ratio || 1;
+    const bsN = bs < 1 ? 0 : bs < 1.1 ? 0 : bs < 2.5 ? (bs - 1.1) / 1.4 : Math.max(0, 1 - (bs - 2.5));
+
+    // ── 6. Età ottimale: 4h–96h ───────────────────────────────── 10%
+    const age = c.age_hours || 0;
+    const ageN = age < 1 ? 0.1
+      : age < 4   ? age / 4 * 0.6
+      : age < 96  ? 0.6 + (1 - Math.abs(age - 50) / 46) * 0.4
+      : Math.max(0, 1 - (age - 96) / 600);
+
+    return liqN * 0.25 + vlN * 0.20 + mcN * 0.15 + socialN * 0.20 + bsN * 0.10 + ageN * 0.10;
   }
 
   function renderTable(){
     let filtered = activeChain === 'all' ? [...candidates] : candidates.filter(c => c.chain_id === activeChain);
     if(excludeCex) filtered = filtered.filter(c => c.cex_listed !== true);
-    const isTop5 = activeSort === 'top5';
-    if(isTop5){
+    const isTop5 = activeSort === 'top5' || activeSort === 'top5fund';
+    if(activeSort === 'top5'){
       filtered.sort((a, b) => compositeRank(b) - compositeRank(a));
+      filtered = filtered.slice(0, 5);
+    } else if(activeSort === 'top5fund'){
+      filtered.sort((a, b) => fundamentalRank(b) - fundamentalRank(a));
       filtered = filtered.slice(0, 5);
     } else {
       filtered.sort((a, b) => (b[activeSort] || 0) - (a[activeSort] || 0));
@@ -882,6 +929,9 @@ tbody tr.top5-row:hover{ background: rgba(240,180,41,.12); }
     overlay.classList.remove('open');
   }
   function openSidebar(c){
+    _currentCandidate = c;
+    document.getElementById('sbResearchPanel').style.display = 'none';
+    document.getElementById('sbResearchContent').innerHTML = '';
     document.getElementById('sbSymbol').textContent = c.symbol;
     document.getElementById('sbChain').textContent = c.chain_id + ' · ' + (c.dex_id || '');
     document.getElementById('sbScoreN').textContent = c.score_total;
@@ -930,6 +980,56 @@ tbody tr.top5-row:hover{ background: rgba(240,180,41,.12); }
     } catch(e){
       logLine('INFO', 'info', 'Console pronta.');
     }
+  }
+
+  let _currentCandidate = null;
+
+  window.runResearch = async function(){
+    if(!_currentCandidate) return;
+    const btn = document.getElementById('sbResearchBtn');
+    const panel = document.getElementById('sbResearchPanel');
+    const content = document.getElementById('sbResearchContent');
+    btn.disabled = true; btn.textContent = '⏳ Ricerca…';
+    panel.style.display = 'block';
+    content.innerHTML = '<div style="color:var(--fg-dim);font-size:12px;">Interrogo CoinGecko e DexScreener…</div>';
+    try{
+      const c = _currentCandidate;
+      const r = await fetch(`/api/sniper/research/${encodeURIComponent(c.chain_id)}/${encodeURIComponent(c.token_address)}`);
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      const d = await r.json();
+      renderResearch(d);
+    } catch(e){
+      content.innerHTML = `<div style="color:var(--red);font-size:12px;">Errore: ${esc(e.message)}</div>`;
+    } finally {
+      btn.disabled = false; btn.textContent = '🔍 Analisi';
+    }
+  };
+
+  function renderResearch(d){
+    const content = document.getElementById('sbResearchContent');
+    const score = d.research_score ?? 0;
+    const scoreColor = score >= 7 ? 'var(--green)' : score >= 4 ? 'var(--amber)' : 'var(--red)';
+    const checks = (d.checks || []).map(ch => {
+      const icon = ch.passed ? '✓' : ch.warning ? '⚠' : '✗';
+      const col  = ch.passed ? 'var(--green)' : ch.warning ? 'var(--amber)' : 'var(--fg-dim)';
+      return `<div style="display:flex;gap:8px;padding:3px 0;font-size:11.5px;">
+        <span style="color:${col};font-weight:700;flex-shrink:0;">${icon}</span>
+        <span style="color:var(--fg)">${esc(ch.label)}</span>
+        ${ch.note ? `<span style="color:var(--fg-dim);margin-left:auto;font-size:10.5px;">${esc(ch.note)}</span>` : ''}
+      </div>`;
+    }).join('');
+    const links = (d.links || []).map(l =>
+      `<a href="${esc(l.url)}" target="_blank" rel="noopener" style="color:var(--accent);font-size:11px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(l.label)}</a>`
+    ).join('');
+    content.innerHTML = `
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:12px;">
+        <span style="font-size:28px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:${scoreColor}">${score}</span>
+        <span style="color:var(--fg-dim);font-size:13px;">/10 punteggio ricerca</span>
+      </div>
+      ${d.description ? `<div style="color:var(--fg-dim);font-size:11px;line-height:1.5;margin-bottom:10px;max-height:80px;overflow:auto;">${esc(d.description)}</div>` : ''}
+      ${checks}
+      ${links ? `<div style="margin-top:10px;display:flex;flex-direction:column;gap:4px;">${links}</div>` : ''}
+    `;
   }
 
   loadHistory();

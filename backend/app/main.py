@@ -1358,6 +1358,131 @@ async def sniper_agents_status() -> dict:
     return {"agents": sniper_agents.get_status()}
 
 
+@app.get("/api/sniper/research/{chain_id}/{token_address}")
+async def sniper_research(chain_id: str, token_address: str) -> dict:
+    """Query CoinGecko + DexScreener for a token and return a research report."""
+    import httpx as _httpx
+    from app.sniper.cex_check import _CHAIN_TO_PLATFORM, _CEX_IDS
+
+    checks = []
+    links = []
+    description = None
+    research_score = 0
+
+    platform = _CHAIN_TO_PLATFORM.get(chain_id)
+
+    async with _httpx.AsyncClient(timeout=12.0) as client:
+        # ── CoinGecko contract lookup ──
+        cg_data = None
+        if platform:
+            try:
+                r = await client.get(
+                    f"https://api.coingecko.com/api/v3/coins/{platform}/contract/{token_address}"
+                )
+                if r.status_code == 200:
+                    cg_data = r.json()
+            except Exception:
+                pass
+
+        if cg_data:
+            research_score += 2
+            checks.append({"label": "Trovato su CoinGecko", "passed": True, "note": cg_data.get("name", "")})
+
+            description = (cg_data.get("description") or {}).get("en", "")
+            if description and len(description) > 400:
+                description = description[:400] + "…"
+
+            # market data quality
+            md = cg_data.get("market_data") or {}
+            mc = (md.get("market_cap") or {}).get("usd")
+            if mc and mc > 0:
+                research_score += 1
+                checks.append({"label": "Market cap on-chain verificato", "passed": True, "note": f"${mc:,.0f}"})
+
+            # community / social
+            comm = cg_data.get("community_data") or {}
+            tw = comm.get("twitter_followers", 0) or 0
+            tg = comm.get("telegram_channel_user_count", 0) or 0
+            if tw > 1000:
+                research_score += 1
+                checks.append({"label": "Twitter attivo", "passed": True, "note": f"{tw:,} follower"})
+            elif tw > 0:
+                checks.append({"label": "Twitter presente", "warning": True, "note": f"{tw:,} follower"})
+            if tg > 500:
+                research_score += 1
+                checks.append({"label": "Telegram attivo", "passed": True, "note": f"{tg:,} membri"})
+            elif tg > 0:
+                checks.append({"label": "Telegram presente", "warning": True, "note": f"{tg:,} membri"})
+
+            # dev activity
+            dev = cg_data.get("developer_data") or {}
+            commits = (dev.get("commit_count_4_weeks") or 0)
+            if commits > 5:
+                research_score += 1
+                checks.append({"label": "Attività GitHub recente", "passed": True, "note": f"{commits} commit/4wk"})
+            elif commits > 0:
+                checks.append({"label": "Repository GitHub", "warning": True, "note": f"{commits} commit/4wk"})
+
+            # links
+            lnks = cg_data.get("links") or {}
+            if lnks.get("homepage"):
+                for h in (lnks["homepage"] or []):
+                    if h:
+                        links.append({"label": "Sito ufficiale", "url": h})
+                        break
+            if lnks.get("twitter_screen_name"):
+                links.append({"label": "Twitter", "url": f"https://twitter.com/{lnks['twitter_screen_name']}"})
+            if lnks.get("telegram_channel_identifier"):
+                links.append({"label": "Telegram", "url": f"https://t.me/{lnks['telegram_channel_identifier']}"})
+
+            # CEX tickers check
+            tickers = cg_data.get("tickers") or []
+            cex_names = [t["market"]["name"] for t in tickers if t.get("market", {}).get("identifier", "") in _CEX_IDS]
+            if cex_names:
+                checks.append({"label": f"Listato su {cex_names[0]}", "warning": True, "note": "già su CEX"})
+            else:
+                research_score += 1
+                checks.append({"label": "Non ancora su CEX", "passed": True, "note": "opportunità early"})
+        else:
+            checks.append({"label": "Non trovato su CoinGecko", "passed": False, "note": "token non indicizzato"})
+
+        # ── DexScreener pair check ──
+        try:
+            r2 = await client.get(
+                f"https://api.dexscreener.com/latest/dex/tokens/{token_address}"
+            )
+            if r2.status_code == 200:
+                pairs = (r2.json().get("pairs") or [])
+                if pairs:
+                    best = max(pairs, key=lambda p: float(p.get("liquidity", {}).get("usd", 0) or 0))
+                    liq = float((best.get("liquidity") or {}).get("usd", 0) or 0)
+                    vol = float((best.get("volume") or {}).get("h24", 0) or 0)
+                    if liq >= 10_000:
+                        research_score += 1
+                        checks.append({"label": "Liquidità solida su DEX", "passed": True, "note": f"${liq:,.0f}"})
+                    elif liq >= 1_000:
+                        checks.append({"label": "Liquidità bassa su DEX", "warning": True, "note": f"${liq:,.0f}"})
+                    else:
+                        checks.append({"label": "Liquidità molto bassa", "passed": False, "note": f"${liq:,.0f}"})
+                    if liq > 0 and vol / liq > 0.05:
+                        research_score += 1
+                        checks.append({"label": "Volume reale (>5% liq)", "passed": True, "note": f"${vol:,.0f}/24h"})
+                    if best.get("pairUrl"):
+                        links.append({"label": "DexScreener", "url": best["pairUrl"]})
+        except Exception:
+            pass
+
+    research_score = min(research_score, 10)
+    return {
+        "chain_id": chain_id,
+        "token_address": token_address,
+        "research_score": research_score,
+        "description": description,
+        "checks": checks,
+        "links": links,
+    }
+
+
 @app.get("/api/sniper/market-stream")
 async def sniper_market_stream() -> StreamingResponse:
     """SSE feed of market-scan progress (per-chain, since this is a heavier
