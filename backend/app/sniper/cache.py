@@ -283,6 +283,7 @@ async def run_scan() -> int:
                             "max": i.max,
                             "auto": i.auto,
                             "note": i.note,
+                            "measured": i.measured,
                         }
                         for i in s.items
                     ],

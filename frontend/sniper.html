@@ -238,12 +238,16 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
 }
 .score-total-box .n{font-size:26px; font-weight:700; color:var(--accent); font-family:'Space Grotesk',sans-serif;}
 .score-total-box .d{color:var(--fg-dim); font-size:13px;}
+.score-coverage{font-size:10.5px; color:var(--fg-dim); padding:4px 14px 6px; border:1px solid var(--border); border-top:none; border-radius:0 0 8px 8px; background:var(--panel-2); margin-top:-1px;}
 .cat-group{margin-top:6px;}
-.cat-title{font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--fg-dim); margin:10px 0 6px;}
+.cat-title{display:flex; justify-content:space-between; align-items:center; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--fg-dim); margin:10px 0 6px;}
+.cat-score{font-size:10px; font-variant-numeric:tabular-nums; color:var(--fg-dim); background:var(--panel-2); border:1px solid var(--border); border-radius:4px; padding:1px 5px;}
 .crit-row{display:flex; gap:8px; padding:5px 0; align-items:flex-start; font-size:11.5px;}
+.crit-row.unmeasured{opacity:0.38;}
 .crit-mark{width:15px; flex-shrink:0; font-weight:700;}
 .crit-mark.on{color:var(--green);}
-.crit-mark.off{color:var(--fg-dim);}
+.crit-mark.off{color:var(--red);}
+.crit-mark.skip{color:var(--fg-dim); font-weight:400;}
 .crit-text .name{color:var(--fg);}
 .crit-text .note{color:var(--fg-dim); font-size:10.5px;}
 .crit-text .manual{color:var(--amber);}
@@ -658,8 +662,9 @@ tbody tr.top5-row:hover{ background: rgba(240,180,41,.12); }
   </div>
   <div class="sidebar-body">
     <div class="score-total-box">
-      <span class="n" id="sbScoreN">0</span><span class="d">/ 13 punti</span>
+      <span class="n" id="sbScoreN">0</span><span class="d" id="sbScoreD">/ — punti</span>
     </div>
+    <div class="score-coverage" id="sbCoverage" style="display:none"></div>
     <div class="stat-row"><span>Market Cap</span><span id="sbMc">—</span></div>
     <div class="stat-row"><span>Liquidità</span><span id="sbLiq">—</span></div>
     <div class="stat-row"><span>Volume 24h</span><span id="sbVol">—</span></div>
@@ -1077,10 +1082,11 @@ async function loadXlsx(){
           ? `<span title="Non listato su CEX" style="color:var(--green);font-size:10px;margin-left:4px;">✓</span>`
           : '';
 
-      // score badge coloring
-      const pct = c.score_max > 0 ? c.score_total / c.score_max : 0;
-      const badgeClass = pct >= 0.6 ? '' : pct >= 0.35 ? 'mid' : 'low';
-      const barColor = pct >= 0.6 ? 'var(--green)' : pct >= 0.35 ? 'var(--amber)' : 'var(--red)';
+      // score badge coloring — score_max=0 means unscored (agent-added, not yet through run_scan)
+      const pct = c.score_max > 0 ? c.score_total / c.score_max : null;
+      const badgeClass = pct === null ? 'low' : pct >= 0.6 ? '' : pct >= 0.35 ? 'mid' : 'low';
+      const barColor = pct === null ? 'var(--fg-dim)' : pct >= 0.6 ? 'var(--green)' : pct >= 0.35 ? 'var(--amber)' : 'var(--red)';
+      const scoreLabel = c.score_max > 0 ? `${c.score_total}/${c.score_max}` : '—';
 
       // liq coloring
       const liq = c.liquidity_usd || 0;
@@ -1089,8 +1095,8 @@ async function loadXlsx(){
       tr.innerHTML = `
         <td class="sym-cell">${rankBadge}${newDot}${esc(c.symbol)}${honeypotBadge}${cexBadge}<span class="chain">${esc(c.chain_id)}</span></td>
         <td>
-          <span class="score-badge ${badgeClass}">${c.score_total}/${c.score_max}</span>
-          <div class="score-bar"><div class="score-bar-fill" style="width:${Math.round(pct*100)}%;background:${barColor}"></div></div>
+          <span class="score-badge ${badgeClass}">${scoreLabel}</span>
+          <div class="score-bar"><div class="score-bar-fill" style="width:${pct !== null ? Math.round(pct*100) : 0}%;background:${barColor}"></div></div>
         </td>
         <td>${fmtUsd(c.market_cap)}</td>
         <td class="${liqClass}">${fmtUsd(c.liquidity_usd)}</td>
@@ -1153,6 +1159,19 @@ async function loadXlsx(){
     copyBtn.style.display = c.token_address ? '' : 'none';
     copyBtn.dataset.addr = c.token_address || '';
     document.getElementById('sbScoreN').textContent = c.score_total;
+    const scoreMax = c.score_max || 0;
+    document.getElementById('sbScoreD').textContent = scoreMax > 0 ? `/ ${scoreMax} misurati` : '/ —';
+    const allItems = c.score_items || [];
+    const totalItems = allItems.length;
+    const measuredItems = allItems.filter(i => i.measured !== false).length;
+    const covEl = document.getElementById('sbCoverage');
+    if(totalItems > 0){
+      covEl.style.display = '';
+      const pctCov = Math.round(measuredItems / totalItems * 100);
+      covEl.textContent = `Copertura dati: ${measuredItems}/${totalItems} criteri (${pctCov}%)`;
+    } else {
+      covEl.style.display = 'none';
+    }
     document.getElementById('sbMc').textContent = fmtUsd(c.market_cap);
     document.getElementById('sbLiq').textContent = fmtUsd(c.liquidity_usd);
     document.getElementById('sbVol').textContent = fmtUsd(c.volume_h24);
@@ -1173,23 +1192,32 @@ async function loadXlsx(){
     }
 
     const cats = {};
-    for(const it of (c.score_items || [])){
+    for(const it of allItems){
       (cats[it.category] = cats[it.category] || []).push(it);
     }
     const catsEl = document.getElementById('sbCategories');
     catsEl.innerHTML = '';
-    for(const [cat, items] of Object.entries(cats)){
+    for(const [cat, catItems] of Object.entries(cats)){
       const g = document.createElement('div');
       g.className = 'cat-group';
-      let rows = items.map(it => `
-        <div class="crit-row">
-          <span class="crit-mark ${it.earned ? 'on' : 'off'}">${it.earned ? '✓' : '·'}</span>
+      const measuredInCat = catItems.filter(i => i.measured !== false);
+      const catEarned = measuredInCat.reduce((s, i) => s + (i.earned || 0), 0);
+      const catMax = measuredInCat.reduce((s, i) => s + (i.max || 1), 0);
+      const catBadge = catMax > 0 ? `<span class="cat-score">${catEarned}/${catMax}</span>` : '';
+      let rows = catItems.map(it => {
+        const unmeasured = it.measured === false;
+        const markClass = unmeasured ? 'skip' : (it.earned ? 'on' : 'off');
+        const mark = unmeasured ? '○' : (it.earned ? '✓' : '✗');
+        return `
+        <div class="crit-row${unmeasured ? ' unmeasured' : ''}">
+          <span class="crit-mark ${markClass}">${mark}</span>
           <div class="crit-text">
             <div class="name">${esc(it.criterion)}</div>
             <div class="note ${it.auto ? '' : 'manual'}">${esc(it.note)}</div>
           </div>
-        </div>`).join('');
-      g.innerHTML = `<div class="cat-title">${esc(cat)}</div>${rows}`;
+        </div>`;
+      }).join('');
+      g.innerHTML = `<div class="cat-title">${esc(cat)}${catBadge}</div>${rows}`;
       catsEl.appendChild(g);
     }
     sidebar.classList.add('open');
