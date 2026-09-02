@@ -1277,6 +1277,82 @@ async def sniper_scan_stream() -> StreamingResponse:
     )
 
 
+@app.get("/api/sniper/market")
+async def sniper_market(
+    chain: str = Query("all"),
+    q: str = Query(""),
+    sort: str = Query("liquidity"),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+) -> dict:
+    """Browse the market screener's store — every pool GeckoTerminal handed
+    us on the last market scan, not just new ones. No score here (see
+    sniper/market.py docstring for why); this is filter/sort/browse only."""
+    from app.sniper import market as sniper_market_mod
+
+    items, total = sniper_market_mod.get_tokens(
+        chain=chain or None, query=q or None, sort=sort, limit=limit, offset=offset
+    )
+    return {
+        "tokens": [
+            {
+                "chain_id": t.chain_id,
+                "token_address": t.token_address,
+                "pair_address": t.pair_address,
+                "symbol": t.symbol,
+                "name": t.name,
+                "dex_id": t.dex_id,
+                "pair_url": t.pair_url,
+                "price_usd": t.price_usd,
+                "market_cap": t.market_cap,
+                "liquidity_usd": t.liquidity_usd,
+                "volume_h24": t.volume_h24,
+                "age_hours": round(t.age_hours, 1),
+                "buy_sell_ratio": round(t.buy_sell_ratio, 2),
+                "last_updated": t.last_updated,
+            }
+            for t in items
+        ],
+        "total": total,
+        "last_scan": sniper_market_mod.last_scan_ts(),
+    }
+
+
+@app.post("/api/sniper/market-scan")
+async def sniper_market_trigger_scan() -> dict:
+    from app.sniper import market as sniper_market_mod
+
+    added = await sniper_market_mod.run_market_scan()
+    return {"ok": True, "added": added}
+
+
+@app.get("/api/sniper/market-stream")
+async def sniper_market_stream() -> StreamingResponse:
+    """SSE feed of market-scan progress (per-chain, since this is a heavier
+    on-demand pull — up to 10 pages per chain — not the every-5-minutes
+    sniper scan)."""
+    from app.sniper import market as sniper_market_mod
+
+    async def event_gen():
+        q = sniper_market_mod.subscribe()
+        try:
+            yield f"data: {json.dumps({'type': 'connected', 'ts': _time.time()})}\n\n"
+            while True:
+                try:
+                    event = await asyncio.wait_for(q.get(), timeout=15.0)
+                    yield f"data: {json.dumps(event)}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
+        finally:
+            sniper_market_mod.unsubscribe(q)
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
 @app.websocket("/ws/live")
 async def live_feed(websocket: WebSocket) -> None:
     params = websocket.query_params

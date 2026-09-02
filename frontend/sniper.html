@@ -20,6 +20,7 @@ body{
   font-size:13px; line-height:1.5;
   display:flex; flex-direction:column; height:100vh; overflow:hidden;
 }
+/* ── header ── */
 .hdr{
   display:flex; align-items:center; gap:16px;
   padding:12px 20px; border-bottom:1px solid var(--border);
@@ -55,8 +56,27 @@ button.scan-btn:disabled{background:var(--panel-2); color:var(--fg-dim); cursor:
 a.back-link{color:var(--fg-dim); text-decoration:none; font-size:11.5px; border:1px solid var(--border); border-radius:6px; padding:7px 10px;}
 a.back-link:hover{color:var(--fg); border-color:var(--fg-dim);}
 
-.body{flex:1; display:flex; min-height:0;}
+/* ── tab bar ── */
+.tab-bar{
+  display:flex; gap:0; border-bottom:1px solid var(--border);
+  background:var(--panel); flex-shrink:0;
+}
+.tab-bar button{
+  background:none; border:none; border-bottom:2px solid transparent;
+  padding:10px 20px; font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:600;
+  color:var(--fg-dim); cursor:pointer; letter-spacing:0.02em;
+  transition:color .15s;
+}
+.tab-bar button.active{color:var(--accent); border-bottom-color:var(--accent);}
+.tab-bar button:hover:not(.active){color:var(--fg);}
 
+/* ── tab panels ── */
+.tab-panel{flex:1; display:none; min-height:0;}
+.tab-panel.active{display:flex; flex-direction:column;}
+
+/* ── sniper panel ── */
+#sniper-panel{flex-direction:row; overflow:hidden;}
+.body{flex:1; display:flex; min-height:0;}
 .console-pane{
   width:46%; min-width:340px; display:flex; flex-direction:column;
   border-right:1px solid var(--border); background:#000;
@@ -129,6 +149,7 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
 }
 .empty-state .big{font-size:15px; color:var(--fg); font-family:'Space Grotesk',sans-serif; font-weight:600;}
 
+/* ── sidebar ── */
 .sidebar{
   position:fixed; top:0; right:0; height:100%; width:380px; max-width:92vw;
   background:var(--panel); border-left:1px solid var(--border);
@@ -172,6 +193,68 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
 .overlay{position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:15; opacity:0; pointer-events:none; transition:opacity .2s;}
 .overlay.open{opacity:1; pointer-events:auto;}
 
+/* ── market screener panel ── */
+#market-panel{flex-direction:column;}
+.mkt-toolbar{
+  display:flex; align-items:center; gap:8px; padding:10px 16px;
+  border-bottom:1px solid var(--border); flex-shrink:0; flex-wrap:wrap;
+  background:var(--panel);
+}
+.mkt-search{
+  background:var(--panel-2); border:1px solid var(--border); color:var(--fg-bright);
+  border-radius:6px; padding:6px 12px; font-family:inherit; font-size:12px;
+  width:180px; outline:none;
+}
+.mkt-search:focus{border-color:var(--accent);}
+.mkt-select{
+  background:var(--panel-2); border:1px solid var(--border); color:var(--fg-dim);
+  border-radius:6px; padding:6px 10px; font-family:inherit; font-size:12px; cursor:pointer;
+  outline:none;
+}
+.mkt-select:focus{border-color:var(--accent);}
+.mkt-spacer{flex:1;}
+.mkt-info{color:var(--fg-dim); font-size:11.5px; white-space:nowrap;}
+.mkt-info b{color:var(--fg);}
+
+.mkt-progress{
+  padding:10px 16px; border-bottom:1px solid var(--border);
+  background:var(--panel-2); flex-shrink:0; display:none;
+}
+.mkt-progress.active{display:block;}
+.mkt-progress-title{
+  font-size:11px; text-transform:uppercase; letter-spacing:0.08em;
+  color:var(--amber); margin-bottom:8px; font-weight:700;
+}
+.mkt-chains{display:flex; gap:8px; flex-wrap:wrap;}
+.mkt-chain-item{
+  display:flex; align-items:center; gap:5px; padding:4px 10px;
+  border-radius:5px; border:1px solid var(--border); font-size:11px; font-weight:600;
+  color:var(--fg-dim); background:var(--panel); transition:all .2s;
+}
+.mkt-chain-item.loading{color:var(--amber); border-color:var(--amber);}
+.mkt-chain-item.done{color:var(--green); border-color:var(--green-dim);}
+.mkt-chain-item .spin{display:inline-block; animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.mkt-chain-filters{
+  display:flex; gap:6px; padding:8px 16px; border-bottom:1px solid var(--border);
+  flex-wrap:wrap; flex-shrink:0;
+}
+.mkt-table-wrap{flex:1; overflow:auto; min-height:0;}
+.mkt-pagination{
+  display:flex; align-items:center; gap:10px; padding:10px 16px;
+  border-top:1px solid var(--border); flex-shrink:0; background:var(--panel);
+}
+.mkt-pagination button{
+  background:var(--panel-2); color:var(--fg-dim); border:1px solid var(--border);
+  border-radius:5px; padding:5px 12px; font-family:inherit; font-size:12px; cursor:pointer;
+}
+.mkt-pagination button:hover:not(:disabled){color:var(--fg); border-color:var(--fg-dim);}
+.mkt-pagination button:disabled{opacity:.3; cursor:not-allowed;}
+.mkt-pagination .page-info{color:var(--fg-dim); font-size:11.5px;}
+.dex-link{color:var(--accent); text-decoration:none; font-size:11px; padding:2px 6px; border:1px solid var(--green-dim); border-radius:4px;}
+.dex-link:hover{border-color:var(--accent);}
+
 ::-webkit-scrollbar{width:9px; height:9px;}
 ::-webkit-scrollbar-thumb{background:var(--border); border-radius:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -188,40 +271,109 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
   <button class="scan-btn" id="scanBtn">Scansiona ora</button>
 </div>
 
-<div class="body">
-  <div class="console-pane">
-    <div class="console-head">
-      <span>Console scansione</span>
-      <span id="consoleCount">0 eventi</span>
+<div class="tab-bar">
+  <button class="active" id="tabSniper" onclick="switchTab('sniper')">Sniper</button>
+  <button id="tabMarket" onclick="switchTab('market')">Market Screener</button>
+</div>
+
+<!-- ── Sniper Panel ── -->
+<div class="tab-panel active" id="sniper-panel">
+  <div class="body">
+    <div class="console-pane">
+      <div class="console-head">
+        <span>Console scansione</span>
+        <span id="consoleCount">0 eventi</span>
+      </div>
+      <div class="console-log" id="consoleLog"></div>
     </div>
-    <div class="console-log" id="consoleLog"></div>
+
+    <div class="results-pane">
+      <div class="filters" id="chainFilters">
+        <button class="chip active" data-chain="all">Tutte</button>
+        <button class="chip" data-chain="ethereum">ETH</button>
+        <button class="chip" data-chain="bsc">BSC</button>
+        <button class="chip" data-chain="base">BASE</button>
+        <button class="chip" data-chain="arbitrum">ARB</button>
+        <button class="chip" data-chain="avalanche">AVAX</button>
+        <button class="chip" data-chain="solana">SOL</button>
+      </div>
+      <div class="table-wrap" id="tableWrap">
+        <div class="empty-state" id="emptyState">
+          <div class="big">Nessun candidato ancora</div>
+          <div>Avvia una scansione per popolare la lista.</div>
+        </div>
+        <table id="resultsTable" style="display:none">
+          <thead>
+            <tr>
+              <th>Token</th><th>Score</th><th>MC</th><th>Liquidità</th>
+              <th>Vol 24h</th><th>B/S h1</th><th>Età</th><th>Rilevato</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Market Screener Panel ── -->
+<div class="tab-panel" id="market-panel">
+  <div class="mkt-toolbar">
+    <input class="mkt-search" id="mktSearch" type="text" placeholder="Cerca simbolo…" />
+    <select class="mkt-select" id="mktSort">
+      <option value="liquidity">Liquidità ↓</option>
+      <option value="volume">Volume ↓</option>
+      <option value="market_cap">Market Cap ↓</option>
+      <option value="age">Più recenti</option>
+    </select>
+    <div class="mkt-spacer"></div>
+    <div class="mkt-info" id="mktInfo">Nessuna scansione ancora</div>
+    <button class="scan-btn" id="mktScanBtn" onclick="triggerMarketScan()">Scansiona mercato</button>
   </div>
 
-  <div class="results-pane">
-    <div class="filters" id="chainFilters">
-      <button class="chip active" data-chain="all">Tutte</button>
-      <button class="chip" data-chain="ethereum">ETH</button>
-      <button class="chip" data-chain="bsc">BSC</button>
-      <button class="chip" data-chain="base">BASE</button>
-      <button class="chip" data-chain="arbitrum">ARB</button>
-      <button class="chip" data-chain="avalanche">AVAX</button>
-      <button class="chip" data-chain="solana">SOL</button>
+  <div class="mkt-progress" id="mktProgress">
+    <div class="mkt-progress-title">Scansione mercato in corso…</div>
+    <div class="mkt-chains" id="mktChains">
+      <div class="mkt-chain-item" id="mktc-ethereum">ETH</div>
+      <div class="mkt-chain-item" id="mktc-bsc">BSC</div>
+      <div class="mkt-chain-item" id="mktc-base">BASE</div>
+      <div class="mkt-chain-item" id="mktc-arbitrum">ARB</div>
+      <div class="mkt-chain-item" id="mktc-avalanche">AVAX</div>
+      <div class="mkt-chain-item" id="mktc-solana">SOL</div>
     </div>
-    <div class="table-wrap" id="tableWrap">
-      <div class="empty-state" id="emptyState">
-        <div class="big">Nessun candidato ancora</div>
-        <div>Avvia una scansione per popolare la lista.</div>
-      </div>
-      <table id="resultsTable" style="display:none">
-        <thead>
-          <tr>
-            <th>Token</th><th>Score</th><th>MC</th><th>Liquidità</th>
-            <th>Vol 24h</th><th>B/S h1</th><th>Età</th><th>Rilevato</th>
-          </tr>
-        </thead>
-        <tbody id="resultsBody"></tbody>
-      </table>
+  </div>
+
+  <div class="mkt-chain-filters" id="mktChainFilters">
+    <button class="chip active" data-chain="all">Tutte</button>
+    <button class="chip" data-chain="ethereum">ETH</button>
+    <button class="chip" data-chain="bsc">BSC</button>
+    <button class="chip" data-chain="base">BASE</button>
+    <button class="chip" data-chain="arbitrum">ARB</button>
+    <button class="chip" data-chain="avalanche">AVAX</button>
+    <button class="chip" data-chain="solana">SOL</button>
+  </div>
+
+  <div class="mkt-table-wrap" id="mktTableWrap">
+    <div class="empty-state" id="mktEmpty">
+      <div class="big">Nessun dato di mercato</div>
+      <div>Premi "Scansiona mercato" per caricare migliaia di token da GeckoTerminal.</div>
     </div>
+    <table id="mktTable" style="display:none">
+      <thead>
+        <tr>
+          <th>Token</th><th>Chain</th><th>DEX</th>
+          <th>Liquidità</th><th>Volume 24h</th><th>Market Cap</th>
+          <th>Prezzo</th><th>Età</th><th>B/S</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="mktBody"></tbody>
+    </table>
+  </div>
+
+  <div class="mkt-pagination" id="mktPager" style="display:none">
+    <button id="mktPrev" onclick="mktPage(-1)" disabled>← Prec</button>
+    <span class="page-info" id="mktPageInfo">—</span>
+    <button id="mktNext" onclick="mktPage(1)">Succ →</button>
   </div>
 </div>
 
@@ -253,26 +405,10 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
 
 <script>
 (function(){
-  const consoleLog = document.getElementById('consoleLog');
-  const consoleCount = document.getElementById('consoleCount');
-  const statusPill = document.getElementById('statusPill');
-  const statusText = document.getElementById('statusText');
-  const metaInfo = document.getElementById('metaInfo');
-  const scanBtn = document.getElementById('scanBtn');
-  const resultsBody = document.getElementById('resultsBody');
-  const resultsTable = document.getElementById('resultsTable');
-  const emptyState = document.getElementById('emptyState');
-  const chainFilters = document.getElementById('chainFilters');
-
-  let candidates = [];
-  let activeChain = 'all';
-  let eventCount = 0;
-  let es = null;
-
+  /* ── shared utils ── */
   function esc(s){
     return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
-
   function fmtUsd(n){
     if(n === null || n === undefined) return '—';
     if(n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
@@ -290,6 +426,38 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
     return new Date(ts*1000).toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit'});
   }
 
+  /* ── tab switching ── */
+  window.switchTab = function(tab){
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+    document.getElementById(tab + '-panel').classList.add('active');
+    document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+    if(tab === 'sniper'){
+      document.getElementById('scanBtn').style.display = '';
+    } else {
+      document.getElementById('scanBtn').style.display = 'none';
+      if(!mktLoaded) loadMarketData();
+    }
+  };
+
+  /* ─────────────────────────────────────────────
+   * SNIPER SECTION
+   * ──────────────────────────────────────────── */
+  const consoleLog = document.getElementById('consoleLog');
+  const consoleCount = document.getElementById('consoleCount');
+  const statusPill = document.getElementById('statusPill');
+  const statusText = document.getElementById('statusText');
+  const metaInfo = document.getElementById('metaInfo');
+  const scanBtn = document.getElementById('scanBtn');
+  const resultsBody = document.getElementById('resultsBody');
+  const resultsTable = document.getElementById('resultsTable');
+  const emptyState = document.getElementById('emptyState');
+  const chainFilters = document.getElementById('chainFilters');
+
+  let candidates = [];
+  let activeChain = 'all';
+  let eventCount = 0;
+  let es = null;
   let lastLogDate = null;
 
   function logLine(tag, tagClass, html, ts){
@@ -336,18 +504,12 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
     }
   }
 
-  // The backend scans automatically every 5 minutes on its own (no button
-  // needed) — this connection just relays whatever scan is happening, live,
-  // to this tab. It stays open for the life of the page and reconnects on
-  // drop, so an automatic scan shows up here even if nobody ever clicks
-  // "Scansiona ora".
   function connectStream(){
     if(es) return;
     es = new EventSource('/api/sniper/scan-stream');
     es.onopen = () => { statusText.textContent = 'In ascolto — auto ogni 5 min'; };
     es.onmessage = (ev) => {
-      let d;
-      try { d = JSON.parse(ev.data); } catch(e){ return; }
+      let d; try { d = JSON.parse(ev.data); } catch(e){ return; }
       handleEvent(d);
     };
     es.onerror = () => {
@@ -360,11 +522,8 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
 
   async function triggerScan(){
     scanBtn.disabled = true;
-    try{
-      await fetch('/api/sniper/scan', { method: 'POST' });
-    } catch(e){
-      scanBtn.disabled = false;
-    }
+    try{ await fetch('/api/sniper/scan', { method: 'POST' }); }
+    catch(e){ scanBtn.disabled = false; }
   }
 
   function renderLogEvent(d){
@@ -372,18 +531,18 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
     if(d.type === 'scan_start'){
       logLine('INFO', 'info', 'Avvio scansione — DEXScreener + nuove pool per ogni chain (ETH/BSC/BASE/ARB/AVAX/SOL)…', ts);
     } else if(d.type === 'fetched'){
-      const unsupportedTxt = d.unsupported_chain ? `, ${d.unsupported_chain} su chain non supportate (ignorati)` : '';
-      logLine('INFO', 'info', `${d.count} profili DEXScreener${unsupportedTxt} + ${d.per_chain_new_pools} nuove pool esplorate per chain — ${d.supported} token unici da verificare…`, ts);
+      const u = d.unsupported_chain ? `, ${d.unsupported_chain} su chain non supportate (ignorati)` : '';
+      logLine('INFO', 'info', `${d.count} profili DEXScreener${u} + ${d.per_chain_new_pools} nuove pool esplorate per chain — ${d.supported} token unici da verificare…`, ts);
     } else if(d.type === 'fetch_error'){
       logLine('ERR', 'err', 'Errore nel recupero dati: ' + esc(d.message), ts);
     } else if(d.type === 'primary'){
       if(d.passed){
-        logLine('OK', 'pass', `<span class="sym">${esc(d.symbol) || '?'}</span> <span class="dim">(${esc(d.chain)})</span> supera i filtri primari — passo alla valutazione on-chain`, ts);
+        logLine('OK', 'pass', `<span class="sym">${esc(d.symbol)||'?'}</span> <span class="dim">(${esc(d.chain)})</span> supera i filtri primari — passo alla valutazione on-chain`, ts);
       } else {
-        logLine('FILT', 'fail', `<span class="sym">${esc(d.symbol) || '?'}</span> <span class="dim">(${esc(d.chain)})</span> escluso dai filtri primari (${esc(d.reason)})`, ts);
+        logLine('FILT', 'fail', `<span class="sym">${esc(d.symbol)||'?'}</span> <span class="dim">(${esc(d.chain)})</span> escluso dai filtri primari (${esc(d.reason)})`, ts);
       }
     } else if(d.type === 'evaluating'){
-      logLine('...', 'fail', `Analisi on-chain <span class="sym">${esc(d.symbol) || '?'}</span> <span class="dim">(${esc(d.chain)})</span>`, ts);
+      logLine('...', 'fail', `Analisi on-chain <span class="sym">${esc(d.symbol)||'?'}</span> <span class="dim">(${esc(d.chain)})</span>`, ts);
     } else if(d.type === 'result'){
       if(d.passed){
         logLine('PASS', 'pass', `<span class="sym">${esc(d.symbol)}</span> score ${d.score}/${d.score_max} — supera la soglia, aggiunto ai candidati`, ts);
@@ -391,20 +550,16 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
         logLine('SKIP', 'fail', `<span class="sym">${esc(d.symbol)}</span> score ${d.score}/${d.score_max} — scartato (${esc(d.reason)})`, ts);
       }
     } else if(d.type === 'error'){
-      logLine('ERR', 'err', `${esc(d.symbol) || '?'}: ${esc(d.message)}`, ts);
+      logLine('ERR', 'err', `${esc(d.symbol)||'?'}: ${esc(d.message)}`, ts);
     } else if(d.type === 'scan_end'){
-      logLine('DONE', 'info', `Scansione completata in ${d.duration.toFixed(1)}s — ${d.fetched ?? '?'} recuperati, ${d.scanned} superano i filtri primari, ${d.added} candidati, ${d.total} in archivio`, ts);
+      logLine('DONE', 'info', `Scansione completata in ${d.duration.toFixed(1)}s — ${d.fetched??'?'} recuperati, ${d.scanned} superano i filtri primari, ${d.added} candidati, ${d.total} in archivio`, ts);
     }
   }
 
   function handleEvent(d){
     renderLogEvent(d);
-    if(d.type === 'scan_start'){
-      setScanning(true);
-    } else if(d.type === 'scan_end'){
-      setScanning(false);
-      loadCandidates();
-    }
+    if(d.type === 'scan_start') setScanning(true);
+    else if(d.type === 'scan_end'){ setScanning(false); loadCandidates(); }
   }
 
   async function loadCandidates(){
@@ -460,7 +615,7 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
 
   scanBtn.addEventListener('click', triggerScan);
 
-  // Sidebar
+  /* sidebar */
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('overlay');
   document.getElementById('sbClose').addEventListener('click', closeSidebar);
@@ -471,15 +626,15 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
   }
   function openSidebar(c){
     document.getElementById('sbSymbol').textContent = c.symbol;
-    document.getElementById('sbChain').textContent = c.chain_id + ' · ' + c.dex_id;
+    document.getElementById('sbChain').textContent = c.chain_id + ' · ' + (c.dex_id || '');
     document.getElementById('sbScoreN').textContent = c.score_total;
     document.getElementById('sbMc').textContent = fmtUsd(c.market_cap);
     document.getElementById('sbLiq').textContent = fmtUsd(c.liquidity_usd);
     document.getElementById('sbVol').textContent = fmtUsd(c.volume_h24);
-    document.getElementById('sbBs').textContent = c.buy_sell_ratio + 'x';
-    document.getElementById('sbAge').textContent = fmtAge(c.age_hours);
+    document.getElementById('sbBs').textContent = (c.buy_sell_ratio || 0) + 'x';
+    document.getElementById('sbAge').textContent = fmtAge(c.age_hours || 0);
     document.getElementById('sbAnalyze').href = `/?ticker=${encodeURIComponent(c.symbol)}&exchange=mexc&asset=crypto`;
-    document.getElementById('sbDex').href = c.pair_url;
+    document.getElementById('sbDex').href = c.pair_url || '#';
 
     const cats = {};
     for(const it of (c.score_items || [])){
@@ -501,7 +656,6 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
       g.innerHTML = `<div class="cat-title">${esc(cat)}</div>${rows}`;
       catsEl.appendChild(g);
     }
-
     sidebar.classList.add('open');
     overlay.classList.add('open');
   }
@@ -524,6 +678,159 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
   loadHistory();
   loadCandidates();
   connectStream();
+
+  /* ─────────────────────────────────────────────
+   * MARKET SCREENER SECTION
+   * ──────────────────────────────────────────── */
+  const MKT_LIMIT = 50;
+  let mktOffset = 0;
+  let mktTotal = 0;
+  let mktChain = 'all';
+  let mktSort = 'liquidity';
+  let mktQuery = '';
+  let mktLoaded = false;
+  let mktScanEs = null;
+  let mktSearchTimer = null;
+
+  document.getElementById('mktSearch').addEventListener('input', (e) => {
+    clearTimeout(mktSearchTimer);
+    mktSearchTimer = setTimeout(() => {
+      mktQuery = e.target.value.trim();
+      mktOffset = 0;
+      loadMarketData();
+    }, 300);
+  });
+
+  document.getElementById('mktSort').addEventListener('change', (e) => {
+    mktSort = e.target.value;
+    mktOffset = 0;
+    loadMarketData();
+  });
+
+  document.getElementById('mktChainFilters').addEventListener('click', (e) => {
+    const btn = e.target.closest('.chip');
+    if(!btn) return;
+    document.getElementById('mktChainFilters').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    mktChain = btn.dataset.chain;
+    mktOffset = 0;
+    loadMarketData();
+  });
+
+  window.mktPage = function(dir){
+    mktOffset = Math.max(0, mktOffset + dir * MKT_LIMIT);
+    loadMarketData();
+  };
+
+  async function loadMarketData(){
+    mktLoaded = true;
+    const params = new URLSearchParams({
+      chain: mktChain, q: mktQuery, sort: mktSort,
+      limit: MKT_LIMIT, offset: mktOffset,
+    });
+    try{
+      const r = await fetch('/api/sniper/market?' + params);
+      const data = await r.json();
+      const tokens = data.tokens || [];
+      mktTotal = data.total || 0;
+      renderMarketTable(tokens);
+      updateMktPager();
+      if(data.last_scan && data.last_scan > 0){
+        document.getElementById('mktInfo').innerHTML =
+          `Ultimo aggiornamento: <b>${fmtTime(data.last_scan)}</b> · <b>${data.total}</b> token`;
+      } else {
+        document.getElementById('mktInfo').textContent = 'Nessuna scansione ancora';
+      }
+    } catch(e){ /* ignore */ }
+  }
+
+  function renderMarketTable(tokens){
+    const empty = document.getElementById('mktEmpty');
+    const table = document.getElementById('mktTable');
+    const tbody = document.getElementById('mktBody');
+    if(!tokens.length){
+      table.style.display = 'none';
+      empty.style.display = 'flex';
+      document.getElementById('mktPager').style.display = 'none';
+      return;
+    }
+    empty.style.display = 'none';
+    table.style.display = 'table';
+    document.getElementById('mktPager').style.display = 'flex';
+    tbody.innerHTML = '';
+    for(const t of tokens){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="sym-cell">${esc(t.symbol)}</td>
+        <td><span style="font-size:10px;color:var(--fg-dim);text-transform:uppercase;">${esc(t.chain_id)}</span></td>
+        <td style="color:var(--fg-dim);font-size:11px;">${esc(t.dex_id)}</td>
+        <td>${fmtUsd(t.liquidity_usd)}</td>
+        <td>${fmtUsd(t.volume_h24)}</td>
+        <td>${fmtUsd(t.market_cap)}</td>
+        <td style="color:var(--fg-dim);">$${t.price_usd ? t.price_usd.toPrecision(4) : '—'}</td>
+        <td>${fmtAge(t.age_hours)}</td>
+        <td>${t.buy_sell_ratio}x</td>
+        <td><a class="dex-link" href="${esc(t.pair_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗</a></td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  function updateMktPager(){
+    const page = Math.floor(mktOffset / MKT_LIMIT) + 1;
+    const pages = Math.ceil(mktTotal / MKT_LIMIT) || 1;
+    document.getElementById('mktPageInfo').textContent = `Pagina ${page} di ${pages} (${mktTotal} token)`;
+    document.getElementById('mktPrev').disabled = mktOffset === 0;
+    document.getElementById('mktNext').disabled = mktOffset + MKT_LIMIT >= mktTotal;
+  }
+
+  window.triggerMarketScan = async function(){
+    const btn = document.getElementById('mktScanBtn');
+    btn.disabled = true;
+    btn.textContent = 'Scansione…';
+    connectMarketStream();
+    try{
+      await fetch('/api/sniper/market-scan', { method: 'POST' });
+    } catch(e){ /* scan may still succeed */ }
+  };
+
+  function connectMarketStream(){
+    if(mktScanEs) return;
+    const progress = document.getElementById('mktProgress');
+    progress.classList.add('active');
+    // reset chain items
+    ['ethereum','bsc','base','arbitrum','avalanche','solana'].forEach(ch => {
+      const el = document.getElementById('mktc-' + ch);
+      if(el){ el.className = 'mkt-chain-item'; el.innerHTML = el.textContent.split(' ')[0]; }
+    });
+
+    mktScanEs = new EventSource('/api/sniper/market-stream');
+    mktScanEs.onmessage = (ev) => {
+      let d; try { d = JSON.parse(ev.data); } catch(e){ return; }
+      handleMarketEvent(d);
+    };
+    mktScanEs.onerror = () => {
+      if(mktScanEs){ mktScanEs.close(); mktScanEs = null; }
+    };
+  }
+
+  function handleMarketEvent(d){
+    if(d.type === 'market_chain_start'){
+      const el = document.getElementById('mktc-' + d.chain);
+      if(el){ el.className = 'mkt-chain-item loading'; el.innerHTML = '<span class="spin">⟳</span> ' + el.textContent.trim().split(' ').pop(); }
+    } else if(d.type === 'market_chain_done'){
+      const el = document.getElementById('mktc-' + d.chain);
+      if(el){ el.className = 'mkt-chain-item done'; el.innerHTML = '✓ ' + el.textContent.trim().split(' ').pop() + ' <span style="color:var(--fg-dim);font-size:10px;">' + d.count + '</span>'; }
+    } else if(d.type === 'market_scan_end'){
+      if(mktScanEs){ mktScanEs.close(); mktScanEs = null; }
+      document.getElementById('mktProgress').classList.remove('active');
+      const btn = document.getElementById('mktScanBtn');
+      btn.disabled = false;
+      btn.textContent = 'Scansiona mercato';
+      mktOffset = 0;
+      loadMarketData();
+    }
+  }
 })();
 </script>
 </body>

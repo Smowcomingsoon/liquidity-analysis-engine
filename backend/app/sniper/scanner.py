@@ -186,39 +186,83 @@ def _parse_gecko_pool(chain_id: str, pool: dict) -> Optional["RawToken"]:
 
 GECKO_PAGES_PER_CHAIN = 6  # ~20 pools/page -> up to ~120 pools/chain/scan
 
+# GeckoTerminal's anonymous/free tier hard-caps pagination at page 10 for
+# every list endpoint (page 11+ returns 401 "Upgrade to Analyst plan…") —
+# this is the real ceiling, not a number we chose.
+GECKO_MAX_PAGE = 10
 
-async def _fetch_gecko_chain(client: httpx.AsyncClient, chain_id: str) -> list[RawToken]:
-    """New pools on one chain, straight from GeckoTerminal, paginated — this
-    is what guarantees every supported chain is actually explored (and with
-    real depth, not just the first page) each scan, instead of relying on
-    DEXScreener's single global "latest profiles" feed to happen to include
-    it. Pages are fetched sequentially with a small delay to stay well
-    within GeckoTerminal's public rate limit; a chain's other pages aren't
-    skipped just because one page comes back empty — GeckoTerminal can
-    return an empty page and non-empty ones after it."""
+
+_GECKO_PAGE_DELAY = 2.0   # GeckoTerminal free tier: ~30 req/min
+_GECKO_RATE_RETRY_WAIT = 12.0  # back-off on 429 before retry
+
+
+async def _fetch_gecko_pages(
+    client: httpx.AsyncClient, chain_id: str, endpoint: str, pages: int
+) -> list[RawToken]:
+    """Paginate one GeckoTerminal list endpoint ("new_pools" or "pools") for
+    one chain.  Pages are fetched sequentially with a 2-second delay to
+    stay inside the free-tier rate limit (~30 req/min).  A 429 is retried
+    once after a longer back-off before giving up on the current chain."""
     network = GECKO_NETWORKS[chain_id]
     tokens: list[RawToken] = []
-    for page in range(1, GECKO_PAGES_PER_CHAIN + 1):
-        try:
-            resp = await client.get(
-                f"{GECKOTERMINAL_BASE}/networks/{network}/new_pools", params={"page": page}
-            )
-            if resp.status_code != 200:
+    for page in range(1, min(pages, GECKO_MAX_PAGE) + 1):
+        pools: list[dict] = []
+        for attempt in range(2):  # at most one retry on 429
+            try:
+                resp = await client.get(
+                    f"{GECKOTERMINAL_BASE}/networks/{network}/{endpoint}",
+                    params={"page": page},
+                )
+            except Exception as exc:
+                logger.warning(
+                    "GeckoTerminal fetch error (%s/%s, page %d): %s",
+                    chain_id, endpoint, page, exc,
+                )
+                return tokens
+
+            if resp.status_code == 200:
+                pools = resp.json().get("data") or []
                 break
-            pools: list[dict] = resp.json().get("data") or []
-        except Exception as exc:
-            logger.warning("GeckoTerminal fetch error (%s, page %d): %s", chain_id, page, exc)
-            break
+            if resp.status_code == 429 and attempt == 0:
+                logger.warning(
+                    "GeckoTerminal 429 on %s/%s page %d — backing off %.0fs",
+                    chain_id, endpoint, page, _GECKO_RATE_RETRY_WAIT,
+                )
+                await asyncio.sleep(_GECKO_RATE_RETRY_WAIT)
+                continue
+            # Non-200, non-retried 429: stop this chain silently
+            logger.warning(
+                "GeckoTerminal %d on %s/%s page %d — stopping chain",
+                resp.status_code, chain_id, endpoint, page,
+            )
+            return tokens
 
         for pool in pools:
             token = _parse_gecko_pool(chain_id, pool)
             if token:
                 tokens.append(token)
 
-        if page < GECKO_PAGES_PER_CHAIN:
-            await asyncio.sleep(0.15)
+        if page < pages:
+            await asyncio.sleep(_GECKO_PAGE_DELAY)
 
     return tokens
+
+
+async def _fetch_gecko_chain(client: httpx.AsyncClient, chain_id: str) -> list[RawToken]:
+    """New pools on one chain — this is what guarantees every supported
+    chain is actually explored (and with real depth, not just the first
+    page) each scan, instead of relying on DEXScreener's single global
+    "latest profiles" feed to happen to include it."""
+    return await _fetch_gecko_pages(client, chain_id, "new_pools", GECKO_PAGES_PER_CHAIN)
+
+
+async def fetch_market_chain(client: httpx.AsyncClient, chain_id: str) -> list[RawToken]:
+    """Broad market pull for one chain: every pool GeckoTerminal will hand
+    an anonymous caller (not just new ones), up to its hard page cap. Used
+    by the separate market screener, not the sniper's every-5-minutes scan
+    — this alone is ~200 requests-worth of pages across six chains and has
+    no reason to run that often."""
+    return await _fetch_gecko_pages(client, chain_id, "pools", GECKO_MAX_PAGE)
 
 
 @dataclass
