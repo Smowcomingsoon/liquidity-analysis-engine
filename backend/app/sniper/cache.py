@@ -86,6 +86,12 @@ def _load_candidates() -> None:
     for item in raw:
         try:
             c = Candidate(**item)
+            # v3→v4 migration: score_items without 'measured' field are stale.
+            # Reset so the next main scan re-scores with the measured denominator.
+            if c.score_items and not any("measured" in i for i in c.score_items):
+                c.score_total = 0
+                c.score_max = 0
+                c.score_items = []
             _store[c.token_address] = c
         except (TypeError, ValueError):
             continue

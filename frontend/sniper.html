@@ -36,7 +36,7 @@ body{
   display:flex; align-items:center; gap:6px;
   padding:4px 10px; border-radius:99px; border:1px solid var(--border);
   font-size:11px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;
-  color:var(--fg-dim);
+  color:var(--fg-dim); white-space:nowrap; flex-shrink:0;
 }
 .status-pill .led{width:7px;height:7px;border-radius:50%;background:var(--fg-dim);}
 .status-pill.scanning{color:var(--accent); border-color:var(--green-dim);}
@@ -365,7 +365,9 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
   .meta { display:none; }
   .back-link { padding:6px 9px; font-size:11px; flex-shrink:0; }
   button.scan-btn { padding:8px 14px; font-size:11px; flex-shrink:0; }
-  .status-pill { font-size:10px; padding:3px 8px; }
+  .status-pill { font-size:10px; padding:3px 8px; max-width:34px; overflow:hidden; }
+  .status-pill .led { flex-shrink:0; }
+  .status-pill #statusText { display:none; }
   .spacer { display:none; }
 
   /* ── tabs: full width ── */
@@ -983,7 +985,7 @@ async function loadXlsx(){
 
   function compositeRank(c){
     // Quick composite: score 30%, buy pressure 25%, vol/liq momentum 25%, recency 20%
-    const scoreN   = (c.score_total || 0) / Math.max(c.score_max || 13, 1);
+    const scoreN   = c.score_max > 0 ? c.score_total / c.score_max : 0;
     const bsN      = Math.min((c.buy_sell_ratio || 1) - 1, 2) / 2;
     const volLiq   = c.liquidity_usd > 0 ? Math.min((c.volume_h24 || 0) / c.liquidity_usd, 10) / 10 : 0;
     const ageDecay = Math.max(0, 1 - (c.age_hours || 0) / 720);
