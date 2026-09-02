@@ -2496,6 +2496,23 @@ body {
 
   .mobile-nav-btn.active { color: var(--ink); font-weight: 700; }
 
+  /* Sniper link — same visual as a nav button but navigates to a new page */
+  .mobile-nav-link {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: var(--ink-dim);
+    font-family: var(--font-mono);
+    font-size: 8.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
   /* ---- Altro: account row + menu items (Script Pine, Saldi) ---- */
   .altro-account-slot .auth-widget {
     display: flex;

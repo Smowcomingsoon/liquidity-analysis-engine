@@ -3858,7 +3858,7 @@
     document.querySelector(".right-panel").classList.remove("mobile-open");
     el("draw-rail").classList.remove("mobile-tools-open");
 
-    const NAV_TARGET_FOR = { script: "altro", saldi: "altro", analisi: "altro", watchlist: "altro" };
+    const NAV_TARGET_FOR = { script: "altro", saldi: "altro", analisi: "altro", watchlist: "altro", backtest: "altro" };
     const navTarget = NAV_TARGET_FOR[target] || target;
     document.querySelectorAll(".mobile-nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.mobileTarget === navTarget));
 
@@ -3915,6 +3915,7 @@
     el("altro-saldi-item").addEventListener("click", () => showMobileScreen("saldi"));
     el("altro-analisi-item").addEventListener("click", () => showMobileScreen("analisi"));
     el("altro-watchlist-item").addEventListener("click", () => showMobileScreen("watchlist"));
+    el("altro-backtest-item").addEventListener("click", () => showMobileScreen("backtest"));
   }
 
   function bindUI() {
