@@ -179,8 +179,8 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
                            1 if vol_ok else 0, auto=True, note=vol_note))
 
     bsr = token.buy_sell_ratio
-    items.append(ScoreItem("Mercato", "Buy pressure sostenuta (B/S ≥1.3)",
-                           1 if bsr >= 1.3 else 0, auto=True, note=f"B/S h1: {bsr:.2f}"))
+    items.append(ScoreItem("Mercato", "Buy pressure sostenuta (B/S ≥1.1)",
+                           1 if bsr >= 1.1 else 0, auto=True, note=f"B/S h1: {bsr:.2f}"))
 
     total = sum(i.earned for i in items)
     max_pts = sum(i.max for i in items)

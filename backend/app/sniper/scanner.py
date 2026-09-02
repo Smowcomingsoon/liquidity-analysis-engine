@@ -38,13 +38,13 @@ GECKO_NETWORKS = {
 # tokens surfacing via a fresh LP at the other) — these thresholds still
 # cut both of those, just with more headroom for genuinely early but not
 # yet fully "seasoned" projects in between.
-MC_MIN = 20_000
-MC_MAX = 1_000_000
-LIQUIDITY_MIN = 15_000
-AGE_MIN_H = 0.5
-AGE_MAX_H = 336.0
-VOL_MC_RATIO_MIN = 0.08
-BUY_SELL_RATIO_MIN = 1.1
+MC_MIN = 10_000
+MC_MAX = 10_000_000
+LIQUIDITY_MIN = 5_000
+AGE_MIN_H = 0.25
+AGE_MAX_H = 720.0
+VOL_MC_RATIO_MIN = 0.03
+BUY_SELL_RATIO_MIN = 1.0
 
 
 @dataclass

@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 POLL_INTERVAL_SECONDS = 300  # 5 min
 
-SCORE_MIN = 5
+SCORE_MIN = 2
 TOKENOMICS_MIN = 0
 UTILITY_MIN = 0
 
