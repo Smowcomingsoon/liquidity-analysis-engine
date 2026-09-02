@@ -19,7 +19,14 @@ from typing import Optional
 
 import httpx
 
-from .scanner import GECKO_NETWORKS, RawToken, _passes_primary, fetch_market_chain
+from .scanner import (
+    GECKO_NETWORKS,
+    RawToken,
+    _passes_primary,
+    fetch_market_chain,
+    fetch_dexscreener_boosted,
+    fetch_pumpfun_trending,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -184,14 +191,15 @@ def _to_market_token(token: RawToken) -> MarketToken:
 
 
 async def run_market_scan() -> int:
-    """Pull every pool GeckoTerminal will hand us across all supported
-    chains, replacing the store. Returns the resulting token count."""
+    """Pull every pool from GeckoTerminal, DexScreener boosted feed, and
+    Pump.fun trending feed across all supported chains. Returns token count."""
     global _last_scan
     async with _scan_lock:
         t0 = time.time()
         _broadcast({"type": "market_scan_start"})
         added = 0
         async with httpx.AsyncClient(timeout=20.0) as client:
+            # GeckoTerminal: full pool catalog per chain
             for chain_id in GECKO_NETWORKS:
                 _broadcast({"type": "market_chain_start", "chain": chain_id})
                 try:
@@ -207,6 +215,48 @@ async def run_market_scan() -> int:
                     "chain": chain_id,
                     "count": len(tokens),
                 })
+
+            # DexScreener boosted/trending tokens
+            _broadcast({"type": "market_source_start", "source": "dexscreener_boosted"})
+            try:
+                boosted = await fetch_dexscreener_boosted(client)
+            except Exception as exc:
+                logger.warning("DexScreener boosted fetch error: %s", exc)
+                boosted = []
+            new_boosted = 0
+            for token in boosted:
+                k = _key(token.chain_id, token.token_address)
+                if k not in _store:
+                    new_boosted += 1
+                _store[k] = _to_market_token(token)
+            added += new_boosted
+            _broadcast({
+                "type": "market_source_done",
+                "source": "dexscreener_boosted",
+                "count": len(boosted),
+                "new": new_boosted,
+            })
+
+            # Pump.fun trending Solana meme coins
+            _broadcast({"type": "market_source_start", "source": "pump_fun"})
+            try:
+                pumpfun = await fetch_pumpfun_trending(client)
+            except Exception as exc:
+                logger.warning("Pump.fun fetch error: %s", exc)
+                pumpfun = []
+            new_pumpfun = 0
+            for token in pumpfun:
+                k = _key(token.chain_id, token.token_address)
+                if k not in _store:
+                    new_pumpfun += 1
+                _store[k] = _to_market_token(token)
+            added += new_pumpfun
+            _broadcast({
+                "type": "market_source_done",
+                "source": "pump_fun",
+                "count": len(pumpfun),
+                "new": new_pumpfun,
+            })
 
         _last_scan = time.time()
         _save()

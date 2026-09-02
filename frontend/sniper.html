@@ -719,6 +719,12 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
       mktLogLine('SCAN', 'fail', `Recupero pool su chain <span class="sym">${esc(d.chain)}</span>…`, ts);
     } else if(d.type === 'market_chain_done'){
       mktLogLine('OK', 'pass', `<span class="sym">${esc(d.chain)}</span> — ${d.count} token recuperati`, ts);
+    } else if(d.type === 'market_source_start'){
+      const label = d.source === 'pump_fun' ? 'Pump.fun' : 'DexScreener Boosted';
+      mktLogLine('SCAN', 'fail', `Recupero token da <span class="sym">${label}</span>…`, ts);
+    } else if(d.type === 'market_source_done'){
+      const label = d.source === 'pump_fun' ? 'Pump.fun' : 'DexScreener Boosted';
+      mktLogLine('OK', 'pass', `<span class="sym">${label}</span> — ${d.count} token (${d.new} nuovi)`, ts);
     } else if(d.type === 'market_scan_end'){
       mktLogLine('DONE', 'info', `Scansione completata in ${d.duration.toFixed(1)}s — ${d.total} token totali in archivio`, ts);
     } else if(d.type === 'import_start'){

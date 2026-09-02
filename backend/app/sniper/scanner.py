@@ -269,6 +269,120 @@ async def fetch_market_chain(client: httpx.AsyncClient, chain_id: str) -> list[R
     return await _fetch_gecko_pages(client, chain_id, "pools", GECKO_MAX_PAGE)
 
 
+async def fetch_dexscreener_boosted(client: httpx.AsyncClient) -> list[RawToken]:
+    """Fetch boosted tokens from DexScreener (top + latest boost feeds).
+    Tokens that paid for promotion but often have genuine liquidity and volume."""
+    meta: dict[str, dict] = {}
+    for endpoint in ("/token-boosts/top/v1", "/token-boosts/latest/v1"):
+        try:
+            resp = await client.get(f"{DEXSCREENER_BASE}{endpoint}")
+            items: list[dict] = resp.json() if resp.status_code == 200 else []
+        except Exception:
+            continue
+        for p in items:
+            addr = (p.get("tokenAddress") or "").lower()
+            if not addr or p.get("chainId") not in SUPPORTED_CHAINS:
+                continue
+            if addr in meta:
+                continue
+            links = p.get("links") or []
+            meta[addr] = {
+                "website": next((lk["url"] for lk in links if lk.get("type") == "website"), None),
+                "socials": [
+                    {"type": lk.get("type"), "url": lk.get("url")}
+                    for lk in links
+                    if lk.get("type") != "website"
+                ],
+                "description": p.get("description"),
+            }
+
+    tokens: list[RawToken] = []
+    addresses = list(meta.keys())
+    for i in range(0, len(addresses), 30):
+        batch = addresses[i : i + 30]
+        try:
+            resp = await client.get(
+                f"{DEXSCREENER_BASE}/latest/dex/tokens/{','.join(batch)}"
+            )
+            if resp.status_code != 200:
+                continue
+            pairs: list[dict] = resp.json().get("pairs") or []
+        except Exception:
+            continue
+
+        best: dict[str, dict] = {}
+        for pair in pairs:
+            base_addr = (pair.get("baseToken", {}).get("address") or "").lower()
+            liq = float((pair.get("liquidity") or {}).get("usd") or 0)
+            if liq > float((best.get(base_addr, {}).get("liquidity") or {}).get("usd") or 0):
+                best[base_addr] = pair
+
+        for addr, pair in best.items():
+            if pair.get("chainId") not in SUPPORTED_CHAINS:
+                continue
+            m = meta.get(addr, {})
+            token = _parse_pair(
+                pair, m.get("socials", []), m.get("website"), m.get("description")
+            )
+            if token:
+                tokens.append(token)
+
+    return tokens
+
+
+async def fetch_pumpfun_trending(client: httpx.AsyncClient) -> list[RawToken]:
+    """Fetch trending Solana meme coins from Pump.fun's public feed.
+    No h1 buy/sell data available — import filter will apply B/S check separately."""
+    tokens: list[RawToken] = []
+    try:
+        resp = await client.get(
+            "https://frontend-api.pump.fun/coins",
+            params={"sort": "last_trade_unix_timestamp", "order": "DESC", "limit": 200},
+        )
+        if resp.status_code != 200:
+            return tokens
+        coins: list[dict] = resp.json()
+        if not isinstance(coins, list):
+            return tokens
+    except Exception:
+        return tokens
+
+    for coin in coins:
+        try:
+            mint = (coin.get("mint") or "").lower()
+            if not mint:
+                continue
+            symbol = coin.get("symbol") or "?"
+            name = coin.get("name") or symbol
+            mc = coin.get("usd_market_cap")
+            # virtual_sol_reserves is in lamports; approximate liquidity in USD
+            sol_lamports = float(coin.get("virtual_sol_reserves") or 0)
+            liquidity_usd = (sol_lamports / 1e9) * 150.0  # ~$150/SOL rough estimate
+            created_ts = coin.get("created_timestamp")
+            created_ms = int(created_ts * 1000) if created_ts else int(time.time() * 1000)
+            tokens.append(RawToken(
+                chain_id="solana",
+                token_address=mint,
+                pair_address=mint,
+                symbol=symbol,
+                name=name,
+                dex_id="pump.fun",
+                price_usd=0.0,
+                market_cap=float(mc) if mc else None,
+                liquidity_usd=liquidity_usd,
+                volume_h24=0.0,
+                volume_h1=0.0,
+                volume_m5=0.0,
+                buys_h1=0,
+                sells_h1=0,
+                pair_created_at_ms=created_ms,
+            ))
+        except Exception:
+            continue
+
+    return tokens
+
+
 @dataclass
 class ScanFetchResult:
     results: list[tuple[RawToken, bool, str]]
