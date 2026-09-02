@@ -1246,19 +1246,35 @@ async def sniper_scan_stream() -> StreamingResponse:
     background (polling_loop, every 5 min) regardless of whether anyone is
     watching — this just relays whatever scan is happening, automatic or
     manually triggered, to any open browser tab for as long as it stays
-    connected."""
+    connected.
+
+    Since two scans can be up to 5 minutes apart, the connection can sit
+    with nothing to send for a while — long enough for an intermediate
+    proxy to decide it's dead and silently drop it, which left the page
+    stuck showing "Connessione…" and reconnecting in a loop. A periodic
+    SSE comment (ignored by EventSource, invisible to the console) keeps
+    bytes flowing so the connection — and the browser's "open" state —
+    survives the quiet stretches."""
     from app.sniper import cache as sniper_cache
 
     async def event_gen():
         q = sniper_cache.subscribe()
         try:
+            yield f"data: {json.dumps({'type': 'connected', 'ts': _time.time()})}\n\n"
             while True:
-                event = await q.get()
-                yield f"data: {json.dumps(event)}\n\n"
+                try:
+                    event = await asyncio.wait_for(q.get(), timeout=15.0)
+                    yield f"data: {json.dumps(event)}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
         finally:
             sniper_cache.unsubscribe(q)
 
-    return StreamingResponse(event_gen(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.websocket("/ws/live")
