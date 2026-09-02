@@ -1339,6 +1339,12 @@ async def sniper_market_import() -> dict:
     return {"ok": True, "added": added}
 
 
+@app.get("/api/sniper/market-log")
+async def sniper_market_log(limit: int = 500) -> dict:
+    from app.sniper import market as sniper_market_mod
+    return {"events": sniper_market_mod.get_log(limit=limit)}
+
+
 @app.get("/api/sniper/market-stream")
 async def sniper_market_stream() -> StreamingResponse:
     """SSE feed of market-scan progress (per-chain, since this is a heavier

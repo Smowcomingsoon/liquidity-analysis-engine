@@ -821,6 +821,10 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
       if(data.last_scan && data.last_scan > 0){
         document.getElementById('mktInfo').innerHTML =
           `Aggiornato: <b>${fmtTime(data.last_scan)}</b> · <b>${data.total}</b> token`;
+        // enable import button if we have market data
+        const importBtn = document.getElementById('mktImportBtn');
+        if(importBtn && !importBtn.disabled) importBtn.disabled = false;
+        if(importBtn && data.total > 0) importBtn.disabled = false;
       } else {
         document.getElementById('mktInfo').textContent = 'Nessuna scansione ancora';
       }
@@ -888,8 +892,24 @@ button.import-btn:disabled{background:var(--panel-2); color:var(--fg-dim); curso
     }
   };
 
+  async function loadMktHistory(){
+    try{
+      const r = await fetch('/api/sniper/market-log?limit=500');
+      const data = await r.json();
+      const events = data.events || [];
+      if(events.length){
+        for(const ev of events) renderMktEvent(ev);
+      } else {
+        mktLogLine('INFO', 'info', 'Console pronta — premi "Scansiona mercato" per avviare una scansione.');
+      }
+    } catch(e){
+      mktLogLine('INFO', 'info', 'Console pronta.');
+    }
+  }
+
   // Connect to market stream immediately so events from ongoing scans are captured
   connectMarketStream();
+  loadMktHistory();
 })();
 </script>
 </body>

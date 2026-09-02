@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
 _DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 _DATA_DIR.mkdir(parents=True, exist_ok=True)
 _MARKET_FILE = _DATA_DIR / "sniper_market.json"
+_LOG_FILE = _DATA_DIR / "sniper_market_log.json"
+
+LOG_MAX_ENTRIES = 2000
 
 
 @dataclass
@@ -50,6 +53,7 @@ _store: dict[str, MarketToken] = {}  # key = f"{chain_id}:{token_address}"
 _last_scan: float = 0.0
 _scan_lock = asyncio.Lock()
 _subscribers: list[asyncio.Queue] = []
+_log: list[dict] = []
 
 
 def _key(chain_id: str, token_address: str) -> str:
@@ -79,7 +83,30 @@ def _save() -> None:
         logger.warning("Market screener: failed to persist store: %s", exc)
 
 
+def _load_log() -> None:
+    if not _LOG_FILE.exists():
+        return
+    try:
+        raw = json.loads(_LOG_FILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return
+    if isinstance(raw, list):
+        _log.extend(raw[-LOG_MAX_ENTRIES:])
+
+
+def _save_log() -> None:
+    try:
+        _LOG_FILE.write_text(json.dumps(_log[-LOG_MAX_ENTRIES:]), encoding="utf-8")
+    except OSError as exc:
+        logger.warning("Market screener: failed to persist log: %s", exc)
+
+
+def get_log(limit: int = 500) -> list[dict]:
+    return _log[-limit:]
+
+
 _load()
+_load_log()
 
 
 def subscribe() -> asyncio.Queue:
@@ -99,6 +126,9 @@ def scan_in_progress() -> bool:
 
 def _broadcast(event: dict) -> None:
     event.setdefault("ts", time.time())
+    _log.append(event)
+    if len(_log) > LOG_MAX_ENTRIES:
+        del _log[: len(_log) - LOG_MAX_ENTRIES]
     for q in list(_subscribers):
         q.put_nowait(event)
 
@@ -185,6 +215,7 @@ async def run_market_scan() -> int:
             "total": len(_store),
             "duration": time.time() - t0,
         })
+        _save_log()
         logger.info("Market screener scan complete: %d tokens stored", len(_store))
         return added
 
@@ -336,5 +367,6 @@ async def run_import() -> int:
             "fetched": len(raw_tokens),
             "duration": time.time() - t0,
         })
+        _save_log()
         logger.info("Market import complete: %d new sniper candidates", added)
         return added
