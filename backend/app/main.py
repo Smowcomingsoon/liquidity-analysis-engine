@@ -229,12 +229,15 @@ async def _watchlist_alert_loop() -> None:
 async def lifespan(app: FastAPI):
     from app.sniper import cache as sniper_cache
     from app.sniper import agents as sniper_agents
+    from app.sniper.cex_check import enrichment_loop
     t1 = asyncio.create_task(_watchlist_alert_loop())
     t2 = asyncio.create_task(sniper_cache.polling_loop())
+    t3 = asyncio.create_task(enrichment_loop())
     agent_tasks = await sniper_agents.start_all()
     yield
     t1.cancel()
     t2.cancel()
+    t3.cancel()
     for t in agent_tasks:
         t.cancel()
 

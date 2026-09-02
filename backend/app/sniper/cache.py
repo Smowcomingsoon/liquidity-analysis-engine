@@ -62,6 +62,8 @@ class Candidate:
     # metadata
     first_seen: float = field(default_factory=time.time)
     last_updated: float = field(default_factory=time.time)
+    # enrichment
+    cex_listed: Optional[bool] = None
 
 
 _store: dict[str, Candidate] = {}  # key = token_address
