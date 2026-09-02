@@ -13,11 +13,10 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass
-from typing import Optional
 
 import httpx
 
-from .scanner import _passes_primary, fetch_pumpfun_trending
+from .scanner import _passes_primary, fetch_dexscreener_boosted, fetch_pumpfun_trending
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +30,7 @@ class AgentStatus:
     last_run: float = 0.0
     last_count: int = 0
     running: bool = False
-    error: Optional[str] = None
+    error: str | None = None
 
 _registry: dict[str, AgentStatus] = {}
 
@@ -55,7 +54,8 @@ def get_status() -> list[dict]:
 
 def _add_to_sniper(token, score_items=None) -> bool:
     """Add a RawToken directly to the sniper candidate archive. Returns True if new."""
-    from .cache import _store as sniper_store, Candidate
+    from .cache import Candidate
+    from .cache import _store as sniper_store
 
     existing = sniper_store.get(token.token_address)
     c = Candidate(
@@ -111,7 +111,7 @@ async def _pump_fun_loop() -> None:
             from .cache import _save_candidates
             added = 0
             for token in tokens:
-                ok, reason = _passes_primary(token)
+                ok, _reason = _passes_primary(token)
                 if not ok:
                     continue
                 if _add_to_sniper(token):
@@ -150,6 +150,67 @@ async def _pump_fun_loop() -> None:
             status.running = False
 
 
+# ── DexScreenerBoostAgent ────────────────────────────────────────────────────
+
+async def _dexscreener_boost_loop() -> None:
+    """Fetch DexScreener top-boosted tokens every 20 min.
+    Boosted tokens often have real community traction and liquidity.
+    No API key required — public free endpoints."""
+    name = "dex_boost"
+    status = AgentStatus(name=name, label="DexScreener Boost", interval_s=1200)
+    _registry[name] = status
+
+    while True:
+        await asyncio.sleep(status.interval_s)
+        status.running = True
+        status.error = None
+        _broadcast_sniper({"type": "agent_start", "agent": name, "label": status.label})
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                tokens = await fetch_dexscreener_boosted(client)
+
+            from .cache import _save_candidates
+            added = 0
+            for token in tokens:
+                ok, _reason = _passes_primary(token)
+                if not ok:
+                    continue
+                if _add_to_sniper(token):
+                    added += 1
+                    _broadcast_sniper({
+                        "type": "result",
+                        "symbol": token.symbol,
+                        "chain": token.chain_id,
+                        "address": token.token_address,
+                        "score": 0,
+                        "score_max": 15,
+                        "passed": True,
+                        "reason": None,
+                        "agent": name,
+                    })
+
+            if added:
+                _save_candidates()
+
+            status.last_run = time.time()
+            status.last_count = added
+            _broadcast_sniper({
+                "type": "agent_done",
+                "agent": name,
+                "label": status.label,
+                "fetched": len(tokens),
+                "added": added,
+            })
+            logger.info("DexScreenerBoostAgent: %d/%d tokens added", added, len(tokens))
+
+        except Exception as exc:
+            status.error = str(exc)
+            logger.warning("DexScreenerBoostAgent error: %s", exc)
+            _broadcast_sniper({"type": "agent_error", "agent": name, "message": str(exc)})
+        finally:
+            status.running = False
+
+
 # ── MarketHarvestAgent ────────────────────────────────────────────────────────
 
 async def _market_harvest_loop() -> None:
@@ -164,7 +225,7 @@ async def _market_harvest_loop() -> None:
         status.error = None
         _broadcast_sniper({"type": "agent_start", "agent": name, "label": status.label})
         try:
-            from .market import run_market_scan, run_import
+            from .market import run_import, run_market_scan
             await run_market_scan()
             added = await run_import()
             status.last_run = time.time()
@@ -190,6 +251,7 @@ async def start_all() -> list[asyncio.Task]:
     """Start all agents as background tasks. Call from app lifespan."""
     tasks = [
         asyncio.create_task(_pump_fun_loop(), name="agent:pump_fun"),
+        asyncio.create_task(_dexscreener_boost_loop(), name="agent:dex_boost"),
         asyncio.create_task(_market_harvest_loop(), name="agent:market_harvest"),
     ]
     logger.info("Started %d discovery agents", len(tasks))

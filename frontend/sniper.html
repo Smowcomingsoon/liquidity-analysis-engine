@@ -665,6 +665,7 @@ tbody tr.top5-row:hover{ background: rgba(240,180,41,.12); }
     <div class="stat-row"><span>Volume 24h</span><span id="sbVol">—</span></div>
     <div class="stat-row"><span>Buy/Sell h1</span><span id="sbBs">—</span></div>
     <div class="stat-row"><span>Età</span><span id="sbAge">—</span></div>
+    <div class="stat-row" id="sbTaxRow" style="display:none"><span>Tax (buy/sell)</span><span id="sbTax" style="color:var(--amber)">—</span></div>
     <div id="sbCategories"></div>
   </div>
   <div id="sbResearchPanel" style="display:none;padding:14px 18px;border-top:1px solid var(--border);">
@@ -1067,6 +1068,9 @@ async function loadXlsx(){
 
       const rankBadge = isTop5 ? `<span class="top5-rank">${idx + 1}</span>` : '';
       const newDot = (c.age_hours || 0) < 2 ? `<span class="new-dot" title="Nuovo (< 2h)"></span>` : '';
+      const honeypotBadge = c.is_honeypot === true
+        ? `<span title="HONEYPOT rilevato da GoPlus" style="color:var(--red);font-size:10px;margin-left:4px;font-weight:700;">🚨HP</span>`
+        : '';
       const cexBadge = c.cex_listed === true
         ? `<span title="Listato su CEX" style="color:var(--red);font-size:10px;margin-left:4px;">CEX</span>`
         : c.cex_listed === false
@@ -1083,7 +1087,7 @@ async function loadXlsx(){
       const liqClass = liq >= 50000 ? 'liq-high' : liq >= 10000 ? 'liq-mid' : 'liq-low';
 
       tr.innerHTML = `
-        <td class="sym-cell">${rankBadge}${newDot}${esc(c.symbol)}${cexBadge}<span class="chain">${esc(c.chain_id)}</span></td>
+        <td class="sym-cell">${rankBadge}${newDot}${esc(c.symbol)}${honeypotBadge}${cexBadge}<span class="chain">${esc(c.chain_id)}</span></td>
         <td>
           <span class="score-badge ${badgeClass}">${c.score_total}/${c.score_max}</span>
           <div class="score-bar"><div class="score-bar-fill" style="width:${Math.round(pct*100)}%;background:${barColor}"></div></div>
@@ -1156,6 +1160,17 @@ async function loadXlsx(){
     document.getElementById('sbAge').textContent = fmtAge(c.age_hours || 0);
     document.getElementById('sbAnalyze').href = `/?ticker=${encodeURIComponent(c.symbol)}&exchange=mexc&asset=crypto`;
     document.getElementById('sbDex').href = c.pair_url || '#';
+    // Tax row
+    const taxRow = document.getElementById('sbTaxRow');
+    if(c.buy_tax != null && c.sell_tax != null){
+      taxRow.style.display = '';
+      const totalTax = (c.buy_tax + c.sell_tax).toFixed(1);
+      const taxEl = document.getElementById('sbTax');
+      taxEl.textContent = `${c.buy_tax.toFixed(1)}% / ${c.sell_tax.toFixed(1)}% (tot ${totalTax}%)`;
+      taxEl.style.color = parseFloat(totalTax) > 10 ? 'var(--red)' : 'var(--amber)';
+    } else {
+      taxRow.style.display = 'none';
+    }
 
     const cats = {};
     for(const it of (c.score_items || [])){
@@ -1545,6 +1560,7 @@ async function loadXlsx(){
   const agentBar = document.getElementById('agentBar');
   const AGENT_LABELS = {
     pump_fun: { icon: '🎯', label: 'Pump.fun' },
+    dex_boost: { icon: '⚡', label: 'DexScreener Boost' },
     market_harvest: { icon: '🌾', label: 'Market Harvest' },
   };
 

@@ -53,7 +53,7 @@ class RawToken:
     name: str
     dex_id: str
     price_usd: float
-    market_cap: Optional[float]
+    market_cap: float | None
     liquidity_usd: float
     volume_h24: float
     volume_h1: float
@@ -62,8 +62,8 @@ class RawToken:
     sells_h1: int
     pair_created_at_ms: int
     socials: list = field(default_factory=list)
-    website: Optional[str] = None
-    description: Optional[str] = None
+    website: str | None = None
+    description: str | None = None
 
     @property
     def age_hours(self) -> float:
@@ -97,8 +97,8 @@ def _passes_primary(token: RawToken) -> tuple[bool, str]:
 def _parse_pair(
     pair: dict,
     socials: list,
-    website: Optional[str],
-    description: Optional[str],
+    website: str | None,
+    description: str | None,
 ) -> Optional["RawToken"]:
     try:
         chain = pair.get("chainId", "")

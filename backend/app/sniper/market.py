@@ -15,7 +15,6 @@ import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import httpx
 
@@ -23,8 +22,8 @@ from .scanner import (
     GECKO_NETWORKS,
     RawToken,
     _passes_primary,
-    fetch_market_chain,
     fetch_dexscreener_boosted,
+    fetch_market_chain,
     fetch_pumpfun_trending,
 )
 
@@ -48,7 +47,7 @@ class MarketToken:
     dex_id: str
     pair_url: str
     price_usd: float
-    market_cap: Optional[float]
+    market_cap: float | None
     liquidity_usd: float
     volume_h24: float
     age_hours: float
@@ -145,8 +144,8 @@ def last_scan_ts() -> float:
 
 
 def get_tokens(
-    chain: Optional[str] = None,
-    query: Optional[str] = None,
+    chain: str | None = None,
+    query: str | None = None,
     sort: str = "liquidity",
     limit: int = 100,
     offset: int = 0,
@@ -308,10 +307,12 @@ async def run_import() -> int:
     console can show it in real time. Returns the number of new candidates."""
     from .cache import (
         Candidate,
-        _store as sniper_store,
         _save_candidates,
     )
-    from .scorer import score, TokenScore
+    from .cache import (
+        _store as sniper_store,
+    )
+    from .scorer import TokenScore, score
 
     async with _import_lock:
         t0 = time.time()

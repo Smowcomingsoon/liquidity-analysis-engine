@@ -9,7 +9,6 @@ calls and skip tokens that were already checked.
 """
 import asyncio
 import logging
-from typing import Optional
 
 import httpx
 
@@ -37,7 +36,7 @@ _CEX_IDS = {
 }
 
 
-async def check_cex_listed(chain_id: str, token_address: str, client: httpx.AsyncClient) -> Optional[bool]:
+async def check_cex_listed(chain_id: str, token_address: str, client: httpx.AsyncClient) -> bool | None:
     platform = _CHAIN_TO_PLATFORM.get(chain_id)
     if not platform:
         return False
@@ -62,7 +61,7 @@ async def check_cex_listed(chain_id: str, token_address: str, client: httpx.Asyn
 
 async def enrichment_loop() -> None:
     """Continuously enrich candidates missing a cex_listed value."""
-    from .cache import _store, _save_candidates
+    from .cache import _save_candidates, _store
 
     while True:
         await asyncio.sleep(30)

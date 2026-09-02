@@ -11,7 +11,6 @@ import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import httpx
 
@@ -46,14 +45,14 @@ class Candidate:
     pair_url: str
     # market
     price_usd: float
-    market_cap: Optional[float]
+    market_cap: float | None
     liquidity_usd: float
     volume_h24: float
     volume_h1: float
     age_hours: float
     buy_sell_ratio: float
     # links
-    website: Optional[str]
+    website: str | None
     socials: list = field(default_factory=list)
     # score
     score_total: int = 0
@@ -63,7 +62,11 @@ class Candidate:
     first_seen: float = field(default_factory=time.time)
     last_updated: float = field(default_factory=time.time)
     # enrichment
-    cex_listed: Optional[bool] = None
+    cex_listed: bool | None = None
+    # security (from GoPlus / Rugcheck — populated during scoring)
+    is_honeypot: bool | None = None
+    buy_tax: float | None = None
+    sell_tax: float | None = None
 
 
 _store: dict[str, Candidate] = {}  # key = token_address
@@ -154,12 +157,17 @@ def _broadcast(event: dict) -> None:
 
 
 def passes_threshold(s: TokenScore) -> bool:
+    # Auto-reject confirmed honeypots regardless of score
+    if s.is_honeypot is True:
+        return False
     tok = sum(i.earned for i in s.items if i.category == "Tokenomics")
     uti = sum(i.earned for i in s.items if i.category == "Utilità")
     return s.total >= SCORE_MIN and tok >= TOKENOMICS_MIN and uti >= UTILITY_MIN
 
 
 def fail_reason(s: TokenScore) -> str:
+    if s.is_honeypot is True:
+        return "HONEYPOT rilevato da GoPlus"
     tok = sum(i.earned for i in s.items if i.category == "Tokenomics")
     uti = sum(i.earned for i in s.items if i.category == "Utilità")
     if tok < TOKENOMICS_MIN:
@@ -282,6 +290,9 @@ async def run_scan() -> int:
                     if token.token_address in _store
                     else time.time(),
                     last_updated=time.time(),
+                    is_honeypot=s.is_honeypot,
+                    buy_tax=s.buy_tax,
+                    sell_tax=s.sell_tax,
                 )
                 _store[token.token_address] = c
                 added += 1
