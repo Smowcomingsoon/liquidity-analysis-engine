@@ -1,8 +1,16 @@
-"""In-memory sniper candidate store and background polling loop."""
+"""Sniper candidate archive, scan-log history and background polling loop.
+
+Candidates and the scan log are persisted to disk (backend/data/sniper_*.json,
+same convention as favorites.py / watchlist.py) so a deploy or restart doesn't
+wipe the archive — every token that ever passed the score threshold, and the
+console log that shows it happening, both survive a reload of the site."""
 import asyncio
+import dataclasses
+import json
 import logging
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 
 import httpx
@@ -17,6 +25,13 @@ POLL_INTERVAL_SECONDS = 300  # 5 min
 SCORE_MIN = 8
 TOKENOMICS_MIN = 2
 UTILITY_MIN = 1
+
+LOG_MAX_ENTRIES = 5000
+
+_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+_DATA_DIR.mkdir(parents=True, exist_ok=True)
+_CANDIDATES_FILE = _DATA_DIR / "sniper_candidates.json"
+_LOG_FILE = _DATA_DIR / "sniper_log.json"
 
 
 @dataclass
@@ -53,11 +68,62 @@ _store: dict[str, Candidate] = {}  # key = token_address
 _last_scan: float = 0.0
 _scan_lock = asyncio.Lock()
 _subscribers: list[asyncio.Queue] = []
+_log: list[dict] = []
+
+
+def _load_candidates() -> None:
+    if not _CANDIDATES_FILE.exists():
+        return
+    try:
+        raw = json.loads(_CANDIDATES_FILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return
+    for item in raw:
+        try:
+            c = Candidate(**item)
+            _store[c.token_address] = c
+        except (TypeError, ValueError):
+            continue
+
+
+def _save_candidates() -> None:
+    payload = [dataclasses.asdict(c) for c in _store.values()]
+    try:
+        _CANDIDATES_FILE.write_text(json.dumps(payload), encoding="utf-8")
+    except OSError as exc:
+        logger.warning("Sniper: failed to persist candidates: %s", exc)
+
+
+def _load_log() -> None:
+    if not _LOG_FILE.exists():
+        return
+    try:
+        raw = json.loads(_LOG_FILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return
+    if isinstance(raw, list):
+        _log.extend(raw[-LOG_MAX_ENTRIES:])
+
+
+def _save_log() -> None:
+    try:
+        _LOG_FILE.write_text(json.dumps(_log[-LOG_MAX_ENTRIES:]), encoding="utf-8")
+    except OSError as exc:
+        logger.warning("Sniper: failed to persist log: %s", exc)
+
+
+_load_candidates()
+_load_log()
 
 
 def get_candidates() -> list[Candidate]:
     """Return all candidates sorted by score descending."""
     return sorted(_store.values(), key=lambda c: c.score_total, reverse=True)
+
+
+def get_log(limit: int = 500) -> list[dict]:
+    """Return the most recent persisted scan-log events, oldest first."""
+    return _log[-limit:]
 
 
 def subscribe() -> asyncio.Queue:
@@ -77,6 +143,10 @@ def scan_in_progress() -> bool:
 
 
 def _broadcast(event: dict) -> None:
+    event.setdefault("ts", time.time())
+    _log.append(event)
+    if len(_log) > LOG_MAX_ENTRIES:
+        del _log[: len(_log) - LOG_MAX_ENTRIES]
     for q in list(_subscribers):
         q.put_nowait(event)
 
@@ -110,6 +180,7 @@ async def run_scan() -> int:
             _broadcast({"type": "fetch_error", "message": str(exc)})
             _broadcast({"type": "scan_end", "added": 0, "total": len(_store),
                         "scanned": 0, "duration": time.time() - t0})
+            _save_log()
             return 0
 
         _broadcast({"type": "fetched", "count": len(tokens)})
@@ -197,6 +268,9 @@ async def run_scan() -> int:
             "scanned": len(tokens),
             "duration": time.time() - t0,
         })
+        if added:
+            _save_candidates()
+        _save_log()
         return added
 
 

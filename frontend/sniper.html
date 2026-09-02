@@ -84,6 +84,10 @@ a.back-link:hover{color:var(--fg); border-color:var(--fg-dim);}
 .console-log .msg{color:#f0f3f7;}
 .console-log .msg .sym{color:var(--fg-bright); font-weight:700;}
 .console-log .msg .dim{color:#b8c1cf;}
+.console-log .day-sep{
+  color:#5a6472; font-size:10.5px; text-align:center; letter-spacing:0.08em;
+  margin:10px 0 6px; text-transform:uppercase;
+}
 .cursor-line{display:flex; align-items:center; gap:6px; color:var(--green); padding-top:4px;}
 .cursor-blink{width:7px; height:14px; background:var(--green); animation:blink 1s step-end infinite;}
 @keyframes blink{0%,50%{opacity:1;}50.01%,100%{opacity:0;}}
@@ -282,19 +286,30 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
   function fmtTime(ts){
     return new Date(ts*1000).toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
   }
-  function nowStamp(){
-    return new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  function fmtDate(ts){
+    return new Date(ts*1000).toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit'});
   }
 
-  function logLine(tag, tagClass, html){
+  let lastLogDate = null;
+
+  function logLine(tag, tagClass, html, ts){
+    const stamp = ts || (Date.now() / 1000);
+    const dayKey = fmtDate(stamp);
+    if(dayKey !== lastLogDate){
+      lastLogDate = dayKey;
+      const sep = document.createElement('div');
+      sep.className = 'day-sep';
+      sep.textContent = '── ' + dayKey + ' ──';
+      consoleLog.appendChild(sep);
+    }
     const el = document.createElement('div');
     el.className = 'line';
-    el.innerHTML = `<span class="ts">${nowStamp()}</span><span class="tag ${tagClass}">${tag}</span><span class="msg">${html}</span>`;
+    el.innerHTML = `<span class="ts">${fmtTime(stamp)}</span><span class="tag ${tagClass}">${tag}</span><span class="msg">${html}</span>`;
     consoleLog.appendChild(el);
     consoleLog.scrollTop = consoleLog.scrollHeight;
     eventCount++;
     consoleCount.textContent = eventCount + ' eventi';
-    while(consoleLog.children.length > 400) consoleLog.removeChild(consoleLog.firstChild);
+    while(consoleLog.children.length > 1200) consoleLog.removeChild(consoleLog.firstChild);
   }
 
   function setScanning(on){
@@ -337,25 +352,32 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
     };
   }
 
-  function handleEvent(d){
+  function renderLogEvent(d){
+    const ts = d.ts;
     if(d.type === 'scan_start'){
-      logLine('INFO', 'info', 'Avvio scansione — recupero profili DEXScreener…');
+      logLine('INFO', 'info', 'Avvio scansione — recupero profili DEXScreener…', ts);
     } else if(d.type === 'fetched'){
-      logLine('INFO', 'info', `${d.count} token trovati dopo i filtri primari (MC, liquidità, età, volume)`);
+      logLine('INFO', 'info', `${d.count} token trovati dopo i filtri primari (MC, liquidità, età, volume)`, ts);
     } else if(d.type === 'fetch_error'){
-      logLine('ERR', 'err', 'Errore nel recupero dati: ' + esc(d.message));
+      logLine('ERR', 'err', 'Errore nel recupero dati: ' + esc(d.message), ts);
     } else if(d.type === 'evaluating'){
-      logLine('...', 'fail', `Analisi <span class="sym">${esc(d.symbol) || '?'}</span> <span class="dim">(${esc(d.chain)})</span>`);
+      logLine('...', 'fail', `Analisi <span class="sym">${esc(d.symbol) || '?'}</span> <span class="dim">(${esc(d.chain)})</span>`, ts);
     } else if(d.type === 'result'){
       if(d.passed){
-        logLine('PASS', 'pass', `<span class="sym">${esc(d.symbol)}</span> score ${d.score}/${d.score_max} — supera la soglia, aggiunto ai candidati`);
+        logLine('PASS', 'pass', `<span class="sym">${esc(d.symbol)}</span> score ${d.score}/${d.score_max} — supera la soglia, aggiunto ai candidati`, ts);
       } else {
-        logLine('SKIP', 'fail', `<span class="sym">${esc(d.symbol)}</span> score ${d.score}/${d.score_max} — scartato (${esc(d.reason)})`);
+        logLine('SKIP', 'fail', `<span class="sym">${esc(d.symbol)}</span> score ${d.score}/${d.score_max} — scartato (${esc(d.reason)})`, ts);
       }
     } else if(d.type === 'error'){
-      logLine('ERR', 'err', `${esc(d.symbol) || '?'}: ${esc(d.message)}`);
+      logLine('ERR', 'err', `${esc(d.symbol) || '?'}: ${esc(d.message)}`, ts);
     } else if(d.type === 'scan_end'){
-      logLine('DONE', 'info', `Scansione completata in ${d.duration.toFixed(1)}s — ${d.scanned} analizzati, ${d.added} candidati, ${d.total} in archivio`);
+      logLine('DONE', 'info', `Scansione completata in ${d.duration.toFixed(1)}s — ${d.scanned} analizzati, ${d.added} candidati, ${d.total} in archivio`, ts);
+    }
+  }
+
+  function handleEvent(d){
+    renderLogEvent(d);
+    if(d.type === 'scan_end'){
       es.close(); es = null;
       setScanning(false);
       loadCandidates();
@@ -461,7 +483,22 @@ tbody tr.new-row{animation:rowflash 1.6s ease-out;}
     overlay.classList.add('open');
   }
 
-  logLine('INFO', 'info', 'Console pronta. Carico candidati esistenti…');
+  async function loadHistory(){
+    try{
+      const r = await fetch('/api/sniper/log?limit=500');
+      const data = await r.json();
+      const events = data.events || [];
+      if(events.length){
+        for(const ev of events) renderLogEvent(ev);
+      } else {
+        logLine('INFO', 'info', 'Console pronta — nessuno storico precedente.');
+      }
+    } catch(e){
+      logLine('INFO', 'info', 'Console pronta.');
+    }
+  }
+
+  loadHistory();
   loadCandidates();
 })();
 </script>

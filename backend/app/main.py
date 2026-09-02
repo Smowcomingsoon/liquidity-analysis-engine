@@ -1232,6 +1232,14 @@ async def sniper_trigger_scan() -> dict:
     return {"ok": True, "added": added, "total": len(sniper_cache.get_candidates())}
 
 
+@app.get("/api/sniper/log")
+async def sniper_log(limit: int = Query(500, ge=1, le=5000)) -> dict:
+    """Persisted scan-log history — survives a page reload / redeploy, so the
+    console can show what happened before this browser session connected."""
+    from app.sniper import cache as sniper_cache
+    return {"events": sniper_cache.get_log(limit)}
+
+
 @app.get("/api/sniper/scan-stream")
 async def sniper_scan_stream() -> StreamingResponse:
     """SSE feed of live scan log events. Starts a scan if none is running,
