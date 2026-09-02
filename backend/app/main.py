@@ -1358,6 +1358,38 @@ async def sniper_agents_status() -> dict:
     return {"agents": sniper_agents.get_status()}
 
 
+@app.get("/api/sniper/research/auto/{token_address}")
+async def sniper_research_auto(token_address: str) -> dict:
+    """Auto-detect chain via DexScreener, then run research."""
+    import httpx as _httpx
+
+    chain_id = None
+    async with _httpx.AsyncClient(timeout=12.0) as client:
+        try:
+            r = await client.get(
+                f"https://api.dexscreener.com/latest/dex/tokens/{token_address}"
+            )
+            if r.status_code == 200:
+                data = r.json()
+                pairs = data.get("pairs") or []
+                if pairs:
+                    chain_id = pairs[0].get("chainId")
+        except Exception:
+            pass
+
+    if not chain_id:
+        return {
+            "chain_id": None,
+            "token_address": token_address,
+            "research_score": 0,
+            "description": "Token non trovato su DexScreener — verifica l'indirizzo.",
+            "checks": [{"label": "Non trovato su DexScreener", "passed": False}],
+            "links": [],
+        }
+
+    return await sniper_research(chain_id, token_address)
+
+
 @app.get("/api/sniper/research/{chain_id}/{token_address}")
 async def sniper_research(chain_id: str, token_address: str) -> dict:
     """Query CoinGecko + DexScreener for a token and return a research report."""
