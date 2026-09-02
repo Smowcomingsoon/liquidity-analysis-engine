@@ -99,7 +99,7 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
 
     items.append(ScoreItem("Tokenomics", "Distribuzione sana (top holder <15%)",
                            1 if good_dist else 0, auto=has_api,
-                           note=f"Top holder verificato" if good_dist else "Verifica manuale raccomandata"))
+                           note="Top holder verificato" if good_dist else "Verifica manuale raccomandata"))
 
     # 3. LP locked — check if LP token (pair_address) is held by a known lock contract
     lp_locked = False
