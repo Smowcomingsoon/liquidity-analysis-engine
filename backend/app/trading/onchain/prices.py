@@ -51,3 +51,32 @@ async def native_price_usd(chain: OnchainChain) -> float | None:
 
     _cache[chain] = (price, time.time())
     return price
+
+
+KRAKEN_TICKER_URL = "https://api.kraken.com/0/public/Ticker"
+_btc_cache: tuple[float, float] | None = None  # (price_usd, fetched_at)
+
+
+async def btc_price_usd() -> float | None:
+    """Prezzo BTC in USD, solo per mostrare il saldo in BTC nella hero.
+    Stessa regola di native_price_usd: None se la fonte non risponde, mai
+    un numero inventato. Kraken perche' il ticker pubblico non chiede
+    chiavi ed e' raggiungibile dal server in Germania."""
+    global _btc_cache
+    if _btc_cache and time.time() - _btc_cache[1] < _CACHE_TTL_S:
+        return _btc_cache[0]
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(KRAKEN_TICKER_URL, params={"pair": "XBTUSD"})
+        if resp.status_code != 200:
+            return None
+        body = resp.json()
+        if body.get("error"):
+            return None
+        price = float(next(iter(body["result"].values()))["c"][0])
+    except (httpx.HTTPError, KeyError, StopIteration, ValueError, TypeError, IndexError):
+        return None
+    if price <= 0:
+        return None
+    _btc_cache = (price, time.time())
+    return price

@@ -1283,5 +1283,10 @@
     "at": 1790203500,
     "summary": "Causa: MYCE e MYCEL si scambiano solo su Pons e su pool Uniswap v4, mentre il sito cercava prezzo e swap solo su Uniswap v3; in piu' la ricerca scartava i ticker sotto $10k di liquidita', e MYCEL spariva. Ora nessun ticker viene scartato: la ricerca unisce Jupiter o GeckoTerminal con DexScreener, e cercando MYCEL esce MYCEL. Il grafico prende il pool piu' liquido su DexScreener, anche quando il token e' il secondo lato della coppia (MYCE in SHROOM/MYCE), e se un pool non ha candele prova il successivo. Il prezzo live, fuori da Uniswap v3, arriva dallo stesso pool. Il preventivo di swap, quando Uniswap v3 non ha la coppia, arriva da KyberSwap o LI.FI, che vedono tutti i DEX della chain. Firmare lo swap su quel percorso aspetta il via di Lorenzo: tocca soldi veri. Gli errori non mostrano piu' indirizzi grezzi.",
     "detail": "backend/app/trading/onchain/aggregator.py (nuovo: preventivi KyberSwap -> LI.FI, ETH nativo col segnaposto dell'aggregatore, price impact su riferimento 1/1000); token_search.py (niente soglie, DexScreener come seconda fonte, merge per indirizzo); main.py: /quote/robinhood ripiega sull'aggregatore (route='aggregator'), /chart prova fino a 3 pool con token=<indirizzo> su GeckoTerminal, /price ripiega sul prezzo DexScreener; providers/dexscreener.py: parametro token e un secondo tentativo sul 429; swap.js: con route aggregatore mostra il prezzo e non firma."
+  },
+  "seed-0093": {
+    "status": "risolto",
+    "at": 1790196936,
+    "summary": "Un tocco sulla cifra del saldo cambia unita': nativa (SOL o ETH), dollari, BTC, e si ricomincia. La scelta resta fra una visita e l'altra (salvata nel browser). Il prezzo BTC arriva dal ticker pubblico di Kraken insieme al saldo; se una fonte di prezzo non risponde, la vista che ne dipende si salta invece di mostrare un numero inventato."
   }
 }

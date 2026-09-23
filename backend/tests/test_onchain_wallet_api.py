@@ -208,6 +208,7 @@ def test_balance_includes_usd_value_from_price_feed(client, monkeypatch):
 
     client.post("/api/onchain/wallets", json={"chain": "solana"})
     onchain_prices._cache.clear()
+    onchain_prices._btc_cache = None
 
     def rpc_handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"jsonrpc": "2.0", "id": 1, "result": {"value": 2_000_000_000}})
@@ -218,6 +219,8 @@ def test_balance_includes_usd_value_from_price_feed(client, monkeypatch):
     real_client = httpx.AsyncClient
 
     def dispatch(request: httpx.Request) -> httpx.Response:
+        if "kraken" in str(request.url):
+            return httpx.Response(200, json={"error": [], "result": {"XXBTZUSD": {"c": ["60000.0", "1"]}}})
         return price_handler(request) if "geckoterminal" in str(request.url) else rpc_handler(request)
 
     def factory(*args, **kwargs):
@@ -229,6 +232,7 @@ def test_balance_includes_usd_value_from_price_feed(client, monkeypatch):
     body = resp.json()
     assert body["native_price_usd"] == pytest.approx(150.0)
     assert body["native_usd_value"] == pytest.approx(300.0)  # 2.0 SOL * 150 USD
+    assert body["btc_price_usd"] == pytest.approx(60000.0)
 
 
 def test_balance_native_usd_value_is_none_when_price_feed_fails(client, monkeypatch):
@@ -236,6 +240,7 @@ def test_balance_native_usd_value_is_none_when_price_feed_fails(client, monkeypa
 
     client.post("/api/onchain/wallets", json={"chain": "solana"})
     onchain_prices._cache.clear()
+    onchain_prices._btc_cache = None
 
     def handler(request: httpx.Request) -> httpx.Response:
         if "geckoterminal" in str(request.url):
@@ -253,3 +258,4 @@ def test_balance_native_usd_value_is_none_when_price_feed_fails(client, monkeypa
     body = resp.json()
     assert body["native_price_usd"] is None
     assert body["native_usd_value"] is None
+    assert body["btc_price_usd"] is None

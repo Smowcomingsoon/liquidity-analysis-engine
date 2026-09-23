@@ -2393,11 +2393,14 @@ async def onchain_wallet_balance(chain: OnchainChain, user: User = Depends(auth.
     unit = "SOL" if chain == "solana" else "ETH"
     # None se GeckoTerminal non risponde — mai un "$" calcolato su un
     # prezzo inventato: la UI mostra solo le unita' native in quel caso.
-    price_usd = await onchain_prices.native_price_usd(chain)
+    price_usd, btc_usd = await asyncio.gather(onchain_prices.native_price_usd(chain), onchain_prices.btc_price_usd())
     return {
         "chain": chain, "address": wallet.address, "native_balance": native, "native_unit": unit,
         "native_price_usd": price_usd,
         "native_usd_value": native * price_usd if price_usd is not None else None,
+        # Per la vista in BTC del saldo (tocco sulla cifra): None se Kraken
+        # non risponde, e la UI salta quella vista invece di inventarla.
+        "btc_price_usd": btc_usd,
     }
 
 

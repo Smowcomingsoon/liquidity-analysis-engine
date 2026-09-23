@@ -73,3 +73,30 @@ def test_native_price_usd_is_cached_within_ttl(monkeypatch):
     second = _run(prices.native_price_usd("solana"))
     assert first == second == 123.45
     assert calls["count"] == 1
+
+
+def _kraken(price: str):
+    return {"error": [], "result": {"XXBTZUSD": {"c": [price, "0.1"]}}}
+
+
+def test_btc_price_usd_reads_kraken_last_trade(monkeypatch):
+    prices._btc_cache = None
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "kraken" in str(request.url)
+        return httpx.Response(200, json=_kraken("84000.5"))
+
+    monkeypatch.setattr(httpx, "AsyncClient", _client_factory(handler))
+    assert _run(prices.btc_price_usd()) == 84000.5
+
+
+def test_btc_price_usd_returns_none_on_error_or_bad_payload(monkeypatch):
+    for response in (
+        httpx.Response(500, text="boom"),
+        httpx.Response(200, json={"error": ["EQuery:Unknown asset pair"], "result": {}}),
+        httpx.Response(200, json={"error": [], "result": {"X": {}}}),
+        httpx.Response(200, json=_kraken("0")),
+    ):
+        prices._btc_cache = None
+        monkeypatch.setattr(httpx, "AsyncClient", _client_factory(lambda request, r=response: r))
+        assert _run(prices.btc_price_usd()) is None

@@ -164,6 +164,9 @@ def _resolutions() -> dict[str, dict]:
 
 
 _SEED = [
+    ("seed-0093", "Wallet on-chain: il saldo si vede in una sola unità",
+     "Lorenzo: 'in questo momento io visualizzo il saldo in Ethereum, voglio che se clicco su ETH mi switchi la visualizzazione in dollari, in Bitcoin e basta'.",
+     "bassa"),
     ("seed-0092", "Wallet on-chain: cercando MYCEL esce MYCE, poi grafico vuoto e swap bloccato",
      "Lorenzo, da iPhone su Robinhood Chain: 'sto errore non deve MAI SUCCEDERE'. Aveva cercato MYCEL: la ricerca lo scartava (pool da $4.7k sotto la soglia) e restava MYCE; il grafico mostrava 'Nessun pool per questo token su nessun fee tier' e 'Nessun dato disponibile per MYCE@robinhood:0x...', lo swap 'Preventivo non disponibile'. Poi: 'non e' che deve escludermi dei risultati [...] io ti scrivo tutta roba che e' presente su Dex Scanner'.",
      "alta"),

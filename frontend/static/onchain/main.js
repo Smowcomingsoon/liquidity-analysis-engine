@@ -108,16 +108,61 @@ function sparkFormatter() {
   return (value) => (usdMode ? formatUsd(value) : formatToken(value));
 }
 
+// Un tocco sulla cifra cambia unita': nativa (SOL/ETH), dollari, BTC, e
+// si ricomincia. Lorenzo: "se clicco su ETH mi switchi la visualizzazione
+// in dollari, in Bitcoin e basta". Le viste senza prezzo si saltano, mai
+// un valore inventato; la scelta resta fra una visita e l'altra.
+const BALANCE_MODES = ["native", "usd", "btc"];
+const BALANCE_MODE_KEY = "onchain.balanceMode";
+let balanceMode = "usd";
+try { balanceMode = localStorage.getItem(BALANCE_MODE_KEY) || "usd"; } catch { /* resta "usd" */ }
+let lastPainted = null;
+
+function balanceModes(reading) {
+  const usdValue = reading.native_usd_value;
+  return BALANCE_MODES.filter((mode) =>
+    mode === "native" || (usdValue != null && (mode === "usd" || reading.btc_price_usd > 0)));
+}
+
 function paintBalance(reading, unit) {
+  lastPainted = reading ? { reading, unit } : null;
   if (!reading) { view.balance.textContent = "—"; return; }
-  if (reading.native_usd_value != null) {
+  const modes = balanceModes(reading);
+  const mode = modes.includes(balanceMode) ? balanceMode : modes.includes("usd") ? "usd" : "native";
+  view.balance.dataset.mode = mode;
+  view.balance.title = modes.length > 1 ? "Tocca per cambiare unità" : "";
+  if (mode === "usd") {
     const { currency, integer, fraction } = usdParts(reading.native_usd_value);
     view.balance.innerHTML =
       `<span class="unit-mark">${currency}</span>${integer}<span class="cents">${fraction}</span>`;
     return;
   }
+  if (mode === "btc") {
+    const btc = reading.native_usd_value / reading.btc_price_usd;
+    view.balance.innerHTML = `${formatToken(btc)}<span class="cents"> BTC</span>`;
+    return;
+  }
   view.balance.innerHTML = `${formatToken(reading.native_balance)}<span class="cents"> ${unit}</span>`;
 }
+
+function cycleBalanceMode() {
+  if (!lastPainted) return;
+  const modes = balanceModes(lastPainted.reading);
+  if (modes.length < 2) return;
+  const current = modes.indexOf(view.balance.dataset.mode);
+  balanceMode = modes[(current + 1) % modes.length];
+  try { localStorage.setItem(BALANCE_MODE_KEY, balanceMode); } catch { /* solo per questa visita */ }
+  paintBalance(lastPainted.reading, lastPainted.unit);
+}
+
+view.balance.setAttribute("role", "button");
+view.balance.tabIndex = 0;
+view.balance.addEventListener("click", cycleBalanceMode);
+view.balance.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  cycleBalanceMode();
+});
 
 async function selectChain(next) {
   if (next === state.chain) return;

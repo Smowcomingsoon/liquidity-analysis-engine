@@ -2740,6 +2740,12 @@ caricamento. Il campo e' `type=search name=search`: togliere "indirizzo"
 dal segnaposto non bastava, Safari propone i contatti su qualsiasi campo
 di testo che non sia una ricerca. Da verificare sul telefono vero.
 
+Seguito (stessa sessione di deploy) — Lorenzo: "se clicco su ETH mi
+switchi la visualizzazione in dollari, in Bitcoin e basta". `seed-0093`:
+tocco sulla cifra del saldo = nativa → USD → BTC. Scelta in localStorage
+(`onchain.balanceMode`), prezzo BTC da Kraken (`prices.btc_price_usd()`,
+campo `btc_price_usd` del saldo). La sparkline resta in USD/nativo.
+
 ---
 
 ## Token fuori da Uniswap v3 (MYCE / MYCEL) — `seed-0092` — 2026-09-23
