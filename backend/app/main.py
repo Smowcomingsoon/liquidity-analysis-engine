@@ -3500,6 +3500,15 @@ async def onchain_radar_lessons(user: User = Depends(auth.get_current_user)) -> 
     return {**onchain_outcomes.lessons(), "gate": settings.onchain_memory_gate}
 
 
+@app.get("/api/onchain/radar/memes")
+async def onchain_radar_memes(user: User = Depends(auth.get_current_user)) -> dict:
+    """La corsia meme: token scartati per nome, sito o GitHub, non per
+    sicurezza, ordinati per somiglianza alle salite vere gia' viste. Gioco
+    d'azzardo, e lo dice. Solo lettura: il pilota non li compra."""
+    _require_onchain_enabled()
+    return {**onchain_outcomes.meme_board(), "study": onchain_outcomes.study()}
+
+
 @app.get("/api/onchain/leaderboard")
 async def onchain_leaderboard_view(user: User = Depends(auth.get_current_user)) -> dict:
     """La classifica dei progetti migliori: GitHub, sito e tokenomics

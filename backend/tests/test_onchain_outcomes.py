@@ -14,6 +14,8 @@ from app.trading.onchain import legit, outcomes
 
 T0 = 1_790_000_000.0
 H = 3600.0
+TRADED = {"buys_h1": 30.0, "sells_h1": 12.0, "sells_h24": 40.0, "buy_ratio": 0.71, "vol_h1": 9_000.0,
+          "chg_h1": 12.0, "mcap": 80_000.0}
 
 
 @pytest.fixture(autouse=True)
@@ -85,7 +87,9 @@ def test_good_is_known_early_non_rug_after_three_days_flat_at_the_horizon():
     assert outcomes.rug_label(e, T0 + H) is None
     assert outcomes.rug_label(e, T0 + outcomes.RUG_FINAL_S) is False
     outcomes.apply_sample(e, 1.6, 20_000, T0 + 2 * H)
-    assert outcomes.outcome(e, T0 + 2 * H) == "buono"
+    assert outcomes.outcome(e, T0 + 2 * H) == "finto"      # nessuna vendita vista: prezzo finto
+    outcomes.apply_sample(e, 1.7, 20_000, T0 + 3 * H, TRADED)
+    assert outcomes.outcome(e, T0 + 3 * H) == "buono"
     f = outcomes.observe(_item("f"), "proposed", T0, now=T0)
     outcomes.apply_sample(f, 1.0, 20_000, T0)
     outcomes.apply_sample(f, 0.45, 20_000, T0 + outcomes.HORIZON_S)
@@ -138,7 +142,7 @@ def test_lessons_split_passed_and_rejected_and_list_the_misses():
     outcomes.apply_sample(e, 0.07, 1_000, T0 + 600)
     r = outcomes.observe(_item("moon"), "rejected", T0, "GitHub: nessun commit", now=T0)
     outcomes.apply_sample(r, 1.0, 20_000, T0)
-    outcomes.apply_sample(r, 3.0, 60_000, T0 + H)
+    outcomes.apply_sample(r, 3.0, 60_000, T0 + H, TRADED)
     out = outcomes.lessons(T0 + H)
     assert out["passed"]["rug"] == 1 and out["rejected"]["buono"] == 1
     assert [s["symbol"] for s in out["slipped"]] == ["VISE"]
@@ -219,3 +223,89 @@ def test_only_rugs_we_let_through_go_on_the_wall():
     wall = [e["symbol"] for e in outcomes.shame()]
     assert wall == ["VISE", "IN"]
     assert outcomes.without_shamed([_item("in"), _item("ok")]) == [_item("ok")]
+
+
+def test_a_pump_nobody_can_sell_is_fake_not_a_missed_winner():
+    """JIRACHI "+6877%": 300 acquisti, zero vendite."""
+    e = outcomes.observe(_item("jirachi"), "rejected", T0, "nome da meme coin", now=T0)
+    only_buys = {**TRADED, "sells_h1": 0.0, "sells_h24": 0.0, "buy_ratio": 1.0}
+    outcomes.apply_sample(e, 1.0, 20_000, T0, only_buys)
+    outcomes.apply_sample(e, 69.0, 20_000, T0 + H, only_buys)
+    assert outcomes.outcome(e, T0 + H) == "finto"
+    out = outcomes.lessons(T0 + H)
+    assert out["missed"] == [] and out["study"]["fakes"][0]["symbol"] == "JIRACHI"
+    thin = outcomes.observe(_item("thin"), "rejected", T0, "nome da meme coin", now=T0)
+    outcomes.apply_sample(thin, 1.0, 9_000, T0, TRADED)
+    outcomes.apply_sample(thin, 5.0, 4_000, T0 + H, TRADED)   # al massimo non c'era da uscire
+    assert outcomes.outcome(thin, T0 + H) == "finto"
+
+
+def _rejected(token, reason, *, up, market=TRADED, liq=20_000, now=T0, close=False):
+    it = _item(token)
+    it["checks"] = [{"key": "name", "ok": False}] if "meme" in reason else it["checks"]
+    e = outcomes.observe(it, "rejected", now, reason, now=now)
+    outcomes.apply_sample(e, 1.0, liq, now, market)
+    outcomes.apply_sample(e, 1.0 + up, liq, now + H, market)
+    if close:
+        outcomes.apply_sample(e, 1.0 + up, liq, now + outcomes.HORIZON_S, market)
+    return e
+
+
+def test_study_groups_the_misses_by_why_we_rejected_them():
+    _rejected("m1", "nome da meme coin", up=5.0, close=True)
+    _rejected("m2", "nome da meme coin", up=0.1, close=True)
+    _rejected("s1", "RugCheck: segnalato come rug", up=0.0, close=True)
+    out = outcomes.study(T0 + H)
+    by = {r["key"]: r for r in out["by_reason"]}
+    assert by["name"]["n"] == 2 and by["name"]["buono"] == 1 and by["name"]["win_rate"] == 0.5
+    assert by["security"]["buono"] == 0
+    assert [w["symbol"] for w in out["winners"]] == ["M1"]
+    assert {t["key"] for t in out["traits"]} >= {"liq", "buys_h1"}
+
+
+def test_old_entries_get_their_reject_reason_from_the_text():
+    e = outcomes.observe(_item("old"), "rejected", T0, "GitHub: nessun GitHub", now=T0)
+    e["features"].pop("failed")
+    assert outcomes.failed_key(e) == "github"
+
+
+def test_meme_lane_takes_soft_rejects_alive_sellable_and_safe():
+    now = T0 + H
+    good = _rejected("pepe", "nome da meme coin", up=0.3, liq=50_000)
+    copy = _rejected("pepe2", "nome da meme coin", up=0.3)
+    copy["symbol"] = "PEPE"                                   # stesso ticker, meno liquidita'
+    _rejected("unsafe", "RugCheck: segnalato come rug", up=0.3)
+    _rejected("nosell", "nome da meme coin", up=0.3, market={**TRADED, "sells_h1": 0.0, "sells_h24": 0.0})
+    _rejected("dry", "nome da meme coin", up=0.3, liq=3_000)
+    _rejected("old", "nome da meme coin", up=0.3, now=T0 - 3 * 86400)
+    board = outcomes.meme_board(now)
+    assert [i["symbol"] for i in board["items"]] == ["PEPE"]
+    assert "azzardo" in board["warning"] and board["items"][0]["failed"] == "name"
+    assert board["items"][0]["token_address"] == "pepe"
+    good["safety"] = {"ok": False, "detail": "un wallet ha il 40%"}
+    assert [i["token_address"] for i in outcomes.meme_board(now)["items"]] == ["pepe2"]
+
+
+def test_meme_safety_uses_rugcheck_and_holder_concentration(monkeypatch):
+    now = T0 + H
+    _rejected("pepe", "nome da meme coin", up=0.3)
+    _rejected("whale", "nome da meme coin", up=0.3)
+
+    async def rugcheck(mint, client):
+        holders = [{"owner": "w", "pct": 40.0}] if mint == "whale" else [{"owner": "w", "pct": 4.0}]
+        return {"lpLockedPct": 100, "risks": [], "topHolders": holders}
+    monkeypatch.setattr(legit, "rugcheck", rugcheck)
+    assert asyncio.run(outcomes._meme_safety(None, now)) == 2
+    assert [i["symbol"] for i in outcomes.meme_board(now)["items"]] == ["PEPE"]
+
+
+def test_winner_model_ranks_the_lane_once_it_predicts():
+    for i in range(90):
+        win = i % 3 == 0
+        m = {**TRADED, "buys_h1": 200.0 if win else 10.0, "vol_h1": 90_000.0 if win else 1_000.0}
+        _rejected(f"w{i}", "nome da meme coin", up=2.0 if win else 0.05, market=m, close=True)
+    model = outcomes.train_winners(T0 + outcomes.HORIZON_S)
+    assert model["active"] and model["cv_auc"] >= outcomes.WIN_MIN_AUC
+    hot = outcomes.win_chance({**_item("x"), **outcomes.features(_item("x")), "buys_h1": 200.0, "vol_h1": 90_000.0})
+    cold = outcomes.win_chance({**outcomes.features(_item("y")), "buys_h1": 10.0, "vol_h1": 1_000.0})
+    assert hot > cold

@@ -53,6 +53,10 @@ RUG_LIQ_LEFT = 0.20            # liquidita' rimasta sotto il 20% d'ingresso
 RUG_DROP = -0.80               # o prezzo a -80%
 CRASH_DROP = -0.50
 GOOD_UP = 0.50
+# Una salita conta solo se si poteva vendere: qualcuno ha venduto e al
+# massimo c'era liquidita' per uscire. JIRACHI "+6877%": 300 acquisti, zero
+# vendite, liquidita' uguale alla cap. Quello e' un prezzo finto, non un trend.
+EXIT_LIQ_MIN = 10_000
 MISSING_TICKS = 3              # pool che non risponde piu' per 3 giri: tolto
 LATE_S = 2 * 3600              # visto oltre 2 ore dopo la decisione: ingresso dalle candele
 BACKFILL_PER_TICK = 4
@@ -64,6 +68,17 @@ MODEL_MIN_AUC = 0.65
 MODEL_FOLDS = 5
 BLOCK_RISK = 0.5               # sopra, il filtro scarta
 SIGNAL_MIN_N = 12
+WIN_MIN_N = 40
+WIN_MIN_WINNERS = 8
+WIN_MIN_AUC = 0.60
+# Scartati per motivi "da meme" (nome, niente sito, social, GitHub, parere di
+# Claude, pagella), non per sicurezza: la corsia meme parte da qui. Lorenzo:
+# "dobbiamo cavalcare le meme coin [...] estremamente gambling".
+SOFT_FAILS = {"name", "site", "socials", "github", "ai", "gem", "memory"}
+MEME_LIQ_MIN = 8_000
+MEME_MAX_AGE_S = 2 * 86400
+MEME_SAFETY_PER_TICK = 8
+MEME_TOP_HOLDER_MAX = 15.0
 
 # Quanto conta una decisione: un token proposto dopo essere stato solo
 # provato prende l'ingresso del momento della proposta.
@@ -75,6 +90,9 @@ CHECK_KEYS = ("name", "security", "contract", "socials", "site", "github", "ai")
 FACT_KEYS = ("top_holder_pct", "top10_pct", "lp_locked_pct")
 RISK_UP = {"top_holder_pct", "top10_pct"}   # qui un numero alto dovrebbe voler dire piu' rug
 CHECK_LABELS = {"top_holder_pct": "Primo wallet %", "top10_pct": "Primi 10 wallet %",
+                "vol_h1": "Volume 1h", "buys_h1": "Acquisti 1h", "sells_h1": "Vendite 1h",
+                "buy_ratio": "Quota acquisti", "chg_h1": "Variazione 1h", "gem": "Pagella da gemma",
+                "memory": "Memoria", "altro": "Altro",
                 "lp_locked_pct": "Liquidità bloccata %",
                 "name": "Nome", "security": "Sicurezza (RugCheck/GoPlus)", "contract": "Contratto (GoPlus)",
                 "socials": "Social", "site": "Sito", "github": "GitHub", "ai": "Claude sul sito",
@@ -83,6 +101,7 @@ CHECK_LABELS = {"top_holder_pct": "Primo wallet %", "top10_pct": "Primi 10 walle
 
 _journal: dict[str, dict] = {}
 _model: dict = {"active": False}
+_wmodel: dict = {"active": False}
 _state: dict = {"last_tick": 0.0, "error": ""}
 
 
@@ -115,6 +134,8 @@ def reset_for_tests() -> None:
     _journal.clear()
     _model.clear()
     _model["active"] = False
+    _wmodel.clear()
+    _wmodel["active"] = False
     _state.update(last_tick=0.0, error="")
 
 
@@ -140,6 +161,7 @@ def features(item: dict, now: float | None = None) -> dict:
     if age is None and _num(item.get("created_at")):
         age = max(0.0, (now - float(item["created_at"])) / 3600)
     checks, facts = {}, {}
+    failed = next((c.get("key") for c in item.get("checks") or [] if c.get("ok") is False), None)
     for c in item.get("checks") or []:
         if c.get("key") in CHECK_KEYS:
             checks[c["key"]] = {"ok": c.get("ok"), "score": c.get("score")}
@@ -147,7 +169,7 @@ def features(item: dict, now: float | None = None) -> dict:
     report = (item.get("report") or {}).get("score")
     return {"mcap": cap, "liq": liq, "liq_mcap": (liq / cap) if cap and liq else None, "age_h": age,
             "report": _num(report), "checks": checks, **{k: _num(facts.get(k)) for k in FACT_KEYS},
-            "chain": item.get("chain"),
+            "chain": item.get("chain"), "failed": failed,
             "exception": bool(item.get("exception"))}
 
 
@@ -198,10 +220,33 @@ def collect(now: float | None = None) -> int:
 
 # --------------------------------------------------------------------- esito
 
-def apply_sample(e: dict, price: float | None, liq: float | None, now: float) -> None:
+def market_of(pair: dict | None) -> dict | None:
+    """Scambi e volumi di un pair DexScreener: chi compra, chi vende."""
+    if not pair:
+        return None
+    tx = (pair.get("txns") or {}).get("h1") or {}
+    vol = pair.get("volume") or {}
+    buys, sells = _num(tx.get("buys")) or 0.0, _num(tx.get("sells")) or 0.0
+    day = (pair.get("txns") or {}).get("h24") or {}
+    return {"buys_h1": buys, "sells_h1": sells, "sells_h24": _num(day.get("sells")) or 0.0,
+            "buy_ratio": buys / (buys + sells) if buys + sells else None,
+            "vol_h1": _num(vol.get("h1")), "chg_h1": _num((pair.get("priceChange") or {}).get("h1")),
+            "mcap": _num(pair.get("marketCap") or pair.get("fdv"))}
+
+
+def apply_sample(e: dict, price: float | None, liq: float | None, now: float,
+                 market: dict | None = None) -> None:
     """Un nuovo prezzo per una voce: aggiorna minimi, massimi ed esito."""
     if e["closed"]:
         return
+    if market:
+        if not e.get("market0"):
+            # Com'era il mercato quando l'abbiamo visto: diventa una feature.
+            e["market0"] = market
+            e["features"].update({k: market.get(k) for k in MARKET_KEYS})
+        e["market"] = market
+        if (market.get("sells_h1") or 0) + (market.get("sells_h24") or 0) > 0:
+            e["sells_seen"] = True
     if price is None:
         if e["entry"]:
             e["misses"] += 1
@@ -215,6 +260,8 @@ def apply_sample(e: dict, price: float | None, liq: float | None, now: float) ->
     ret = price / base - 1 if base else 0.0
     e["last"] = {"price": price, "liq": liq, "at": now, "ret": round(ret, 4)}
     e["min_ret"] = ret if e["min_ret"] is None else min(e["min_ret"], ret)
+    if e["max_ret"] is None or ret >= e["max_ret"]:
+        e["peak_liq"] = liq
     e["max_ret"] = ret if e["max_ret"] is None else max(e["max_ret"], ret)
     if e["entry"].get("liq") is None and liq:
         e["entry"]["liq"] = liq  # ingresso dalle candele: la liquidita' si misura da qui
@@ -246,10 +293,19 @@ def outcome(e: dict, now: float | None = None) -> str | None:
     if e["rug"]:
         return "rug"
     if (e.get("max_ret") or 0) >= GOOD_UP:
-        return "buono"
+        return "buono" if tradable(e) else "finto"
     if not e["closed"]:
         return None
     return "crollo" if (e.get("min_ret") or 0) <= CRASH_DROP else "piatto"
+
+
+def tradable(e: dict) -> bool:
+    """Si poteva vendere? Serve almeno una vendita vista e, se nota, la
+    liquidita' al massimo sopra EXIT_LIQ_MIN."""
+    if not e.get("sells_seen"):
+        return False
+    peak = e.get("peak_liq")
+    return peak is None or peak >= EXIT_LIQ_MIN
 
 
 def rug_label(e: dict, now: float | None = None) -> bool | None:
@@ -286,7 +342,7 @@ async def _sample(client: httpx.AsyncClient, now: float) -> int:
                 p = by_pair.get(e["pair_address"].lower())
                 price = _num(p.get("priceUsd")) if p else None
                 liq = _num((p.get("liquidity") or {}).get("usd")) if p else None
-                apply_sample(e, price, liq, now)
+                apply_sample(e, price, liq, now, market_of(p))
                 sampled += 1
             await asyncio.sleep(0.3)
     return sampled
@@ -378,23 +434,28 @@ def _value(f: dict, key: str) -> float | None:
     v = f.get(key)
     if v is None:
         return None
-    return math.log10(v + 1) if key in ("mcap", "liq", "age_h") else float(v)
+    return math.log10(max(v, 0) + 1) if key in LOG_KEYS else float(v)
 
 
 MODEL_KEYS = ("mcap", "liq", "liq_mcap", "age_h", "report") + FACT_KEYS + CHECK_KEYS
+# Il mercato al primo sguardo: per le salite conta piu' della pagella.
+MARKET_KEYS = ("vol_h1", "buys_h1", "sells_h1", "buy_ratio", "chg_h1")
+WIN_KEYS = ("mcap", "liq", "liq_mcap", "age_h") + FACT_KEYS + MARKET_KEYS + CHECK_KEYS
+LOG_KEYS = {"mcap", "liq", "age_h", "vol_h1", "buys_h1", "sells_h1"}
 
 
-def _matrix(rows: list[dict], means: dict | None = None) -> tuple[np.ndarray, dict]:
+def _matrix(rows: list[dict], means: dict | None = None,
+            keys: tuple = MODEL_KEYS) -> tuple[np.ndarray, dict]:
     """Una riga per token. Un valore mancante prende la media e accende un
     indicatore: "non controllato" e' un'informazione, non uno zero."""
-    cols = {k: [_value(f, k) for f in rows] for k in MODEL_KEYS}
+    cols = {k: [_value(f, k) for f in rows] for k in keys}
     if means is None:
         means = {}
         for k, vals in cols.items():
             known = [v for v in vals if v is not None]
             means[k] = (sum(known) / len(known), (np.std(known) or 1.0)) if known else (0.0, 1.0)
     out = []
-    for k in MODEL_KEYS:
+    for k in keys:
         mu, sd = means[k]
         out.append([((v if v is not None else mu) - mu) / sd for v in cols[k]])
         out.append([float(v is None) for v in cols[k]])
@@ -426,6 +487,25 @@ def labelled(now: float | None = None) -> list[tuple[dict, bool]]:
     return out
 
 
+def _cv_fit(rows: list[dict], labels: list[bool], keys: tuple) -> tuple[float | None, np.ndarray, dict]:
+    """AUC fuori campione (k fold deterministici: stesso diario, stesso
+    verdetto), poi il modello su tutto."""
+    n = len(rows)
+    y = np.array([float(v) for v in labels])
+    folds = np.arange(n) % MODEL_FOLDS
+    pred = np.zeros(n)
+    for k in range(MODEL_FOLDS):
+        tr, te = folds != k, folds == k
+        if y[tr].min() == y[tr].max():
+            continue
+        x_tr, means = _matrix([r for r, m in zip(rows, tr) if m], keys=keys)
+        x_te, _ = _matrix([r for r, m in zip(rows, te) if m], means, keys)
+        pred[te] = _predict(_fit(x_tr, y[tr]), x_te)
+    cv = auc(pred.tolist(), [bool(v) for v in y])
+    x, means = _matrix(rows, keys=keys)
+    return cv, _fit(x, y), means
+
+
 def train(now: float | None = None) -> dict:
     """Allena il modello dei rug e decide se merita di entrare nel filtro."""
     data = labelled(now)
@@ -436,21 +516,7 @@ def train(now: float | None = None) -> dict:
         _model.clear()
         _model.update(model)
         return model
-    rows = [e["features"] for e, _ in data]
-    y = np.array([float(v) for _, v in data])
-    # k fold deterministici: stesso diario, stesso verdetto.
-    folds = np.arange(n) % MODEL_FOLDS
-    pred = np.zeros(n)
-    for k in range(MODEL_FOLDS):
-        tr, te = folds != k, folds == k
-        if y[tr].min() == y[tr].max():
-            continue
-        x_tr, means = _matrix([r for r, m in zip(rows, tr) if m])
-        x_te, _ = _matrix([r for r, m in zip(rows, te) if m], means)
-        pred[te] = _predict(_fit(x_tr, y[tr]), x_te)
-    cv = auc(pred.tolist(), [bool(v) for v in y])
-    x, means = _matrix(rows)
-    w = _fit(x, y)
+    cv, w, means = _cv_fit([e["features"] for e, _ in data], [y for _, y in data], MODEL_KEYS)
     model.update(cv_auc=round(cv, 3) if cv is not None else None, weights=w.tolist(), means=means)
     if cv is None or cv < MODEL_MIN_AUC:
         model["why"] = f"fuori campione separa i rug solo con AUC {cv or 0:.2f} (serve {MODEL_MIN_AUC})"
@@ -489,7 +555,7 @@ def _rate(entries: list[dict], now: float) -> dict:
     n = len(done)
     return {"n": len(entries), "decided": n,
             "rug": done.count("rug"), "crollo": done.count("crollo"),
-            "buono": done.count("buono"), "piatto": done.count("piatto"),
+            "buono": done.count("buono"), "piatto": done.count("piatto"), "finto": done.count("finto"),
             "rug_rate": round(done.count("rug") / n, 3) if n else None,
             "good_rate": round(done.count("buono") / n, 3) if n else None}
 
@@ -561,10 +627,190 @@ def lessons(now: float | None = None) -> dict:
         "signals": sig, "model": {k: v for k, v in _model.items() if k not in ("weights", "means")},
         "slipped": [_brief(e, now) for e in slipped[:10]],
         "missed": [_brief(e, now) for e in missed[:10]],
+        "study": study(now),
         "notes": notes, "last_tick": _state["last_tick"], "error": _state["error"],
         "rules": {"horizon_days": HORIZON_S / 86400, "rug_liq_left": RUG_LIQ_LEFT, "rug_drop": RUG_DROP,
                   "good_up": GOOD_UP, "model_min_n": MODEL_MIN_N, "model_min_auc": MODEL_MIN_AUC},
     }
+
+
+# ------------------------------------------------ le salite che abbiamo perso
+
+def win_labelled(now: float | None = None) -> list[tuple[dict, bool]]:
+    """Esplosa davvero (salita vendibile) o no, per le voci con un esito."""
+    now = now or time.time()
+    out = []
+    for e in _journal.values():
+        o = outcome(e, now)
+        if o:
+            out.append((e, o == "buono"))
+    return out
+
+
+def train_winners(now: float | None = None) -> dict:
+    """Il modello delle salite vere: su tutto il diario, non solo sugli
+    scartati, perche' le salite sono poche."""
+    data = win_labelled(now)
+    n, wins = len(data), sum(y for _, y in data)
+    model = {"active": False, "n": n, "winners": wins, "cv_auc": None, "why": ""}
+    if n < WIN_MIN_N or wins < WIN_MIN_WINNERS or n - wins < WIN_MIN_WINNERS:
+        model["why"] = f"servono {WIN_MIN_N} esiti con almeno {WIN_MIN_WINNERS} salite vere (ora {n}, {wins})"
+    else:
+        cv, w, means = _cv_fit([e["features"] for e, _ in data], [y for _, y in data], WIN_KEYS)
+        model.update(cv_auc=round(cv, 3) if cv is not None else None, weights=w.tolist(), means=means)
+        if cv is None or cv < WIN_MIN_AUC:
+            model["why"] = f"fuori campione riconosce le salite solo con AUC {cv or 0:.2f} (serve {WIN_MIN_AUC})"
+        else:
+            model.update(active=True, why=f"riconosce le salite fuori campione con AUC {cv:.2f} su {n} esiti")
+    _wmodel.clear()
+    _wmodel.update(model)
+    return model
+
+
+def win_chance(f: dict) -> float | None:
+    if not _wmodel.get("active"):
+        return None
+    x, _ = _matrix([f], {k: tuple(v) for k, v in _wmodel["means"].items()}, WIN_KEYS)
+    return float(_predict(np.array(_wmodel["weights"]), x)[0])
+
+
+def _median(vals: list) -> float | None:
+    vals = sorted(v for v in vals if v is not None)
+    return vals[len(vals) // 2] if vals else None
+
+
+def study(now: float | None = None) -> dict:
+    """Lorenzo: "ho visto che hai scartato dei token che hanno fatto
+    grandissime percentuali, devi andare a studiare tutti quei casi". Per
+    ogni motivo di scarto: quanti sono esplosi davvero, quanti erano salite
+    finte, quanti rug. Poi come erano, al primo sguardo, le salite vere
+    rispetto alle altre."""
+    now = now or time.time()
+    rejected = [e for e in _journal.values() if e["decision"] == "rejected" and outcome(e, now)]
+    by: dict[str, dict] = {}
+    for e in rejected:
+        key = failed_key(e)
+        row = by.setdefault(key, {"key": key, "label": CHECK_LABELS.get(key, key), "n": 0, "buono": 0,
+                                  "finto": 0, "rug": 0})
+        row["n"] += 1
+        o = outcome(e, now)
+        if o in ("buono", "finto", "rug"):
+            row[o] += 1
+    for row in by.values():
+        row["win_rate"] = round(row["buono"] / row["n"], 3)
+        row["rug_rate"] = round(row["rug"] / row["n"], 3)
+    wins = [e for e in rejected if outcome(e, now) == "buono"]
+    rest = [e for e in rejected if outcome(e, now) != "buono"]
+    traits = []
+    for k in ("mcap", "liq", "liq_mcap", "age_h", "vol_h1", "buys_h1", "sells_h1", "buy_ratio", "chg_h1",
+              "top_holder_pct"):
+        w, r = _median([e["features"].get(k) for e in wins]), _median([e["features"].get(k) for e in rest])
+        if w is not None and r is not None:
+            traits.append({"key": k, "label": CHECK_LABELS.get(k, k), "winners": w, "others": r})
+    fakes = sorted((e for e in rejected if outcome(e, now) == "finto"), key=lambda e: -(e["max_ret"] or 0))
+    return {"by_reason": sorted(by.values(), key=lambda r: -r["buono"]), "traits": traits,
+            "winners": [_brief(e, now) for e in sorted(wins, key=lambda e: -(e["max_ret"] or 0))[:12]],
+            "fakes": [_brief(e, now) for e in fakes[:8]],
+            "model": {k: v for k, v in _wmodel.items() if k not in ("weights", "means")}}
+
+
+_REASON_KEYS = (("Memoria", "memory"), ("meme", "name"), ("RugCheck", "security"), ("GoPlus", "contract"),
+                ("Sicurezza", "security"), ("GitHub", "github"), ("Claude", "ai"), ("sito", "site"),
+                ("social", "socials"), ("pagella", "gem"), ("eccellente", "gem"))
+
+
+def failed_key(e: dict) -> str:
+    """Quale controllo l'ha scartato. Le voci vecchie non lo hanno salvato:
+    lo si ricava dal motivo scritto."""
+    key = e["features"].get("failed")
+    if key:
+        return key
+    reason = e.get("reason") or ""
+    return next((k for word, k in _REASON_KEYS if word in reason), "altro")
+
+
+def _meme_candidates(now: float) -> list[dict]:
+    out = []
+    for e in _journal.values():
+        if e["decision"] != "rejected" or e["closed"] or e["rug"] or not e.get("last"):
+            continue
+        if failed_key(e) not in SOFT_FAILS or now - e["at"] > MEME_MAX_AGE_S:
+            continue
+        if (e["last"].get("liq") or 0) < MEME_LIQ_MIN or not e.get("sells_seen"):
+            continue  # senza vendite non si sa se si puo' uscire
+        if (e.get("safety") or {}).get("ok") is False:
+            continue
+        out.append(e)
+    return out
+
+
+def _meme_score(e: dict) -> float:
+    """Senza un modello affidabile: chi compra, quanto si scambia, rispetto
+    alla liquidita'. Con il modello: la probabilita' che esploda davvero."""
+    p = win_chance(e["features"])
+    if p is not None:
+        return p
+    m = e.get("market") or {}
+    ratio = m.get("buy_ratio") or 0.5
+    turnover = (m.get("vol_h1") or 0) / max(e["last"].get("liq") or 1, 1)
+    return round(0.5 * ratio + 0.5 * min(turnover, 1.0), 4)
+
+
+def meme_board(now: float | None = None, limit: int = 20) -> dict:
+    """La corsia meme: scartati per i motivi da meme, non per sicurezza,
+    ancora vivi, vendibili, ordinati per somiglianza alle salite vere."""
+    now = now or time.time()
+    # Un ticker una volta sola: le copie con lo stesso nome restano fuori.
+    best: dict[str, dict] = {}
+    for e in sorted(_meme_candidates(now), key=lambda e: -(e["last"].get("liq") or 0)):
+        best.setdefault(f"{e['chain']}:{e['symbol'].upper()}", e)
+    cands = sorted(best.values(), key=lambda e: -_meme_score(e))[:limit]
+    items = []
+    for e in cands:
+        m = e.get("market") or {}
+        items.append({
+            "chain": e["chain"], "symbol": e["symbol"], "name": e["name"], "token_address": e["token_address"],
+            "pair_address": e["pair_address"], "pair_url": e["pair_url"], "seen_at": e["at"],
+            "reason": e["reason"], "failed": failed_key(e),
+            "ret_since_seen": e["last"].get("ret"), "max_ret": e["max_ret"], "liquidity_usd": e["last"].get("liq"),
+            "market_cap": m.get("mcap"), "buys_h1": m.get("buys_h1"), "sells_h1": m.get("sells_h1"),
+            "vol_h1": m.get("vol_h1"), "score": _meme_score(e), "win_chance": win_chance(e["features"]),
+            "safety": e.get("safety"),
+        })
+    return {"items": items, "model": {k: v for k, v in _wmodel.items() if k not in ("weights", "means")},
+            "warning": "Gioco d'azzardo puro: meme coin senza progetto dietro. Metti solo cio' che puoi perdere.",
+            "rules": {"liq_min_usd": MEME_LIQ_MIN, "max_age_h": MEME_MAX_AGE_S / 3600,
+                      "top_holder_max_pct": MEME_TOP_HOLDER_MAX, "exit_liq_min_usd": EXIT_LIQ_MIN}}
+
+
+async def _meme_safety(client: httpx.AsyncClient, now: float, limit: int = MEME_SAFETY_PER_TICK) -> int:
+    """Il minimo anti-rug per un meme scartato per il nome (il filtro si
+    ferma li' e non guarda la sicurezza): RugCheck o GoPlus, e nessun wallet
+    sopra MEME_TOP_HOLDER_MAX."""
+    from app.trading.onchain import legit
+    todo = [e for e in sorted(_meme_candidates(now), key=lambda e: -_meme_score(e)) if not e.get("safety")]
+    done = 0
+    for e in todo[:limit]:
+        try:
+            if e["chain"] == "solana":
+                report = await legit.rugcheck(e["token_address"], client)
+                check = legit.judge_rugcheck(report)
+                if report and check["ok"] is not False:
+                    top, _top10 = legit.holder_concentration(report)
+                    if top > MEME_TOP_HOLDER_MAX:
+                        check = {"ok": False, "detail": f"un wallet ha il {top:.0f}%"}
+            elif e["chain"] in legit.GOPLUS_CHAIN:
+                check = legit.judge_goplus(await legit.goplus(e["chain"], e["token_address"], client))
+            else:
+                continue
+        except Exception:
+            logger.exception("outcomes: sicurezza meme %s", e["symbol"])
+            continue
+        if check.get("ok") is None:
+            continue  # report non ancora pronto: si riprova al giro dopo
+        e["safety"] = {"ok": bool(check["ok"]), "detail": check.get("detail") or "", "at": now}
+        done += 1
+    return done
 
 
 # -------------------------------------------------------- il muro della vergogna
@@ -613,8 +859,10 @@ async def tick(now: float | None = None) -> dict:
         collect(now)
         async with httpx.AsyncClient(timeout=20.0) as client:
             await _sample(client, now)
+            await _meme_safety(client, now)
         await _backfill(now)
         train(now)
+        train_winners(now)
         _state["error"] = ""
     except Exception as exc:
         logger.exception("outcomes: giro fallito")
@@ -627,6 +875,7 @@ async def tick(now: float | None = None) -> dict:
 async def outcomes_loop() -> None:
     await asyncio.sleep(FIRST_TICK_DELAY_S)
     train()
+    train_winners()
     while True:
         await tick()
         await asyncio.sleep(TICK_S)

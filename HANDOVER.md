@@ -66,6 +66,17 @@ imparare dai segnali; da cosa effettivamente succede, e migliorare il sistema".
   `SHAME_SEED` (VISE) + rug passati dal filtro. Tolti da proposte, listing,
   classifica e candidati del pilota (`without_shamed`, `_pilot_vet`).
 
+- Corsia meme (seed-0110, Lorenzo: "dobbiamo cavalcare le meme coin [...] estremamente
+  gambling"): `outcomes.meme_board()` su `/api/onchain/radar/memes`. Scartati per
+  motivi morbidi (`SOFT_FAILS`: nome, sito, social, GitHub, IA, pagella, memoria),
+  vivi, con vendite viste, liq >= $8k, RugCheck/GoPlus puliti e primo wallet <=15%
+  (`_meme_safety`, 8 per giro). Ordinati dal modello delle salite vere
+  (`train_winners`, AUC fuori campione >= 0.60) o, prima, da quota acquisti e giro
+  d'affari. Salita vera = +50% con vendite viste e liq al massimo >= $10k; senza,
+  e' "finto" (JIRACHI: 300 acquisti, 0 vendite). `study()` raggruppa gli scarti per
+  motivo. Solo lettura: il pilota non compra meme. La UI a due sezioni e' del
+  thread "Revisione generale app".
+
 Resta: eventuale ritaratura automatica delle soglie di legit (oggi solo misurate).
 
 ## Due porte: Gemme e Meme, niente nomi personali — `seed-0115` — 2026-09-24
