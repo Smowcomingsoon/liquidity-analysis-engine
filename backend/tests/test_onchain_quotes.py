@@ -109,7 +109,7 @@ def test_uniswap_v2_price_impact_raises_on_empty_pool(monkeypatch):
         return httpx.Response(200, json={"jsonrpc": "2.0", "id": 1, "result": "0x" + "0" * 24 + token0[2:]})
 
     monkeypatch.setattr(httpx, "AsyncClient", _client_factory(handler))
-    with pytest.raises(RuntimeError, match="senza liquidita"):
+    with pytest.raises(RuntimeError, match="no liquidity"):
         _run(quotes.uniswap_v2_price_impact(pool, token0, 1_000))
 
 

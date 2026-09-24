@@ -36,7 +36,7 @@ def test_unsupported_chain_is_rejected_honestly(tmp_path, monkeypatch):
         "u1", "ethereum", "TOKEN", "lorenzo", "buy", 10.0, 0.5, 2.0, "deadbeef", _quote(),
     ))
     assert result["accepted"] is False
-    assert "non supportata" in result["reason"]
+    assert "unsupported" in result["reason"]
     assert result["idempotency_key"] is None
 
 
@@ -68,7 +68,7 @@ def test_robinhood_execution_disabled_signs_but_never_sends(tmp_path, monkeypatc
         "u1", "robinhood", "TOKEN", "lorenzo", "buy", 10.0, 0.5, 2.0, "deadbeef", _robinhood_quote(),
     ))
     assert result["accepted"] is False
-    assert "disattivata" in result["reason"]
+    assert "disabled" in result["reason"]
     assert sent["called"] is False
 
 
@@ -100,7 +100,7 @@ def test_rejected_by_risk_guardrail_never_signs(tmp_path, monkeypatch):
         "u1", "solana", "TOKEN", "lorenzo", "buy", 999.0, 0.5, 2.0, "deadbeef", _quote(),
     ))
     assert result["accepted"] is False
-    assert "tetto per operazione" in result["reason"]
+    assert "per-trade cap" in result["reason"]
     assert result["idempotency_key"] is None
 
 
@@ -123,7 +123,7 @@ def test_execution_disabled_signs_but_never_sends(tmp_path, monkeypatch):
         "u1", "solana", "TOKEN", "lorenzo", "buy", 10.0, 0.5, 2.0, "deadbeef", _quote(),
     ))
     assert result["accepted"] is False
-    assert "disattivata" in result["reason"]
+    assert "disabled" in result["reason"]
     assert sent["called"] is False
     order = ledger.get_order(result["idempotency_key"])
     assert order["status"] == "failed"
@@ -234,5 +234,5 @@ def test_duplicate_idempotency_key_never_signs_twice(tmp_path, monkeypatch):
         "u1", "solana", "TOKEN", "lorenzo", "buy", 10.0, 0.5, 2.0, "deadbeef", _quote(),
     ))
     assert result["accepted"] is False
-    assert "duplicata" in result["reason"]
+    assert "duplicate" in result["reason"]
     assert signed["called"] is False

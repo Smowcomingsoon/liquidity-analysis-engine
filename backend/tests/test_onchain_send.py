@@ -68,7 +68,7 @@ def test_send_native_disabled_signs_but_never_sends(client, monkeypatch):
     assert resp.status_code == 200
     body = resp.json()
     assert body["accepted"] is False
-    assert "disattivata" in body["reason"]
+    assert "disabled" in body["reason"]
     assert sent["called"] is False
 
 
@@ -114,7 +114,7 @@ def test_send_rejected_by_per_trade_cap_never_signs(client, monkeypatch):
     })
     body = resp.json()
     assert body["accepted"] is False
-    assert "tetto per operazione" in body["reason"]
+    assert "per-trade cap" in body["reason"]
 
 
 def test_send_manual_strategy_skips_concentration(client, monkeypatch):

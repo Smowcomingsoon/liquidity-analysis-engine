@@ -134,14 +134,14 @@ async def fetch_github(full_name: str, client: httpx.AsyncClient) -> dict | None
 
 def judge_github(data: dict | None, launched_at: float | None = None, now: float | None = None) -> dict:
     if data is None:
-        return _pending("github", "GitHub non risponde")
+        return _pending("github", "GitHub not responding")
     if not data or not data.get("repo"):
-        return _pillar("github", 0, {}, [], "link a GitHub senza un repository")
+        return _pillar("github", 0, {}, [], "GitHub link without a repository")
     now = now or time.time()
     repo, commits = data["repo"], [c for c in data.get("commits") or [] if isinstance(c, dict)]
     name = repo.get("full_name") or "?"
     if repo.get("fork"):
-        return _pillar("github", 0, {"repo": name}, [], f"{name} è una copia (fork)")
+        return _pillar("github", 0, {"repo": name}, [], f"{name} is a fork")
 
     dates = [t for t in (_ts(((c.get("commit") or {}).get("author") or {}).get("date")) for c in commits) if t]
     messages = [((c.get("commit") or {}).get("message") or "").strip().splitlines()[0:1] for c in commits]
@@ -194,21 +194,21 @@ def judge_github(data: dict | None, launched_at: float | None = None, now: float
     flags: list[str] = []
     fatal = ""
     if not commits:
-        fatal = "repository vuoto"
+        fatal = "empty repository"
     elif code < GH_MIN_CODE_BYTES:
-        fatal = f"quasi niente codice ({code // 1024} KB)"
+        fatal = f"almost no code ({code // 1024} KB)"
     elif len(days) < 2:
-        fatal = "tutti i commit in un giorno solo"
+        fatal = "all commits on a single day"
     elif trivial_ratio > GH_TRIVIAL_MAX:
-        fatal = f"{round(trivial_ratio * 100)}% dei commit sono caricamenti o ritocchi al README"
+        fatal = f"{round(trivial_ratio * 100)}% of commits are uploads or README tweaks"
     if launched_at and created and 0 <= launched_at - created < GH_BORN_WITH_TOKEN_S and span_days < 3:
-        flags.append("repository nato col token")
+        flags.append("repository born with the token")
     if last_days is not None and last_days > 90:
-        flags.append(f"fermo da {round(last_days)} giorni")
+        flags.append(f"idle for {round(last_days)} days")
     if len(authors) <= 1 and contributors <= 1:
-        flags.append("un solo autore")
+        flags.append("single author")
     if trivial_ratio > 0.4 and not fatal:
-        flags.append(f"{round(trivial_ratio * 100)}% commit banali")
+        flags.append(f"{round(trivial_ratio * 100)}% trivial commits")
     if fatal:
         return _pillar("github", 0, facts, flags, fatal)
 
@@ -220,7 +220,7 @@ def judge_github(data: dict | None, launched_at: float | None = None, now: float
              + 6 * has_tests + 5 * has_ci + 2 * has_readme + 2 * bool(facts["license"])
              + recency)
     score *= 1 - 0.5 * trivial_ratio
-    if "repository nato col token" in flags:
+    if "repository born with the token" in flags:
         score *= 0.8
     return _pillar("github", score, facts, flags)
 
@@ -229,20 +229,20 @@ async def analyze_github(urls: list[str], client: httpx.AsyncClient, launched_at
                          token: dict | None = None, website: str | None = None) -> dict:
     targets = legit.github_targets(urls)
     if not targets:
-        return _pillar("github", 0, {}, [], "nessun GitHub")
+        return _pillar("github", 0, {}, [], "no GitHub")
     owner, name = next(((o, r) for o, r in targets if r), targets[0])
     try:
         repo = await legit.github_repo(owner, name, client)
     except (httpx.HTTPError, ValueError, KeyError, TypeError):
         repo = None
     if repo is None:
-        return _pending("github", "GitHub non risponde")
+        return _pending("github", "GitHub not responding")
     if not repo:
         return judge_github({}, launched_at)
     # Un link a una libreria o a una piattaforma non e' il codice del progetto.
     if token and not benchmark.is_benchmark(token.get("chain"), token.get("token_address")) \
             and not legit.github_belongs(repo, token, website):
-        return _pillar("github", 0, {"repo": repo.get("full_name")}, [], "GitHub non appartiene al progetto")
+        return _pillar("github", 0, {"repo": repo.get("full_name")}, [], "GitHub does not belong to the project")
     return judge_github(await fetch_github(repo["full_name"], client), launched_at)
 
 
@@ -372,7 +372,7 @@ def judge_site(page: dict | None, followed: list[dict], registered_at: float | N
     """page: esito di `anatomy` + url/https; followed: le pagine interne
     aperte davvero, ognuna {kind: docs|app|page, ok, words}."""
     if page is None:
-        return _pending("site", "sito non raggiungibile")
+        return _pending("site", "website unreachable")
     now = now or time.time()
     docs_ok = any(f["ok"] and f["kind"] == "docs" and f["words"] >= SITE_MIN_WORDS_PAGE for f in followed)
     app_ok = any(f["ok"] and f["kind"] == "app" for f in followed)
@@ -391,22 +391,22 @@ def judge_site(page: dict | None, followed: list[dict], registered_at: float | N
     }
     flags: list[str] = []
     if page.get("not_own"):
-        return _pillar("site", 0, facts, flags, f"non è il sito del progetto ({page['not_own']})")
+        return _pillar("site", 0, facts, flags, f"not the project's website ({page['not_own']})")
     if page["lorem"]:
-        return _pillar("site", 0, facts, flags, "testo di esempio (lorem ipsum / coming soon)")
+        return _pillar("site", 0, facts, flags, "placeholder text (lorem ipsum / coming soon)")
     empty = page["words"] < 40 and not page["internal"] and not page["spa"]
     if empty:
-        return _pillar("site", 0, facts, flags, "pagina vuota")
+        return _pillar("site", 0, facts, flags, "empty page")
     if not page["internal"] and not page["docs"] and not page["app"]:
-        flags.append("una pagina sola, niente dietro")
+        flags.append("single page, nothing behind it")
     if page["builder"]:
-        flags.append(f"fatto con {page['builder']}")
+        flags.append(f"built with {page['builder']}")
     if page["free_host"]:
-        flags.append(f"su dominio gratuito ({page['free_host']})")
+        flags.append(f"on a free domain ({page['free_host']})")
     if before_launch is not None and before_launch < 7:
-        flags.append("dominio registrato col token" if before_launch >= -1 else "dominio più giovane del token")
+        flags.append("domain registered with the token" if before_launch >= -1 else "domain younger than the token")
     if page["spa"] and page["words"] < 80:
-        flags.append("contenuto disegnato via JavaScript")
+        flags.append("content rendered via JavaScript")
 
     domain = (0 if domain_days is None else 13 if domain_days >= 180 else 8 if domain_days >= 30
               else 4 if domain_days >= 7 else 0)
@@ -429,10 +429,10 @@ async def analyze_site(url: str | None, client: httpx.AsyncClient, token_address
                        launched_at: float | None = None) -> tuple[dict, list[str]]:
     """(pilastro, link a GitHub trovati nell'HTML)."""
     if not url:
-        return _pillar("site", 0, {}, [], "nessun sito proprio"), []
+        return _pillar("site", 0, {}, [], "no own website"), []
     site = await legit.fetch_site(url, client)
     if not site.get("ok"):
-        return _pending("site", site.get("error") or "sito non raggiungibile"), []
+        return _pending("site", site.get("error") or "website unreachable"), []
     page = anatomy(site.get("html") or "", site["final_url"])
     page.update(url=site["final_url"], https=site["final_url"].startswith("https://"),
                 not_own=_not_own(site["final_url"]))
@@ -468,7 +468,7 @@ def judge_tokenomics_solana(report: dict | None, exclude: set[str] | None = None
     """Dal report completo di RugCheck. `exclude`: conti che non sono
     persone (curva di pump.fun, pool) oltre a quelli che RugCheck conosce."""
     if not report or not report.get("topHolders") and not report.get("token"):
-        return _pending("tokenomics", "RugCheck non ha ancora il token")
+        return _pending("tokenomics", "RugCheck does not have the token yet")
     known = report.get("knownAccounts") or {}
     skip = set(exclude or ()) | {a for a, v in known.items() if (v or {}).get("type") in _POOLISH}
     for m in report.get("markets") or []:
@@ -494,7 +494,7 @@ def judge_tokenomics_solana(report: dict | None, exclude: set[str] | None = None
 def judge_tokenomics_evm(info: dict | None, pair_address: str = "") -> dict:
     """Da GoPlus (Robinhood Chain): holders con percentuale 0-1."""
     if not info:
-        return _pending("tokenomics", "GoPlus non ha ancora il token")
+        return _pending("tokenomics", "GoPlus does not have the token yet")
 
     def pct(v) -> float:
         try:
@@ -527,21 +527,21 @@ def _judge_tokenomics(*, top1: float, top10: float, creator: float, holders: int
              "holders": holders, "insiders": insiders,
              "lp_locked_pct": None if lp_locked is None else round(min(lp_locked, 100), 1),
              "mint": mintable, "freeze": freezable, "tax_pct": round(tax, 1)}
-    fatal = ("rug già avvenuto o honeypot" if rugged
-             else "si possono creare token nuovi (mint attivo)" if mintable
-             else "i conti si possono congelare (freeze attivo)" if freezable
-             else f"il creatore tiene il {creator:.0f}%" if creator > CREATOR_MAX_PCT
-             else f"un solo portafoglio tiene il {top1:.0f}%" if top1 > TOP1_MAX_PCT
-             else f"i primi 10 tengono il {top10:.0f}%" if top10 > TOP10_MAX_PCT
-             else f"tassa del {tax:.0f}%" if tax > TAX_MAX_PCT
+    fatal = ("already rugged or honeypot" if rugged
+             else "new tokens can be minted (mint enabled)" if mintable
+             else "accounts can be frozen (freeze enabled)" if freezable
+             else f"creator holds {creator:.0f}%" if creator > CREATOR_MAX_PCT
+             else f"a single wallet holds {top1:.0f}%" if top1 > TOP1_MAX_PCT
+             else f"top 10 hold {top10:.0f}%" if top10 > TOP10_MAX_PCT
+             else f"{tax:.0f}% tax" if tax > TAX_MAX_PCT
              else "")
     flags = []
     if insiders:
-        flags.append(f"{insiders} portafogli collegati fra loro")
+        flags.append(f"{insiders} wallets linked to each other")
     if lp_locked is not None and lp_locked < 80:
-        flags.append(f"liquidità bloccata solo al {lp_locked:.0f}%")
+        flags.append(f"only {lp_locked:.0f}% of liquidity locked")
     if creator > 5:
-        flags.append(f"creatore al {creator:.0f}%")
+        flags.append(f"creator at {creator:.0f}%")
     if fatal:
         return _pillar("tokenomics", 0, facts, flags, fatal)
     score = (max(0.0, min(1.0, (TOP10_MAX_PCT - top10) / (TOP10_MAX_PCT - 15))) * 40
@@ -563,7 +563,7 @@ async def analyze_tokenomics(chain: str, token: str, client: httpx.AsyncClient, 
         except (httpx.HTTPError, ValueError):
             info = None
         return judge_tokenomics_evm(info, pair_address)
-    return _pillar("tokenomics", None, {}, [], "chain non coperta")
+    return _pillar("tokenomics", None, {}, [], "chain not covered")
 
 
 # ----------------------------------------------------------------- insieme

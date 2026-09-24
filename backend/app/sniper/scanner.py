@@ -95,7 +95,7 @@ def _passes_primary(token: RawToken) -> tuple[bool, str]:
         return False, f"Liquidity ${token.liquidity_usd:,.0f}"
     age = token.age_hours
     if age > AGE_MAX_H:
-        return False, f"Troppo vecchio {age:.0f}h"
+        return False, f"Too old {age:.0f}h"
     return True, "ok"
 
 

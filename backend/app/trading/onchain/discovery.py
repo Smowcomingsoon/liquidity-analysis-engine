@@ -121,15 +121,15 @@ def from_coin_detail(chain: str, coin: dict, base: dict | None = None) -> tuple[
     platforms = coin.get("platforms") or {}
     token = next((platforms[p] for p in CG_PLATFORMS[chain] if platforms.get(p)), None)
     if not token:
-        return None, "nessun contratto sulla chain"
+        return None, "no contract on this chain"
     cats = [c for c in coin.get("categories") or [] if c]
     bad = next((c for c in cats if any(w in c.lower() for w in _NOT_PROJECT)), None)
     if bad:
-        return None, f"categoria {bad}"
+        return None, f"category {bad}"
     links = coin.get("links") or {}
     website = legit.pick_website(links.get("homepage") or [])
     if not website:
-        return None, "nessun sito proprio"
+        return None, "no own website"
     repos = [u for u in (links.get("repos_url") or {}).get("github") or [] if legit.github_targets([u])]
     socials = []
     if links.get("twitter_screen_name"):

@@ -32,7 +32,7 @@ def tokenize_line(text: str, line_no: int) -> list[Token]:
     while pos < len(text):
         m = _TOKEN_RE.match(text, pos)
         if not m:
-            raise PineParseError(f"carattere non riconosciuto: '{text[pos]}'", line_no)
+            raise PineParseError(f"unrecognized character: '{text[pos]}'", line_no)
         pos = m.end()
         kind = m.lastgroup
         value = m.group()
@@ -86,6 +86,6 @@ def preprocess(source: str) -> list[tuple[int, str, int]]:
         if stripped.startswith("//@version"):
             continue
         if stripped.endswith("\\"):
-            raise PineParseError("continuazione di riga con '\\' non supportata", i)
+            raise PineParseError("line continuation with '\\' is not supported", i)
         out.append((indent_of(text), stripped, i))
     return out

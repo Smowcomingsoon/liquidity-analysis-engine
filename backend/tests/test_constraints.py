@@ -140,7 +140,7 @@ def test_an_impossible_constraint_is_reported_not_silently_ignored(df):
             STRATEGY, df, {}, trials=50, seed=3,
             constraints=Constraints(max_drawdown_pct=0.0, max_losing_trades=0),
         )
-    assert "filtri" in str(exc.value)
+    assert "filters" in str(exc.value)
 
 
 def test_without_constraints_the_result_is_unchanged(df):

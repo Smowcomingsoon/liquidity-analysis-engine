@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Passkey per la rivelazione — Liquidity Engine</title>
+<title>Reveal passkey — Liquidity Engine</title>
 <style>
   :root { color-scheme: light dark; }
   body {
@@ -39,12 +39,12 @@
 </head>
 <body>
   <div class="card">
-    <h1>Passkey per rivelare una chiave on-chain</h1>
-    <p class="lead">Registra Face ID, Touch ID o l'equivalente Android su questo dispositivo: da qui in poi potrai approvare la rivelazione di una chiave privata dal telefono senza ridigitare la password. Devi essere gia' loggato sul sito in questo stesso browser.</p>
+    <h1>Passkey for on-chain key reveals</h1>
+    <p class="lead">Register Face ID, Touch ID or the Android equivalent on this device. From then on you can approve a private key reveal from your phone without retyping your password. You must already be logged in to the site in this browser.</p>
 
-    <label for="label">Nome per riconoscerlo (opzionale)</label>
-    <input id="label" type="text" placeholder="es. iPhone personale" />
-    <button id="register-btn" type="button">Registra Face ID / Touch ID</button>
+    <label for="label">Label (optional)</label>
+    <input id="label" type="text" placeholder="e.g. my iPhone" />
+    <button id="register-btn" type="button">Register Face ID / Touch ID</button>
 
     <p id="msg" class="msg" hidden></p>
 
@@ -61,20 +61,20 @@
 
   async function loadList() {
     const resp = await fetch("/api/auth/passkey");
-    if (!resp.ok) { say("Devi essere loggato sul sito in questo browser per gestire i passkey.", "err"); return; }
+    if (!resp.ok) { say("Log in to the site in this browser to manage passkeys.", "err"); return; }
     const items = await resp.json();
     const list = document.getElementById("list");
     list.innerHTML = "";
     if (!items.length) {
-      list.innerHTML = '<li class="dim">Nessun passkey registrato ancora.</li>';
+      list.innerHTML = '<li class="dim">No passkeys registered yet.</li>';
       return;
     }
     items.forEach((pk) => {
       const li = document.createElement("li");
-      const when = pk.created_at ? new Date(pk.created_at * 1000).toLocaleDateString("it-IT") : "";
+      const when = pk.created_at ? new Date(pk.created_at * 1000).toLocaleDateString("en-GB") : "";
       li.innerHTML = `<span>${pk.label || "Passkey"} <span class="dim">· ${when}</span></span>`;
       const del = document.createElement("button");
-      del.textContent = "Rimuovi";
+      del.textContent = "Remove";
       del.addEventListener("click", async () => {
         await fetch(`/api/auth/passkey/${encodeURIComponent(pk.credential_id)}`, { method: "DELETE" });
         loadList();
@@ -86,19 +86,19 @@
 
   document.getElementById("register-btn").addEventListener("click", async () => {
     const btn = document.getElementById("register-btn");
-    if (!window.PublicKeyCredential) { say("Questo browser non supporta i passkey.", "err"); return; }
+    if (!window.PublicKeyCredential) { say("This browser doesn't support passkeys.", "err"); return; }
     btn.disabled = true;
-    say("Chiedo le opzioni…");
+    say("Fetching options…");
     try {
       const optResp = await fetch("/api/auth/passkey/register/options", { method: "POST" });
       const optBody = await optResp.json().catch(() => ({}));
-      if (!optResp.ok) throw new Error(optBody.detail || "Devi essere loggato sul sito in questo browser.");
+      if (!optResp.ok) throw new Error(optBody.detail || "You must be logged in to the site in this browser.");
 
-      say("Segui la richiesta di Face ID / Touch ID…");
+      say("Follow the Face ID / Touch ID prompt…");
       const creationOptions = PublicKeyCredential.parseCreationOptionsFromJSON(JSON.parse(optBody.options));
       const credential = await navigator.credentials.create({ publicKey: creationOptions });
 
-      say("Salvataggio…");
+      say("Saving…");
       const verResp = await fetch("/api/auth/passkey/register/verify", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -108,12 +108,12 @@
         }),
       });
       const verBody = await verResp.json().catch(() => ({}));
-      if (!verResp.ok) throw new Error(verBody.detail || `Errore ${verResp.status}`);
-      say("Passkey registrato.", "ok");
+      if (!verResp.ok) throw new Error(verBody.detail || `Error ${verResp.status}`);
+      say("Passkey registered.", "ok");
       document.getElementById("label").value = "";
       loadList();
     } catch (err) {
-      say(err.message || "Registrazione non riuscita.", "err");
+      say(err.message || "Registration failed.", "err");
     } finally {
       btn.disabled = false;
     }

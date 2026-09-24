@@ -181,7 +181,7 @@ def test_a_listing_without_a_chart_is_never_shown(monkeypatch):
     L.add_pending("solana", "P1", "pumpfun")
     assert _accept([_pair("P1")]) == []
     pending = L._pending["solana:P1"]
-    assert pending.waiting_for == "grafico non ancora disponibile" and pending.verdict["status"] == "ok"
+    assert pending.waiting_for == "chart not available yet" and pending.verdict["status"] == "ok"
     NO_CHART.clear()
     pending.next_vet_at = 0
     assert [g["symbol"] for g in _accept([_pair("P1")])] == ["NEW"]

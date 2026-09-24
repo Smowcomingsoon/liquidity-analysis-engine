@@ -26,4 +26,4 @@ class SearchCancelled(Exception):
 
 def stop_if_asked(should_stop: Callable[[], bool] | None) -> None:
     if should_stop is not None and should_stop():
-        raise SearchCancelled("Ricerca fermata")
+        raise SearchCancelled("Search stopped")

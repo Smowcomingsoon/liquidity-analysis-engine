@@ -10,7 +10,7 @@ import { formatUsd } from "@onchain/format.js";
 import { state } from "@onchain/store.js";
 import { walletHoldings } from "@onchain/swap.js";
 
-const fmtAmount = (n) => n.toLocaleString("it-IT", { maximumFractionDigits: n >= 1 ? 4 : 6 });
+const fmtAmount = (n) => n.toLocaleString("en-US", { maximumFractionDigits: n >= 1 ? 4 : 6 });
 
 function escapeHtml(text) {
   return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -24,7 +24,7 @@ export async function refreshHoldings(container, { force = false, onPick } = {})
   if (chain !== state.chain) return;
   container.hidden = false;
   if (!rows.length) {
-    container.innerHTML = `<p class="swap-wallet-empty">Wallet vuoto · tocca l'indirizzo in alto per ricevere</p>`;
+    container.innerHTML = `<p class="swap-wallet-empty">Wallet's empty · tap the address up top to receive</p>`;
     return;
   }
   container.innerHTML = rows.map((h, i) => `

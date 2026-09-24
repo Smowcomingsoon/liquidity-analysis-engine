@@ -170,19 +170,19 @@ def run_pipeline(
     bp = backtest_params or {}
     say = progress or (lambda _m: None)
     df_in, df_val, df_out = _three_way_split(df)
-    say(f"suddivisione: {len(df_in)} allenamento · {len(df_val)} validazione · {len(df_out)} test")
+    say(f"split: {len(df_in)} train · {len(df_val)} validation · {len(df_out)} test")
 
     gate = regime_gate(df_in, strategy_name)
-    say(f"gate di regime: {'superato' if gate.passed else 'NON superato'} — {gate.reason}")
+    say(f"regime gate: {'passed' if gate.passed else 'NOT passed'} — {gate.reason}")
     stats = estimate_series_stats(df_in)
     # Le scale della coppia, dette prima di cercare: sono quelle che decidono
     # dove ha senso cercare. Un'efficienza bassa significa che la serie fa molta
     # strada senza percorrere distanza — e' la firma di una coppia agitata e
     # senza direzione, quella su cui un incrocio puro entra sul rumore.
-    say(f"scale della coppia: volatilita' per barra {stats.sigma_bar:.2%}, "
-        f"efficienza {stats.efficiency_ratio:.3f} "
-        f"({'direzione' if stats.efficiency_ratio >= 0.05 else 'poca direzione'})"
-        + ("" if stats.illiquidity is None else f", illiquidita' {stats.illiquidity:.1e}"))
+    say(f"pair scales: per-bar volatility {stats.sigma_bar:.2%}, "
+        f"efficiency {stats.efficiency_ratio:.3f} "
+        f"({'directional' if stats.efficiency_ratio >= 0.05 else 'little direction'})"
+        + ("" if stats.illiquidity is None else f", illiquidity {stats.illiquidity:.1e}"))
     notes: list[str] = []
     if not gate.passed:
         # Reported, not enforced. Refusing outright would change the behaviour
@@ -195,7 +195,7 @@ def run_pipeline(
 
     spaces: list[ConstrainedSpace] = build_spaces(strategy_name, stats, target_entries, locked_params)
     spaces.sort(key=lambda s: s.d)   # simplest branch first
-    say(f"{len(spaces)} variant{'e' if len(spaces) == 1 else 'i'} da esplorare: "
+    say(f"{len(spaces)} variant{'' if len(spaces) == 1 else 's'} to explore: "
         f"{', '.join(cs.label for cs in spaces)}")
 
     outcomes: list[BranchOutcome] = []
@@ -207,7 +207,7 @@ def run_pipeline(
     finalists: list[PlateauCandidate] = []
 
     for cs in spaces:
-        say(f"— variante {cs.label} ({cs.d} parametri)")
+        say(f"— variant {cs.label} ({cs.d} parameters)")
         res = plateau_search(
             strategy_name, df_in, bp,
             base_points=1, coarse=coarse, tol=tol,
@@ -220,9 +220,9 @@ def run_pipeline(
             should_stop=should_stop,
         )
         total_evals += res.evaluations
-        say(f"variante {cs.label}: {res.evaluations} backtest, "
-            f"{'griglia enumerata' if res.enumerated else 'griglia campionata'}, "
-            f"{len(res.candidates)} finalist{'a' if len(res.candidates) == 1 else 'i'}")
+        say(f"variant {cs.label}: {res.evaluations} backtests, "
+            f"{'grid enumerated' if res.enumerated else 'grid sampled'}, "
+            f"{len(res.candidates)} finalist{'' if len(res.candidates) == 1 else 's'}")
         outcomes.append(BranchOutcome(
             label=cs.label, dims=cs.d, enumerated=res.enumerated,
             best=res.best, evaluations=res.evaluations,
@@ -236,13 +236,13 @@ def run_pipeline(
             pick = next((c for c in res.candidates if accept(c.backtest)), None)
             if pick is not None and pick is not res.best:
                 outcomes[-1].notes.append(
-                    "il migliore per stabilita' non rispettava i filtri: scelto "
-                    "il primo finalista che li rispetta"
+                    "the most stable one didn't meet the filters: picked "
+                    "the first finalist that does"
                 )
             outcomes[-1].best = pick
         if pick is None:
             if accept is not None:
-                outcomes[-1].notes.append("nessun finalista rispetta i filtri")
+                outcomes[-1].notes.append("no finalist meets the filters")
             continue
 
         # Score this branch's winner on data it never saw.
@@ -297,20 +297,20 @@ def run_pipeline(
     if incumbent is None:
         if accept is not None:
             raise ValueError(
-                f"Nessuna configurazione rispetta i filtri richiesti per {strategy_name!r}. "
-                f"Questa modalita' seleziona per stabilita': i finalisti sono pochi per "
-                f"costruzione, quindi un filtro stretto puo' escluderli tutti anche quando "
-                f"altrove esisterebbe una configurazione che lo rispetta."
+                f"No configuration meets the requested filters for {strategy_name!r}. "
+                f"This mode selects for stability: there are few finalists by "
+                f"design, so a tight filter can exclude them all even when "
+                f"a configuration meeting it exists elsewhere."
             )
         raise ValueError(
-            f"Nessuna configurazione con almeno {min_trades} trade per {strategy_name!r}"
+            f"No configuration with at least {min_trades} trades for {strategy_name!r}"
         )
 
     if not all_enumerated:
         notes.append("at least one branch exceeded the enumeration budget and was "
                      "sampled; results from those branches are not seed independent")
 
-    say(f"variante scelta: {incumbent_label}")
+    say(f"chosen variant: {incumbent_label}")
 
     # Out-of-sample validation on the held-out tail.
     oos_return: float | None = None
@@ -360,7 +360,7 @@ def run_pipeline(
     # campione: accostarle per posizione confronterebbe il terzo trade di una
     # configurazione con il terzo di un'altra, avvenuto mesi dopo, e la misura
     # leggerebbe quel disallineamento invece della sovra-ottimizzazione.
-    say("controlli finali: Sharpe deflazionato e sovra-ottimizzazione")
+    say("final checks: deflated Sharpe and overfitting")
     pbo: PBOResult | None = None
     if len(finalists) >= 2:
         grid = [int(ts.timestamp()) for ts in df_in.index]
@@ -369,13 +369,13 @@ def run_pipeline(
             pbo = probability_of_backtest_overfitting(matrix)
             if pbo.pbo is not None and not pbo.acceptable:
                 notes.append(
-                    f"PBO {pbo.pbo:.2f} su {pbo.n_candidates} candidati "
-                    f"({pbo.n_splits} suddivisioni): la configurazione scelta "
-                    f"finisce sotto la mediana fuori campione piu' spesso di "
-                    f"quanto una selezione sana comporti"
+                    f"PBO {pbo.pbo:.2f} over {pbo.n_candidates} candidates "
+                    f"({pbo.n_splits} splits): the chosen configuration "
+                    f"lands below the out-of-sample median more often "
+                    f"than a sound selection would"
                 )
             elif pbo.pbo is None and pbo.note:
-                notes.append(f"PBO non calcolabile: {pbo.note}")
+                notes.append(f"PBO not computable: {pbo.note}")
 
     return PipelineResult(
         strategy=strategy_name, params=incumbent.params, backtest=best_bt,

@@ -173,7 +173,7 @@ class FuturesAdapter(abc.ABC):
         """
         if size_mode == "base_qty":
             if not mark or mark <= 0:
-                raise FuturesExecutionError("Prezzo di mercato non disponibile per questo simbolo")
+                raise FuturesExecutionError("Market price not available for this symbol")
             return size_value * mark
         margin = size_value if size_mode == "fixed_usdt" else available * size_value / 100
         return margin * leverage
@@ -190,10 +190,10 @@ class FuturesAdapter(abc.ABC):
     @staticmethod
     def _qty(notional: float, mark: float, step: int = 6) -> str:
         if mark <= 0:
-            raise FuturesExecutionError("Prezzo di mercato non disponibile per questo simbolo")
+            raise FuturesExecutionError("Market price not available for this symbol")
         qty = notional / mark
         if qty <= 0:
-            raise FuturesExecutionError("Quantità calcolata zero o negativa — margine insufficiente")
+            raise FuturesExecutionError("Computed quantity is zero or negative — insufficient margin")
         return f"{qty:.{step}f}".rstrip("0").rstrip(".")
 
 
@@ -201,16 +201,16 @@ class FuturesAdapter(abc.ABC):
 # aggiunge le proprie; queste valgono ovunque perche' descrivono errori di
 # configurazione della chiave, che sono uguali dappertutto.
 COMMON_HINTS = {
-    "api key": "chiave non valida, o non abilitata al trading futures",
-    "signature": "il secret non corrisponde alla chiave",
-    "permission": "alla chiave manca il permesso di fare ordini futures",
-    "not authorized": "alla chiave manca il permesso di fare ordini futures",
-    "ip ": "l'indirizzo del server non e' fra quelli ammessi dalla chiave",
-    "insufficient": "margine insufficiente per l'importo richiesto",
-    "passphrase": "passphrase sbagliata o mancante",
-    "timestamp": "orologio del server fuori sincrono con l'exchange",
-    "leverage": "leva non ammessa per questo simbolo",
-    "symbol": "questo perpetuo non esiste su questo exchange",
+    "api key": "invalid key, or not enabled for futures trading",
+    "signature": "the secret does not match the key",
+    "permission": "the key lacks futures order permission",
+    "not authorized": "the key lacks futures order permission",
+    "ip ": "the server IP is not whitelisted for this key",
+    "insufficient": "insufficient margin for the requested amount",
+    "passphrase": "wrong or missing passphrase",
+    "timestamp": "server clock out of sync with the exchange",
+    "leverage": "leverage not allowed for this symbol",
+    "symbol": "this perpetual does not exist on this exchange",
 }
 
 
@@ -227,10 +227,10 @@ def explain(exchange: str, action: str, body: str, hints: dict[str, str] | None 
     # incolperebbe una chiave che non c'entra.
     if "<html" in low and ("access denied" in low or "edgesuite" in low or "akamai" in low):
         return FuturesExecutionError(
-            f"{exchange} futures {action}: la richiesta e' stata bloccata da un firewall/CDN "
-            f"davanti all'exchange, non da un errore della chiave API — probabile blocco di rete "
-            f"sul server che esegue l'ordine (es. IP europeo su un endpoint che l'exchange nega "
-            f"per i derivati, indipendentemente da permessi o credenziali)."
+            f"{exchange} futures {action}: the request was blocked by a firewall/CDN "
+            f"in front of the exchange, not by an API key error — likely a network block "
+            f"on the server placing the order (e.g. an EU IP on an endpoint the exchange denies "
+            f"for derivatives, regardless of permissions or credentials)."
         )
     for needle, hint in {**COMMON_HINTS, **(hints or {})}.items():
         if needle in low:

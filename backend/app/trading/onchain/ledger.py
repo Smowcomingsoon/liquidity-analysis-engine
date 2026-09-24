@@ -289,7 +289,7 @@ def record_trade_outcome(owner_id: str, chain: str, pnl_usd: float, loss_streak_
             "ON CONFLICT(owner_id, chain) DO UPDATE SET consecutive_losses = excluded.consecutive_losses, "
             "tripped_at = excluded.tripped_at, reason = excluded.reason",
             (owner_id, chain, losses, time.time() if tripped else None,
-             f"{losses} operazioni consecutive in perdita" if tripped else None),
+             f"{losses} consecutive losing trades" if tripped else None),
         )
         return tripped
 

@@ -5,7 +5,7 @@ from app.models import AnalysisSummary, Candle, ConfluenceZone, IndicatorSeries,
 
 Bias = Literal["bullish", "bearish", "neutral"]
 
-_BIAS_IT = {"bullish": "rialzista", "bearish": "ribassista", "neutral": "neutrale"}
+_BIAS_IT = {"bullish": "bullish", "bearish": "bearish", "neutral": "neutral"}
 _TF_LABEL = {"htf": "HTF", "mtf": "MTF", "ltf": "LTF"}
 
 
@@ -14,15 +14,14 @@ def _fmt_price(x: float) -> str:
     # ".4g" gave us for 5+ digit prices like BTC), and Italian punctuation
     # (punto per le migliaia, virgola per i decimali) to match the rest of the app.
     if x == 0:
-        s = "0,00"
+        s = "0.00"
     elif abs(x) >= 1:
         s = f"{x:,.2f}"
-        s = s.replace(",", "\0").replace(".", ",").replace("\0", ".")
     else:
         # Small prices (e.g. a memecoin at 0.00001142) need enough decimals to
         # show a few significant digits instead of rounding straight to 0,00.
         decimals = max(2, -int(math.floor(math.log10(abs(x)))) + 2)
-        s = f"{x:.{decimals}f}".replace(".", ",")
+        s = f"{x:.{decimals}f}"
     return s
 
 
@@ -53,30 +52,30 @@ def _indicator_readout(tf_key: str, indicators: list[IndicatorSeries], candles: 
     ema20 = _latest_value(by_name.get("EMA20", []))
     ema50 = _latest_value(by_name.get("EMA50", []))
     if ema20 is not None and ema50 is not None:
-        rel = "sopra" if ema20 > ema50 else "sotto" if ema20 < ema50 else "allineata a"
+        rel = "above" if ema20 > ema50 else "below" if ema20 < ema50 else "level with"
         lines.append(f"{prefix} EMA20 {rel} EMA50")
 
     rsi = _latest_value(by_name.get("RSI14", []))
     if rsi is not None:
-        zone = "ipercomprato" if rsi >= 70 else "ipervenduto" if rsi <= 30 else "neutrale"
-        lines.append(f"{prefix} RSI(14) a {rsi:.0f} — {zone}")
+        zone = "overbought" if rsi >= 70 else "oversold" if rsi <= 30 else "neutral"
+        lines.append(f"{prefix} RSI(14) at {rsi:.0f} — {zone}")
 
     macd = _latest_value(by_name.get("MACD", []))
     macd_signal = _latest_value(by_name.get("MACD_signal", []))
     if macd is not None and macd_signal is not None:
-        rel = "sopra" if macd > macd_signal else "sotto" if macd < macd_signal else "sulla"
-        lines.append(f"{prefix} MACD {rel} la linea segnale")
+        rel = "above" if macd > macd_signal else "below" if macd < macd_signal else "on"
+        lines.append(f"{prefix} MACD {rel} the signal line")
 
     bb_upper = _latest_value(by_name.get("BB_upper", []))
     bb_lower = _latest_value(by_name.get("BB_lower", []))
     if close is not None and bb_upper is not None and bb_lower is not None and bb_upper != bb_lower:
         pct = max(0.0, min(100.0, (close - bb_lower) / (bb_upper - bb_lower) * 100))
-        lines.append(f"{prefix} Prezzo al {pct:.0f}% della banda di Bollinger")
+        lines.append(f"{prefix} Price at {pct:.0f}% of the Bollinger band")
 
     vwap = _latest_value(by_name.get("VWAP", []))
     if close is not None and vwap is not None:
-        rel = "sopra" if close > vwap else "sotto" if close < vwap else "sul"
-        lines.append(f"{prefix} Prezzo {rel} il VWAP")
+        rel = "above" if close > vwap else "below" if close < vwap else "at"
+        lines.append(f"{prefix} Price {rel} VWAP")
 
     return lines
 
@@ -88,13 +87,13 @@ def _long_term_context(current_price: float, htf_analysis: TimeframeAnalysis) ->
         low, high = htf_analysis.dealing_range
         pct = max(0.0, min(100.0, (current_price - low) / (high - low) * 100))
         if pct < 45:
-            zone = "sconto (discount)"
+            zone = "discount"
         elif pct > 55:
-            zone = "premio (premium)"
+            zone = "premium"
         else:
-            zone = "equilibrio"
+            zone = "equilibrium"
         lines.append(
-            f"Prezzo al {pct:.0f}% del range strutturale HTF ({_fmt_price(low)}–{_fmt_price(high)}) — zona di {zone}."
+            f"Price at {pct:.0f}% of the HTF dealing range ({_fmt_price(low)}–{_fmt_price(high)}) — {zone} zone."
         )
 
     zone_types = ("order_block", "fvg", "eqh", "eql")
@@ -106,12 +105,12 @@ def _long_term_context(current_price: float, htf_analysis: TimeframeAnalysis) ->
         lvl = max(below, key=lambda l: (l.price_high + l.price_low) / 2)  # noqa: E741
         mid = (lvl.price_high + lvl.price_low) / 2
         dist_pct = (mid - current_price) / current_price * 100
-        lines.append(f"Livello HTF non mitigato più vicino sotto: {lvl.label} a {_fmt_price(mid)} ({dist_pct:+.1f}%).")
+        lines.append(f"Nearest unmitigated HTF level below: {lvl.label} at {_fmt_price(mid)} ({dist_pct:+.1f}%).")
     if above:
         lvl = min(above, key=lambda l: (l.price_high + l.price_low) / 2)  # noqa: E741
         mid = (lvl.price_high + lvl.price_low) / 2
         dist_pct = (mid - current_price) / current_price * 100
-        lines.append(f"Livello HTF non mitigato più vicino sopra: {lvl.label} a {_fmt_price(mid)} ({dist_pct:+.1f}%).")
+        lines.append(f"Nearest unmitigated HTF level above: {lvl.label} at {_fmt_price(mid)} ({dist_pct:+.1f}%).")
 
     return lines
 
@@ -137,20 +136,20 @@ def build_summary(
     nearest_above = min((lvl.price_low for lvl in above), default=None)
     nearest_below = max((lvl.price_high for lvl in below), default=None)
 
-    parts = [f"Ultima rottura di struttura confermata su HTF: {_BIAS_IT[htf_bias]}."]
+    parts = [f"Last confirmed HTF break of structure: {_BIAS_IT[htf_bias]}."]
     if htf_bias == "neutral":
-        parts = ["Nessuna rottura di struttura (BOS/CHoCH) recente su HTF."]
+        parts = ["No recent HTF break of structure (BOS/CHoCH)."]
     if top_zones:
         z = top_zones[0]
         parts.append(
-            f"Zona di confluenza più rilevante ({'/'.join(t.upper() for t in z.timeframes)}) "
-            f"tra {_fmt_price(z.price_low)} e {_fmt_price(z.price_high)}: {z.label}."
+            f"Most relevant confluence zone ({'/'.join(t.upper() for t in z.timeframes)}) "
+            f"between {_fmt_price(z.price_low)} and {_fmt_price(z.price_high)}: {z.label}."
         )
-    parts.append(f"Gap non mitigati attivi su tutti i timeframe: {unmitigated_gaps}.")
+    parts.append(f"Active unmitigated gaps across all timeframes: {unmitigated_gaps}.")
     if nearest_above is not None:
-        parts.append(f"Prossima zona di liquidità sopra il prezzo corrente: {_fmt_price(nearest_above)}.")
+        parts.append(f"Next liquidity zone above the current price: {_fmt_price(nearest_above)}.")
     if nearest_below is not None:
-        parts.append(f"Prossima zona di liquidità sotto il prezzo corrente: {_fmt_price(nearest_below)}.")
+        parts.append(f"Next liquidity zone below the current price: {_fmt_price(nearest_below)}.")
 
     indicator_readout: list[str] = []
     for tf_key in ("htf", "mtf", "ltf"):

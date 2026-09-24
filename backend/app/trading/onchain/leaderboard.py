@@ -277,7 +277,7 @@ def _prune(now: float) -> None:
         if launched and now - launched > limit * 86400:
             _entries.pop(k)
         elif (e.get("overall") or {}).get("pending") and now - pending_since > PENDING_GIVE_UP_S:
-            _exclude(k, f"dato mai arrivato ({e['overall']['pending']})", now)
+            _exclude(k, f"data never arrived ({e['overall']['pending']})", now)
     if len(_entries) > MAX_ENTRIES:
         for k in sorted(_entries, key=lambda k: _entries[k].get("found_at", 0))[:len(_entries) - MAX_ENTRIES]:
             _entries.pop(k)
@@ -302,43 +302,43 @@ def qualifies(e: dict, now: float | None = None) -> str:
     o = e.get("overall") or {}
     pillars = e.get("pillars") or {}
     if not o or o.get("fatal"):
-        return o.get("fatal") or "da esaminare"
+        return o.get("fatal") or "to be examined"
     if o.get("pending"):
         return o["pending"]
     if any((pillars.get(k) or {}).get("score") is None for k in depth.WEIGHTS):
-        return "analisi incompleta"
+        return "incomplete analysis"
     weak = [k for k in depth.WEIGHTS if pillars[k]["score"] < MIN_PILLAR]
     if weak:
-        return f"{weak[0]} troppo debole ({pillars[weak[0]]['score']})"
+        return f"{weak[0]} too weak ({pillars[weak[0]]['score']})"
     if e.get("source") in SERIOUS_SOURCES:
         return _serious_shortfall(e, pillars, now)
     if is_big(e, now):
         launched = e.get("launched_at")
         if (float(e.get("market_cap") or 0) > radar.EXC_MCAP_MAX_USD
                 or (launched and (now or time.time()) - launched > radar.EXC_AGE_MAX_DAYS * 86400)):
-            return "oltre i limiti anche per un'eccezione"
+            return "beyond the limits even for an exception"
         if not exceptional(e):
-            return f"oltre {MAX_AGE_DAYS} giorni o ${CAP_MAX_USD / 1e6:.0f}M senza un GitHub eccezionale"
+            return f"over {MAX_AGE_DAYS} days or ${CAP_MAX_USD / 1e6:.0f}M without an exceptional GitHub"
         # Anche l'analisi profonda deve confermare che il codice e' eccezionale.
         if pillars["github"]["score"] < legit.GEM_MIN_SCORE:
-            return f"eccezione del radar, ma GitHub a fondo solo {pillars['github']['score']}"
+            return f"radar exception, but deep GitHub score only {pillars['github']['score']}"
         return ""
     cap = float(e.get("market_cap") or 0)
     if cap > legit.GEM_CAP_USD and any(pillars[k]["score"] < legit.GEM_MIN_SCORE for k in depth.WEIGHTS):
-        return "sopra $100k senza pilastri eccellenti"
+        return "above $100k without excellent pillars"
     return ""
 
 
 def _serious_shortfall(e: dict, pillars: dict, now: float | None) -> str:
     launched = e.get("launched_at")
     if float(e.get("market_cap") or 0) > SERIOUS_CAP_MAX_USD:
-        return f"oltre ${SERIOUS_CAP_MAX_USD / 1e6:.0f}M"
+        return f"over ${SERIOUS_CAP_MAX_USD / 1e6:.0f}M"
     if launched and (now or time.time()) - launched > SERIOUS_AGE_MAX_DAYS * 86400:
-        return f"oltre {SERIOUS_AGE_MAX_DAYS} giorni"
+        return f"over {SERIOUS_AGE_MAX_DAYS} days"
     if pillars["github"]["score"] < SERIOUS_MIN_GITHUB:
-        return f"GitHub solo {pillars['github']['score']}"
+        return f"GitHub only {pillars['github']['score']}"
     weak = [k for k in depth.WEIGHTS if pillars[k]["score"] < SERIOUS_MIN_PILLAR]
-    return f"{weak[0]} solo {pillars[weak[0]]['score']}" if weak else ""
+    return f"{weak[0]} only {pillars[weak[0]]['score']}" if weak else ""
 
 
 def final_score(e: dict) -> float:

@@ -18,7 +18,7 @@ import { chainInfo, state } from "@onchain/store.js";
 
 export async function mountPortfolio(container) {
   const chain = state.chain;
-  container.innerHTML = "<p class='sheet-note'>Leggo il portafoglio…</p>";
+  container.innerHTML = "<p class='sheet-note'>Loading portfolio…</p>";
   try {
     const [balance, data] = await Promise.all([
       api.getBalance(chain).catch(() => state.balance ?? null),
@@ -34,25 +34,25 @@ export async function mountPortfolio(container) {
 
     const nativeRow = balance ? `
       <li>
-        <span><b>${unit}</b><small>nativo · paga il gas · ${formatToken(balance.native_balance)} ${unit}</small></span>
-        <span>${nativeUsd != null ? formatUsd(nativeUsd) : "prezzo n/d"}</span>
-      </li>` : `<li>Saldo nativo non disponibile — riprova.</li>`;
+        <span><b>${unit}</b><small>native · pays gas · ${formatToken(balance.native_balance)} ${unit}</small></span>
+        <span>${nativeUsd != null ? formatUsd(nativeUsd) : "no price"}</span>
+      </li>` : `<li>Native balance unavailable — try again.</li>`;
 
     const otherRows = data.holdings.length
       ? data.holdings.map((h) => `
         <li>
-          <span><b>${h.symbol}</b><small>${h.amount.toLocaleString("it-IT", { maximumFractionDigits: 6 })}</small></span>
-          <span>${h.value_usd != null ? formatUsd(h.value_usd) : "prezzo n/d"}</span>
+          <span><b>${h.symbol}</b><small>${h.amount.toLocaleString("en-US", { maximumFractionDigits: 6 })}</small></span>
+          <span>${h.value_usd != null ? formatUsd(h.value_usd) : "no price"}</span>
         </li>`).join("")
       : "";
 
     container.innerHTML = `
-      ${data.partial ? `<p class="sheet-note is-warn">Elenco parziale su questa chain — solo i token che questo sito conosce (nessun indexer pubblico affidabile su Robinhood Chain): un token ricevuto da fuori quest'app potrebbe non comparire.</p>` : ""}
-      ${unpriced.length ? `<p class="sheet-note is-warn">${unpriced.length} token senza prezzo noto, non contati nel totale.</p>` : ""}
-      <dl class="kv"><div><dt>Valore stimato${data.partial || unpriced.length || nativeUsd == null ? " (parziale)" : ""}</dt><dd>${totalLabel}</dd></div></dl>
+      ${data.partial ? `<p class="sheet-note is-warn">Partial list on this chain — only tokens this site knows about (no reliable public indexer on Robinhood Chain): a token received from outside this app may not show up.</p>` : ""}
+      ${unpriced.length ? `<p class="sheet-note is-warn">${unpriced.length} token(s) with no known price, left out of the total.</p>` : ""}
+      <dl class="kv"><div><dt>Estimated value${data.partial || unpriced.length || nativeUsd == null ? " (partial)" : ""}</dt><dd>${totalLabel}</dd></div></dl>
       <ul class="tx-list">${nativeRow}${otherRows}</ul>
     `;
   } catch (error) {
-    container.innerHTML = `<p class="sheet-note is-error">${error instanceof ApiError ? error.message : "Errore inatteso."}</p>`;
+    container.innerHTML = `<p class="sheet-note is-error">${error instanceof ApiError ? error.message : "Unexpected error."}</p>`;
   }
 }

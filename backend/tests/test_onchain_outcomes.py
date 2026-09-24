@@ -55,7 +55,7 @@ def test_holder_concentration_is_learned_in_the_right_direction():
         outcomes.apply_sample(e, 1.0, 20_000, T0)
         outcomes.apply_sample(e, 0.05 if rug else 1.05, 20_000, T0 + outcomes.HORIZON_S)
     sig = {s["key"]: s for s in outcomes.signals(T0 + outcomes.HORIZON_S)}
-    assert sig["top_holder_pct"]["rug_auc"] == 1.0 and sig["top_holder_pct"]["verdict"] == "prevede i rug"
+    assert sig["top_holder_pct"]["rug_auc"] == 1.0 and sig["top_holder_pct"]["verdict"] == "predicts rugs"
 
 
 def test_liquidity_pulled_is_a_rug_even_if_price_holds():
@@ -64,7 +64,7 @@ def test_liquidity_pulled_is_a_rug_even_if_price_holds():
     outcomes.apply_sample(e, 1.1, 15_000, T0 + H)
     assert outcomes.outcome(e, T0 + H) is None
     outcomes.apply_sample(e, 0.9, 3_000, T0 + 2 * H)
-    assert e["rug"] and e["closed"] and "liquidità" in e["rug_why"]
+    assert e["rug"] and e["closed"] and "liquidity" in e["rug_why"]
     assert outcomes.outcome(e) == "rug" and outcomes.rug_label(e) is True
 
 
@@ -72,12 +72,12 @@ def test_price_collapse_and_vanished_pool_are_rugs():
     a = outcomes.observe(_item("a"), "listed", T0, now=T0)
     outcomes.apply_sample(a, 1.0, 20_000, T0)
     outcomes.apply_sample(a, 0.07, 19_000, T0 + 600)     # VISE: -93% in pochi minuti
-    assert a["rug"] and a["rug_why"].startswith("prezzo")
+    assert a["rug"] and a["rug_why"].startswith("price")
     b = outcomes.observe(_item("b"), "listed", T0, now=T0)
     outcomes.apply_sample(b, 1.0, 20_000, T0)
     for i in range(outcomes.MISSING_TICKS):
         outcomes.apply_sample(b, None, None, T0 + (i + 1) * 600)
-    assert b["rug_why"] == "pool sparito"
+    assert b["rug_why"] == "pool gone"
 
 
 def test_good_is_known_early_non_rug_after_three_days_flat_at_the_horizon():
@@ -118,7 +118,7 @@ def _history(n=80, informative=True, seed=0):
 def test_model_waits_for_enough_outcomes():
     _history(20)
     m = outcomes.train(T0 + outcomes.HORIZON_S)
-    assert not m["active"] and "servono" in m["why"]
+    assert not m["active"] and "needs" in m["why"]
     assert outcomes.judge(_item(), [], None) is None
 
 
@@ -133,7 +133,7 @@ def test_model_enters_only_when_it_predicts_out_of_sample():
     good = outcomes.judge(_item("new", security=95), _item("new", security=95)["checks"], {"score": 90})
     assert bad["ok"] is False and good["ok"] is True and bad["key"] == "memory"
     top = outcomes.signals(T0 + outcomes.HORIZON_S)[0]
-    assert top["key"] == "security" and top["rug_auc"] > 0.9 and top["verdict"] == "prevede i rug"
+    assert top["key"] == "security" and top["rug_auc"] > 0.9 and top["verdict"] == "predicts rugs"
 
 
 def test_lessons_split_passed_and_rejected_and_list_the_misses():
@@ -147,7 +147,7 @@ def test_lessons_split_passed_and_rejected_and_list_the_misses():
     assert out["passed"]["rug"] == 1 and out["rejected"]["buono"] == 1
     assert [s["symbol"] for s in out["slipped"]] == ["VISE"]
     assert [m["symbol"] for m in out["missed"]] == ["MOON"]
-    assert out["notes"][0].startswith("Passati dal filtro: 100% rug")
+    assert out["notes"][0].startswith("Passed the filter: 100% rugs")
 
 
 def test_late_entries_take_their_entry_from_the_candles():
@@ -204,7 +204,7 @@ def test_memory_check_blocks_only_with_the_gate_on(monkeypatch):
     assert off["status"] == "ok" and off["checks"][-1]["key"] == "memory"
     monkeypatch.setattr(settings, "onchain_memory_gate", True)
     on = run()
-    assert on["status"] == "fail" and on["reason"].startswith("Memoria")
+    assert on["status"] == "fail" and on["reason"].startswith("Memory")
 
 
 async def _value(v):
@@ -280,7 +280,7 @@ def test_meme_lane_takes_soft_rejects_alive_sellable_and_safe():
     _rejected("old", "nome da meme coin", up=0.3, now=T0 - 3 * 86400)
     board = outcomes.meme_board(now)
     assert [i["symbol"] for i in board["items"]] == ["PEPE"]
-    assert "azzardo" in board["warning"] and board["items"][0]["failed"] == "name"
+    assert "gambling" in board["warning"] and board["items"][0]["failed"] == "name"
     assert board["items"][0]["token_address"] == "pepe"
     good["safety"] = {"ok": False, "detail": "un wallet ha il 40%"}
     assert [i["token_address"] for i in outcomes.meme_board(now)["items"]] == ["pepe2"]

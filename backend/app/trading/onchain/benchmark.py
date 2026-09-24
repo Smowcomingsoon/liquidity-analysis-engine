@@ -31,35 +31,35 @@ CHAIN = "solana"
 TOKEN = "XkeTXo1125vz5H9svJpGiw4JvLbN8VmMu9cmMvspump"
 WEBSITE = "https://www.dregg.net/"
 GITHUB = "https://github.com/emberian/dregg"
-HONOR = ("Menzione d'onore: kernel dimostrato in Lean 4, prove STARK ricorsive, consenso proprio, "
-         "oltre 10 000 commit. Il riferimento per complessita' tecnica e ambizione.")
+HONOR = ("Honorable mention: kernel proven in Lean 4, recursive STARK proofs, its own consensus, "
+         "over 10,000 commits. The benchmark for technical complexity and ambition.")
 
 # (chiave, etichetta, peso, cosa cercare). "langs" nei linguaggi GitHub,
 # "dirs" fra le cartelle principali, "text" in descrizione, argomenti e sito.
 TRAITS = [
-    ("formal", "Verifica formale", 20,
+    ("formal", "Formal verification", 20,
      {"langs": {"lean", "coq", "isabelle", "agda", "tla", "dafny", "f*", "idris"},
       "text": r"\b(formally verified|formal verification|machine[- ]checked|lean ?4|coq|isabelle|agda|"
               r"tla\+|dafny|proofs? of correctness|verified (kernel|executor|compiler))\b"}),
-    ("zk", "Prove a conoscenza zero", 18,
+    ("zk", "Zero-knowledge proofs", 18,
      {"dirs": {"circuit", "circuits", "prover", "zk", "stark", "snark"},
       "text": r"\b(stark|snark|zk-?snark|zk-?stark|zero[- ]knowledge|plonky[23]?|plonk|halo2|groth16|"
               r"risc0|sp1|circom|cairo|noir|recursive proofs?|zkvm|poseidon)\b"}),
-    ("systems", "Nucleo in un linguaggio di sistema", 10,
+    ("systems", "Core in a systems language", 10,
      {"langs": {"rust", "c++", "c", "go", "zig", "ocaml", "haskell", "move", "lean"}}),
-    ("protocol", "Rete e consenso propri", 14,
+    ("protocol", "Own network and consensus", 14,
      {"dirs": {"node", "consensus", "p2p", "network", "blocklace", "gossip", "validator"},
       "text": r"\b(consensus|bft|byzantine|dag|gossip|p2p|peer[- ]to[- ]peer|libp2p|light clients?|"
               r"validators?|finality)\b"}),
-    ("architecture", "Architettura nuova, non un fork", 10,
+    ("architecture", "New architecture, not a fork", 10,
      {"dirs": {"kernel", "vm", "runtime", "compiler", "executor", "metatheory", "spec"},
       "text": r"\b(object[- ]capabilit\w+|capability[- ]based|operating system|kernel|virtual machine|"
               r"compiler|executor|semantic|type system|runtime)\b"}),
-    ("tooling", "SDK, CLI e nodo da far girare", 10,
+    ("tooling", "SDK, CLI and a runnable node", 10,
      {"dirs": {"sdk", "sdks", "cli", "bin", "crates", "packages", "examples"},
       "text": r"\b(sdk|cli|wasm|playground|devnet|testnet|faucet)\b"}),
-    ("depth", "Storia lunga di commit", 12, {}),
-    ("candor", "Limiti dichiarati apertamente", 6,
+    ("depth", "Long commit history", 12, {}),
+    ("candor", "Openly stated limits", 6,
      {"text": r"(no (independent )?(external )?audit|not (yet )?audited|unaudited|research software|"
               r"active research|known (limits|gaps|issues)|open gaps|named limit|not ready for)"}),
 ]

@@ -78,13 +78,13 @@ def compute_fib_zones(df: pd.DataFrame, timeframe_key: str, interval: str) -> li
             direction=direction,
             anchor_time=a["ts"],
             levels=retracement_levels,
-            label=f"Fib ritracciamento {'rialzista' if bullish else 'ribassista'}",
+            label=f"Fib retracement {'bullish' if bullish else 'bearish'}",
         ),
         FibZone(
             kind="extension",
             direction=direction,
             anchor_time=b["ts"],
             levels=extension_levels,
-            label=f"Fib estensione {'rialzista' if bullish else 'ribassista'}",
+            label=f"Fib extension {'bullish' if bullish else 'bearish'}",
         ),
     ]

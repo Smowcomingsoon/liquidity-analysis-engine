@@ -84,7 +84,7 @@ class TwelveDataProvider(DataProvider):
 
     async def fetch_ohlcv(self, symbol: str, interval: str, outputsize: int, since_ms: int | None = None) -> pd.DataFrame:
         if not self._api_key:
-            raise ProviderError("Chiave API Twelve Data mancante. Impostala in backend/.env")
+            raise ProviderError("Twelve Data API key missing. Set it in backend/.env")
 
         formatted_symbol = symbol.strip().upper()
         interval = _CANONICAL_TO_INTERVAL[interval]
@@ -108,23 +108,23 @@ class TwelveDataProvider(DataProvider):
             # Rete o TLS, non un rifiuto del servizio: e' passeggero, e chi
             # chiama deve poterlo distinguere per riprovare invece di allarmare.
             raise ProviderUnreachable(
-                f"Twelve Data non raggiungibile per {formatted_symbol}: {exc}"
+                f"Twelve Data unreachable for {formatted_symbol}: {exc}"
             ) from exc
 
         try:
             payload = resp.json()
         except ValueError as exc:
-            raise ProviderError(f"Risposta non valida da Twelve Data per {formatted_symbol}") from exc
+            raise ProviderError(f"Invalid response from Twelve Data for {formatted_symbol}") from exc
 
         if isinstance(payload, dict) and payload.get("status") == "error":
-            message = payload.get("message", f"Errore Twelve Data per {formatted_symbol}")
+            message = payload.get("message", f"Twelve Data error for {formatted_symbol}")
             if _is_quota_error(payload.get("code"), message):
                 raise QuotaExceeded(message, retry_after_s=_seconds_to_utc_midnight())
             raise ProviderError(message)
 
         values = payload.get("values") if isinstance(payload, dict) else None
         if not values:
-            raise ProviderError(f"Nessun dato disponibile per {formatted_symbol} ({interval})")
+            raise ProviderError(f"No data available for {formatted_symbol} ({interval})")
 
         df = pd.DataFrame(values)
         df["datetime"] = pd.to_datetime(df["datetime"], utc=True)

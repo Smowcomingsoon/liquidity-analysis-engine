@@ -61,7 +61,7 @@ def test_finish_authentication_rejects_credential_not_registered():
         pk.finish_authentication(user, state_token, {"id": "un-passkey-mai-visto"})
         assert False, "doveva lanciare ValueError"
     except ValueError as exc:
-        assert "non e' registrato" in str(exc)
+        assert "not registered" in str(exc)
 
 
 def test_ceremony_is_single_use(monkeypatch):
@@ -77,7 +77,7 @@ def test_ceremony_is_single_use(monkeypatch):
         pk.finish_registration(user, state_token, {"id": "x"})
         assert False, "un secondo uso dello stesso state_token doveva fallire"
     except ValueError as exc:
-        assert "scaduta" in str(exc) or "non valida" in str(exc)
+        assert "expired" in str(exc) or "invalid" in str(exc)
 
 
 def test_ceremony_expires(monkeypatch):

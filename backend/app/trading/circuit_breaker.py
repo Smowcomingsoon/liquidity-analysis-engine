@@ -18,7 +18,7 @@ _OPEN_DURATION_S = 300   # 5 minutes in open state before auto-reset attempt
 def check_halt() -> tuple[bool, str]:
     """Return (True, "") when trading is allowed, (False, reason) when blocked."""
     if settings.trading_halt:
-        return False, "trading in pausa (kill switch attivo)"
+        return False, "trading paused (kill switch on)"
     return True, ""
 
 
@@ -28,7 +28,7 @@ def check_exchange(exchange: str) -> tuple[bool, str]:
     now = time.time()
     if state["open_until"] > now:
         remaining = int(state["open_until"] - now)
-        return False, f"circuit breaker aperto su {exchange} — riprova tra {remaining}s"
+        return False, f"circuit breaker open on {exchange} — retry in {remaining}s"
     return True, ""
 
 

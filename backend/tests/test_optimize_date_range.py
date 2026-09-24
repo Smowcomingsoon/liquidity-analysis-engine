@@ -89,4 +89,4 @@ def test_the_optimizer_searches_only_inside_the_requested_period(client, seen_df
 def test_a_period_with_no_candles_is_a_clear_400_not_a_silent_full_run(client):
     resp = _optimize(client, start_date="2030-01-01", end_date="2030-01-31")
     assert resp.status_code == 400
-    assert "periodo" in resp.json()["detail"].lower()
+    assert "period" in resp.json()["detail"].lower()

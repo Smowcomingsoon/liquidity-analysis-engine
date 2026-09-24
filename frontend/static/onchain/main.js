@@ -83,7 +83,7 @@ function paintChainStatic() {
   const hasWallet = Boolean(wallet || cached);
 
   view.chainLabel.textContent = view.chainFlip ? label : `${label}${suffix}`;
-  if (view.chainFlip) view.chainFlip.title = `${label}${suffix} · tocca per cambiare rete`;
+  if (view.chainFlip) view.chainFlip.title = `${label}${suffix} · tap to switch network`;
   if (view.chainIcon) view.chainIcon.textContent = CHAIN_ICON[state.chain] ?? "";
   for (const node of [view.actions, view.status, view.reveal, view.more, view.pilot, view.marketOrderRow, view.bottomPanel, view.sniperCard, view.dock, view.walletView]) {
     if (node) node.hidden = !hasWallet;
@@ -107,7 +107,7 @@ function paintChainStatic() {
     view.topbarAddress.closest("button").dataset.full = address;
   }
   view.address.dataset.full = address;
-  view.fresh.textContent = cached ? freshness(cached.at) : "in attesa del primo saldo";
+  view.fresh.textContent = cached ? freshness(cached.at) : "waiting for first balance";
   paintBalance(cached, unit);
   drawSparkline(view.spark, readHistory(state.chain), sparkFormatter());
 }
@@ -139,7 +139,7 @@ function paintBalance(reading, unit) {
   const modes = balanceModes(reading);
   const mode = modes.includes(balanceMode) ? balanceMode : modes.includes("usd") ? "usd" : "native";
   view.balance.dataset.mode = mode;
-  view.balance.title = modes.length > 1 ? "Tocca per cambiare unità" : "";
+  view.balance.title = modes.length > 1 ? "Tap to switch unit" : "";
   if (mode === "usd") {
     const { currency, integer, fraction } = usdParts(reading.native_usd_value);
     view.balance.innerHTML =
@@ -249,13 +249,13 @@ function paintSniperCard(enabled, active = []) {
   if (view.sniperPulse) view.sniperPulse.hidden = !enabled;
   if (view.sniperStateText) {
     view.sniperStateText.textContent = !enabled
-      ? "Spento"
-      : active.length === 1 ? "1 token attivo" : `${active.length} token attivi`;
+      ? "Off"
+      : active.length === 1 ? "1 token live" : `${active.length} tokens live`;
   }
   if (view.sniperTags) {
     const tags = active.slice(0, 3).map((e) => `<span>$${escapeHtml(e.symbol.split("@")[0])}</span>`);
     if (active.length > 3) tags.push(`<span>+${active.length - 3}</span>`);
-    tags.push("<span>soglia liquidità $3k</span>");
+    tags.push("<span>liquidity floor $3k</span>");
     view.sniperTags.innerHTML = tags.join("");
   }
 }
@@ -268,9 +268,9 @@ view.sniperToggle?.addEventListener("click", async () => {
     await api.setSniperAutotrade(chain, next);
     await refreshSniperCard();
     refreshPilot();
-    toast(next ? "Pilota acceso" : "Pilota spento", chainInfo().label);
+    toast(next ? "Autopilot on" : "Autopilot off", chainInfo().label);
   } catch (error) {
-    toast("Non riuscito", error instanceof ApiError ? error.message : "errore inatteso");
+    toast("Didn't work", error instanceof ApiError ? error.message : "unexpected error");
   } finally {
     view.sniperToggle.disabled = false;
   }
@@ -280,7 +280,7 @@ view.sniperToggle?.addEventListener("click", async () => {
 // watchlist in auto-trade trend EMA su questa chain — sola lettura, lo
 // spegnimento per token resta nel tab Strategie.
 async function mountSniperTab(container) {
-  container.innerHTML = "<p class='sheet-note'>Leggo i token dello sniper…</p>";
+  container.innerHTML = "<p class='sheet-note'>Loading sniper tokens…</p>";
   const chain = state.chain;
   try {
     const active = await trendAutoEntries(chain);
@@ -288,9 +288,9 @@ async function mountSniperTab(container) {
     container.innerHTML = active.length
       ? `<ul class="tx-list">${active.map((e) => `
           <li><span><b>${escapeHtml(e.symbol.split("@")[0])}</b></span><span class="strategy-tag">Trend EMA · auto</span></li>`).join("")}</ul>`
-      : "<p class='sheet-note'>Nessun token in auto-trade su questa rete. Accendi lo sniper qui sotto: i nuovi token con liquidità oltre $3k e meno di 72h entrano da soli.</p>";
+      : "<p class='sheet-note'>No tokens on auto-trade on this network. Flip the sniper on below: new tokens with $3k+ liquidity and under 72h old get in on their own.</p>";
   } catch (error) {
-    container.innerHTML = `<p class="sheet-note is-error">${escapeHtml(error instanceof ApiError ? error.message : "Errore inatteso.")}</p>`;
+    container.innerHTML = `<p class="sheet-note is-error">${escapeHtml(error instanceof ApiError ? error.message : "Unexpected error.")}</p>`;
   }
 }
 
@@ -306,11 +306,11 @@ async function refreshBalance() {
     writeCache(chain, reading);
     paintBalance(reading, chainInfo().unit);
     view.liveDot.classList.add("is-live");
-    view.fresh.textContent = "aggiornato ora";
+    view.fresh.textContent = "updated just now";
     drawSparkline(view.spark, appendHistory(chain, reading.native_usd_value ?? reading.native_balance), sparkFormatter());
   } catch (error) {
     if (chain !== state.chain) return;
-    view.fresh.textContent = `${error.message} — riprovo`;
+    view.fresh.textContent = `${error.message} — retrying`;
     balanceRetry = setTimeout(refreshBalance, 5000);
   }
 }
@@ -325,14 +325,14 @@ async function refreshStatus() {
     if (chain !== state.chain) return;
     view.status.dataset.armed = String(Boolean(risk.execution_enabled));
     if (view.statusSub) {
-      view.statusText.textContent = risk.execution_enabled ? "Esecuzione reale attiva" : "Esecuzione reale spenta";
+      view.statusText.textContent = risk.execution_enabled ? "Live execution on" : "Live execution off";
       view.statusSub.textContent = risk.execution_enabled
-        ? `Fino a ${formatUsd(risk.per_trade_cap_usd)} per ordine · ${formatUsd(risk.daily_cap_usd)} al giorno`
-        : "Preventivo attivo · nessuna firma automatica";
+        ? `Up to ${formatUsd(risk.per_trade_cap_usd)} per order · ${formatUsd(risk.daily_cap_usd)} per day`
+        : "Quotes only · no auto-signing";
     } else {
       view.statusText.textContent = risk.execution_enabled
-        ? `Esecuzione reale attiva — fino a ${formatUsd(risk.per_trade_cap_usd)} per ordine, ${formatUsd(risk.daily_cap_usd)} al giorno.`
-        : "Sola lettura — nessuna firma parte da questa pagina.";
+        ? `Live execution on — up to ${formatUsd(risk.per_trade_cap_usd)} per order, ${formatUsd(risk.daily_cap_usd)} per day.`
+        : "Read-only — nothing gets signed from this page.";
     }
   } catch { /* resta la riga di default, che e' quella prudente */ }
 }
@@ -373,7 +373,7 @@ onTokenChanged(async (token) => {
     try {
       presetToken = await resolvePreset(token);
     } catch (error) {
-      toast("Token non verificato", error.message);
+      toast("Token unverified", error.message);
     }
   }
   if (seq !== presetSeq || currentOrderTab === "sniper") return;
@@ -396,7 +396,7 @@ function mountOrderTab(tab) {
     mountSwap(view.orderPanelBody, {
       presetToken,
       onTokenPicked: followInChart,
-      onExecuted: () => { refreshBalance(); mountBottomTab(currentBottomTab); toast("Swap inviato", "verifica la firma nello storico"); },
+      onExecuted: () => { refreshBalance(); mountBottomTab(currentBottomTab); toast("Swap sent", "check the signature in history"); },
     });
   } else if (tab === "sniper") {
     mountSniperTab(view.orderPanelBody);
@@ -404,7 +404,7 @@ function mountOrderTab(tab) {
     mountLimitOrder(view.orderPanelBody, {
       presetToken,
       onTokenPicked: followInChart,
-      onPlaced: () => { mountBottomTab(currentBottomTab); toast("Ordine limite piazzato", "resta in attesa nello storico"); },
+      onPlaced: () => { mountBottomTab(currentBottomTab); toast("Limit order placed", "it's waiting in history"); },
     });
   }
 }
@@ -469,17 +469,17 @@ $$("[data-chain]").forEach((tab) => {
 view.address.addEventListener("click", async (event) => {
   const button = event.currentTarget;
   await navigator.clipboard?.writeText(button.dataset.full ?? "");
-  toast("Indirizzo copiato", shortAddress(button.dataset.full ?? ""));
+  toast("Address copied", shortAddress(button.dataset.full ?? ""));
 });
 
 const SHEETS = {
   receive: () => sheets.openReceive(),
   send: () => openSend({
-    onSent: () => { refreshBalance(); paintHoldings(true); mountBottomTab(currentBottomTab); toast("Inviato", "verifica la firma nello storico"); },
+    onSent: () => { refreshBalance(); paintHoldings(true); mountBottomTab(currentBottomTab); toast("Sent", "check the signature in history"); },
   }),
   risk: () => sheets.openRisk(() => { refreshStatus(); mountBottomTab(currentBottomTab); }),
   simulate: () => sheets.openSimulate({
-    onAccepted: () => { mountBottomTab(currentBottomTab); refreshStatus(); toast("Simulazione accettata", "registrata nel ledger"); },
+    onAccepted: () => { mountBottomTab(currentBottomTab); refreshStatus(); toast("Simulation accepted", "logged to the ledger"); },
   }),
 };
 $$("[data-sheet]").forEach((button) =>
@@ -562,9 +562,9 @@ view.empty.querySelector("[data-create]").addEventListener("click", async (event
     state.wallets[state.chain] = wallet;
     paintChainStatic();
     loadChainData();
-    toast("Wallet creato", shortAddress(wallet.address));
+    toast("Wallet created", shortAddress(wallet.address));
   } catch (error) {
-    toast("Non creato", error.message);
+    toast("Not created", error.message);
   } finally {
     button.disabled = false;
   }

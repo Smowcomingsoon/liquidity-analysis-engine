@@ -41,7 +41,7 @@ def test_empty_field_says_so(client):
     assert resp.status_code == 422
     detail = _detail(resp)
     assert "len" in detail
-    assert "vuoto" in detail
+    assert "empty" in detail
 
 
 def test_decimal_in_an_integer_field_names_the_field_and_the_value(client):
@@ -49,7 +49,7 @@ def test_decimal_in_an_integer_field_names_the_field_and_the_value(client):
     assert resp.status_code == 422
     detail = _detail(resp)
     assert "len" in detail
-    assert "intero" in detail
+    assert "whole number" in detail
     assert "27.5" in detail
 
 

@@ -96,6 +96,7 @@
     else if (/^Lorenzo\b/.test(head)) label = "Trend EMA";
     else if (/^Gabriele 2\b/.test(head)) label = "RSI+BB Long/Short";
     else if (/^Gabriele\b/.test(head)) label = "RSI+BB Reversal";
+    else if (/^Accumulo\b/.test(head)) label = "Accumulation / Distribution";
     return label + tail;
   }
   window.strategyLabel = strategyLabel;
@@ -123,7 +124,7 @@
     const btn = el("theme-toggle-btn");
     if (btn) {
       btn.textContent = mode === "dark" ? "☾" : "☀";
-      btn.title = mode === "dark" ? "Passa al tema chiaro" : "Passa al tema scuro";
+      btn.title = mode === "dark" ? "Switch to light theme" : "Switch to dark theme";
       btn.setAttribute("aria-label", btn.title);
     }
     if (persist) {
@@ -183,81 +184,81 @@
   // from /api/strategies.
   const STRATEGY_PARAM_FIELDS = {
     "Lorenzo (trend-follower)": [
-      { key: "average", label: "Tipo media", type: "select", options: ["EMA", "SMA"], default: "EMA" },
-      { key: "len", label: "Lunghezza media", type: "number", min: 2, default: 130 },
-      { key: "slopeFlen", label: "Slope veloce", type: "number", min: 1, default: 7 },
-      { key: "slopeSlen", label: "Slope lenta", type: "number", min: 1, default: 27 },
-      { key: "trendfilter", label: "Filtro trend", type: "checkbox", default: true },
-      { key: "trendfilterperiod", label: "Periodo trend", type: "number", min: 2, default: 268 },
-      { key: "trendfiltertype", label: "Tipo trend", type: "select", options: ["EMA", "SMA"], default: "EMA" },
-      { key: "volatilityfilter", label: "Filtro volatilità", type: "checkbox", default: true },
-      { key: "volatilitystdevlength", label: "Stdev lunghezza", type: "number", min: 1, default: 16 },
-      { key: "volatilitystdevmalength", label: "Stdev media lunghezza", type: "number", min: 1, default: 44 },
+      { key: "average", label: "MA type", type: "select", options: ["EMA", "SMA"], default: "EMA" },
+      { key: "len", label: "MA length", type: "number", min: 2, default: 130 },
+      { key: "slopeFlen", label: "Fast slope", type: "number", min: 1, default: 7 },
+      { key: "slopeSlen", label: "Slow slope", type: "number", min: 1, default: 27 },
+      { key: "trendfilter", label: "Trend filter", type: "checkbox", default: true },
+      { key: "trendfilterperiod", label: "Trend period", type: "number", min: 2, default: 268 },
+      { key: "trendfiltertype", label: "Trend type", type: "select", options: ["EMA", "SMA"], default: "EMA" },
+      { key: "volatilityfilter", label: "Volatility filter", type: "checkbox", default: true },
+      { key: "volatilitystdevlength", label: "Stdev length", type: "number", min: 1, default: 16 },
+      { key: "volatilitystdevmalength", label: "Stdev MA length", type: "number", min: 1, default: 44 },
       // La variabile che mancava: quanta pendenza serve perché conti come
       // direzione, in unità di deviazione standard della pendenza stessa —
       // così la stessa soglia significa la stessa cosa su BTC e su una
       // altcoin che fa il 15% al giorno. Zero = spenta, come è sempre stato.
-      { key: "slope_threshold_sigma", label: "Soglia pendenza (σ)", type: "number", min: 0, max: 3, step: 0.1, default: 0 },
-      { key: "slope_sigma_length", label: "Finestra σ pendenza", type: "number", min: 10, default: 100 },
+      { key: "slope_threshold_sigma", label: "Slope threshold (σ)", type: "number", min: 0, max: 3, step: 0.1, default: 0 },
+      { key: "slope_sigma_length", label: "Slope σ window", type: "number", min: 10, default: 100 },
     ],
     // l'utente sulle candele da un minuto dei token on-chain: stesso incrocio
     // sulla pendenza, filtri pensati per un token di poche ore (VWAP dal
     // lancio al posto della EMA lunga, regime per token, trailing stop).
     "Lorenzo HF (minuti on-chain)": [
-      { key: "len", label: "Lunghezza media", type: "number", min: 2, default: 30 },
-      { key: "slopeFlen", label: "Slope veloce", type: "number", min: 1, default: 4 },
-      { key: "slopeSlen", label: "Slope lenta", type: "number", min: 1, default: 14 },
-      { key: "slope_threshold_sigma", label: "Soglia pendenza (σ)", type: "number", min: 0, max: 3, step: 0.1, default: 0.5 },
-      { key: "slope_sigma_length", label: "Finestra σ pendenza", type: "number", min: 10, default: 60 },
-      { key: "vwap_filter", label: "Sopra la VWAP dal lancio", type: "checkbox", default: true },
-      { key: "er_len", label: "Finestra efficienza", type: "number", min: 2, default: 10 },
-      { key: "er_min", label: "Efficienza minima", type: "number", min: 0, max: 1, step: 0.05, default: 0.5 },
-      { key: "vr_len", label: "Finestra regime", type: "number", min: 10, default: 60 },
-      { key: "vr_min", label: "Regime minimo (VR)", type: "number", min: 0, max: 3, step: 0.1, default: 1.0 },
-      { key: "volume_len", label: "Finestra volume", type: "number", min: 3, default: 30 },
-      { key: "volume_mult", label: "Picco di volume (x)", type: "number", min: 0, step: 0.1, default: 0 },
-      { key: "atr_len", label: "Lunghezza ATR", type: "number", min: 2, default: 14 },
+      { key: "len", label: "MA length", type: "number", min: 2, default: 30 },
+      { key: "slopeFlen", label: "Fast slope", type: "number", min: 1, default: 4 },
+      { key: "slopeSlen", label: "Slow slope", type: "number", min: 1, default: 14 },
+      { key: "slope_threshold_sigma", label: "Slope threshold (σ)", type: "number", min: 0, max: 3, step: 0.1, default: 0.5 },
+      { key: "slope_sigma_length", label: "Slope σ window", type: "number", min: 10, default: 60 },
+      { key: "vwap_filter", label: "Above VWAP since launch", type: "checkbox", default: true },
+      { key: "er_len", label: "Efficiency window", type: "number", min: 2, default: 10 },
+      { key: "er_min", label: "Min efficiency", type: "number", min: 0, max: 1, step: 0.05, default: 0.5 },
+      { key: "vr_len", label: "Regime window", type: "number", min: 10, default: 60 },
+      { key: "vr_min", label: "Min regime (VR)", type: "number", min: 0, max: 3, step: 0.1, default: 1.0 },
+      { key: "volume_len", label: "Volume window", type: "number", min: 3, default: 30 },
+      { key: "volume_mult", label: "Volume spike (x)", type: "number", min: 0, step: 0.1, default: 0 },
+      { key: "atr_len", label: "ATR length", type: "number", min: 2, default: 14 },
       { key: "trail_atr", label: "Trailing stop (ATR)", type: "number", min: 0, step: 0.5, default: 4 },
     ],
     "Accumulo / Distribuzione (long-term)": [
-      { key: "enable_divergence", label: "Divergenza RSI su swing", type: "checkbox", default: true },
-      { key: "enable_contraction", label: "Breakout da contrazione volatilità", type: "checkbox", default: true },
-      { key: "enable_range_bounce", label: "Rimbalzo su supporto/resistenza range", type: "checkbox", default: true },
-      { key: "swing_length", label: "Lunghezza swing", type: "number", min: 1, default: 8 },
-      { key: "rsi_length", label: "Lunghezza RSI", type: "number", min: 1, default: 14 },
-      { key: "rsi_oversold", label: "RSI ipervenduto", type: "number", min: 0, max: 100, default: 40 },
-      { key: "rsi_overbought", label: "RSI ipercomprato", type: "number", min: 0, max: 100, default: 60 },
-      { key: "rsi_min_gap", label: "RSI scarto minimo divergenza", type: "number", min: 0, step: 0.1, default: 3.0 },
-      { key: "low_tolerance_pct", label: "Tolleranza nuovo minimo %", type: "number", min: 0, step: 0.1, default: 1.0 },
-      { key: "divergence_lookback", label: "Lookback swing divergenza", type: "number", min: 1, default: 3 },
-      { key: "volume_ma_length", label: "Media volume", type: "number", min: 1, default: 20 },
-      { key: "volume_multiplier", label: "Moltiplicatore volume", type: "number", min: 0, step: 0.1, default: 1.3 },
-      { key: "trend_filter", label: "Filtro trend", type: "checkbox", default: true },
+      { key: "enable_divergence", label: "RSI divergence on swings", type: "checkbox", default: true },
+      { key: "enable_contraction", label: "Volatility-contraction breakout", type: "checkbox", default: true },
+      { key: "enable_range_bounce", label: "Range support/resistance bounce", type: "checkbox", default: true },
+      { key: "swing_length", label: "Swing length", type: "number", min: 1, default: 8 },
+      { key: "rsi_length", label: "RSI length", type: "number", min: 1, default: 14 },
+      { key: "rsi_oversold", label: "RSI oversold", type: "number", min: 0, max: 100, default: 40 },
+      { key: "rsi_overbought", label: "RSI overbought", type: "number", min: 0, max: 100, default: 60 },
+      { key: "rsi_min_gap", label: "RSI min divergence gap", type: "number", min: 0, step: 0.1, default: 3.0 },
+      { key: "low_tolerance_pct", label: "New-low tolerance %", type: "number", min: 0, step: 0.1, default: 1.0 },
+      { key: "divergence_lookback", label: "Divergence swing lookback", type: "number", min: 1, default: 3 },
+      { key: "volume_ma_length", label: "Volume MA", type: "number", min: 1, default: 20 },
+      { key: "volume_multiplier", label: "Volume multiplier", type: "number", min: 0, step: 0.1, default: 1.3 },
+      { key: "trend_filter", label: "Trend filter", type: "checkbox", default: true },
       { key: "trend_ema_length", label: "EMA trend", type: "number", min: 1, default: 50 },
-      { key: "confirmation_lookahead", label: "Barre di conferma", type: "number", min: 1, default: 10 },
-      { key: "contraction_lookback", label: "Lookback contrazione", type: "number", min: 1, default: 10 },
-      { key: "contraction_prior_lookback", label: "Lookback pre-contrazione", type: "number", min: 1, default: 30 },
-      { key: "contraction_ratio", label: "Rapporto contrazione volatilità", type: "number", min: 0, step: 0.05, default: 0.55 },
+      { key: "confirmation_lookahead", label: "Confirmation bars", type: "number", min: 1, default: 10 },
+      { key: "contraction_lookback", label: "Contraction lookback", type: "number", min: 1, default: 10 },
+      { key: "contraction_prior_lookback", label: "Pre-contraction lookback", type: "number", min: 1, default: 30 },
+      { key: "contraction_ratio", label: "Volatility contraction ratio", type: "number", min: 0, step: 0.05, default: 0.55 },
       { key: "range_lookback", label: "Lookback range", type: "number", min: 1, default: 40 },
-      { key: "range_zone_pct", label: "Zona range %", type: "number", min: 0, max: 1, step: 0.05, default: 0.25 },
+      { key: "range_zone_pct", label: "Range zone %", type: "number", min: 0, max: 1, step: 0.05, default: 0.25 },
     ],
     "Gabriele (RSI+BB reversal)": [
-      { key: "rsi_length", label: "Lunghezza RSI", type: "number", min: 1, default: 14 },
-      { key: "bb_length", label: "Lunghezza Bollinger", type: "number", min: 1, default: 20 },
-      { key: "bb_mult", label: "Moltiplicatore Bollinger", type: "number", min: 0, step: 0.1, default: 2.0 },
-      { key: "rsi_oversold", label: "RSI ipervenduto", type: "number", min: 0, max: 100, default: 28 },
-      { key: "rsi_overbought", label: "RSI ipercomprato", type: "number", min: 0, max: 100, default: 72 },
+      { key: "rsi_length", label: "RSI length", type: "number", min: 1, default: 14 },
+      { key: "bb_length", label: "Bollinger length", type: "number", min: 1, default: 20 },
+      { key: "bb_mult", label: "Bollinger multiplier", type: "number", min: 0, step: 0.1, default: 2.0 },
+      { key: "rsi_oversold", label: "RSI oversold", type: "number", min: 0, max: 100, default: 28 },
+      { key: "rsi_overbought", label: "RSI overbought", type: "number", min: 0, max: 100, default: 72 },
     ],
     // Stessi parametri della precedente, di proposito: una configurazione
     // trovata per l'una si porta sull'altra e le due si confrontano sugli
     // stessi assi. Cambia cosa succede sull'ipercomprato — apre uno short
     // invece di limitarsi a chiudere il long.
     "Gabriele 2 (RSI+BB long/short)": [
-      { key: "rsi_length", label: "Lunghezza RSI", type: "number", min: 1, default: 14 },
-      { key: "bb_length", label: "Lunghezza Bollinger", type: "number", min: 1, default: 20 },
-      { key: "bb_mult", label: "Moltiplicatore Bollinger", type: "number", min: 0, step: 0.1, default: 2.0 },
-      { key: "rsi_oversold", label: "RSI ipervenduto", type: "number", min: 0, max: 100, default: 28 },
-      { key: "rsi_overbought", label: "RSI ipercomprato", type: "number", min: 0, max: 100, default: 72 },
+      { key: "rsi_length", label: "RSI length", type: "number", min: 1, default: 14 },
+      { key: "bb_length", label: "Bollinger length", type: "number", min: 1, default: 20 },
+      { key: "bb_mult", label: "Bollinger multiplier", type: "number", min: 0, step: 0.1, default: 2.0 },
+      { key: "rsi_oversold", label: "RSI oversold", type: "number", min: 0, max: 100, default: 28 },
+      { key: "rsi_overbought", label: "RSI overbought", type: "number", min: 0, max: 100, default: 72 },
     ],
   };
 
@@ -398,7 +399,7 @@
         try {
           ctrl.suggestions = await fetchItems(query);
         } catch (err) {
-          console.error("suggerimenti pair falliti per", listId, err);
+          console.error("pair suggestions failed for", listId, err);
           ctrl.suggestions = [];
         }
         ctrl.activeIndex = -1;
@@ -1022,7 +1023,7 @@
     if (saved) container.style.height = `${saved}px`;
     const handle = document.createElement("div");
     handle.className = "sub-chart-resize-handle";
-    handle.title = "Trascina per regolare l'ampiezza";
+    handle.title = "Drag to resize";
     container.appendChild(handle);
     let startY = 0, startH = 0;
     const onMove = (e) => {
@@ -1152,7 +1153,7 @@
       const body = await resp.json();
       if (!resp.ok) {
         const detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
-        throw new Error(detail || `Errore ${resp.status}`);
+        throw new Error(detail || `Error ${resp.status}`);
       }
 
       Object.entries(body.params).forEach(([key, value]) => {
@@ -1165,12 +1166,12 @@
       const bt = body.backtest;
       const pf = bt.profit_factor !== null ? bt.profit_factor.toFixed(2) : "∞";
       const dd = Math.abs(bt.max_drawdown_pct).toFixed(1);
-      resultEl.innerHTML = `Migliore trovato su <b>${body.trials_evaluated}</b> combinazioni (${bt.interval}): profit factor <b>${pf}</b>, drawdown <b>-${dd}%</b>, ${bt.num_trades} trade, win rate ${bt.win_rate_pct !== null ? bt.win_rate_pct.toFixed(0) : "—"}%.`;
+      resultEl.innerHTML = `Best found across <b>${body.trials_evaluated}</b> combinations (${bt.interval}): profit factor <b>${pf}</b>, drawdown <b>-${dd}%</b>, ${bt.num_trades} trades, win rate ${bt.win_rate_pct !== null ? bt.win_rate_pct.toFixed(0) : "—"}%.`;
       resultEl.classList.remove("hidden");
 
       await runAnalysis(state.data.symbol);
-    }, "Ottimizzazione in corso… (10-25s)").catch((err) => {
-      showError(err.message || "Ottimizzazione fallita.");
+    }, "Optimizing… (10-25s)").catch((err) => {
+      showError(err.message || "Optimization failed.");
     });
   }
 
@@ -1301,18 +1302,18 @@
   // ---- Saldi tab: read-only exchange balances (MEXC/KuCoin) ----
   function renderBalanceAccount(name, data) {
     if (!data.configured) {
-      return `<div class="balance-acct"><div class="balance-acct-head">${name}</div><p class="balance-empty">Chiavi API non configurate.</p></div>`;
+      return `<div class="balance-acct"><div class="balance-acct-head">${name}</div><p class="balance-empty">API keys not configured.</p></div>`;
     }
     if (data.error) {
       return `<div class="balance-acct"><div class="balance-acct-head">${name}</div><p class="balance-error">${data.error}</p></div>`;
     }
     if (!data.balances.length) {
-      return `<div class="balance-acct"><div class="balance-acct-head">${name}</div><p class="balance-empty">Nessun saldo disponibile.</p></div>`;
+      return `<div class="balance-acct"><div class="balance-acct-head">${name}</div><p class="balance-empty">No balance available.</p></div>`;
     }
     const rows = data.balances
       .map(
         (b) =>
-          `<div class="balance-row"><span class="b-asset">${b.asset}</span><span class="b-qty">${b.total.toLocaleString("it-IT", { maximumFractionDigits: 8 })}</span></div>`
+          `<div class="balance-row"><span class="b-asset">${b.asset}</span><span class="b-qty">${b.total.toLocaleString("en-US", { maximumFractionDigits: 8 })}</span></div>`
       )
       .join("");
     return `<div class="balance-acct"><div class="balance-acct-head">${name}</div>${rows}</div>`;
@@ -1326,15 +1327,15 @@
         return;
       }
       if (!resp.ok) {
-        showTabError("balances-content", `Errore caricamento saldi (${resp.status}).`);
+        showTabError("balances-content", `Error loading balances (${resp.status}).`);
         return;
       }
       const body = await resp.json();
       setBalancesVisible(true);
       el("balances-content").innerHTML = renderBalanceAccount("MEXC", body.mexc) + renderBalanceAccount("KuCoin", body.kucoin);
-      el("balances-updated").textContent = `Aggiornato alle ${new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}`;
+      el("balances-updated").textContent = `Updated at ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
     } catch (err) {
-      showTabError("balances-content", "Impossibile caricare i saldi: problema di rete.");
+      showTabError("balances-content", "Couldn't load balances: network problem.");
     }
   }
 
@@ -1377,38 +1378,38 @@
 
     container.innerHTML = creds.filter(c => TRADING_EXCHANGES.includes(c.exchange)).map(c => {
       const name = TRADING_EXCHANGE_NAMES[c.exchange] || c.exchange;
-      const summaryText = c.api_key_set ? "Modifica chiave" : "Configura chiave API";
+      const summaryText = c.api_key_set ? "Edit key" : "Set up API key";
       const savedNote = c.api_key_set
-        ? `<div class="trading-cred-saved">🔒 Chiave salvata e cifrata${c.created_at ? " — registrata il " + escapeHtml(new Date(c.created_at * 1000).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" })) : ""}
-             <button type="button" class="trading-cred-delete-btn" title="Elimina questa chiave">Elimina</button></div>`
+        ? `<div class="trading-cred-saved">🔒 Key saved and encrypted${c.created_at ? " — added on " + escapeHtml(new Date(c.created_at * 1000).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })) : ""}
+             <button type="button" class="trading-cred-delete-btn" title="Delete this key">Delete</button></div>`
         : "";
       const passphraseField = c.exchange === "kucoin"
-        ? `<label>Passphrase <input type="password" class="trading-passphrase" placeholder="lascia vuoto per non cambiare" /></label>`
+        ? `<label>Passphrase <input type="password" class="trading-passphrase" placeholder="leave empty to keep unchanged" /></label>`
         : "";
       return `<div class="trading-cred-card" data-exchange="${c.exchange}">
         <div class="trading-cred-exchange-row">
           <span class="trading-cred-name">${name}</span>
           <label class="trading-enabled-toggle">
-            <input type="checkbox" class="trading-enabled-cb" ${c.enabled ? "checked" : ""}> Attivo
+            <input type="checkbox" class="trading-enabled-cb" ${c.enabled ? "checked" : ""}> Enabled
           </label>
         </div>
         ${savedNote}
         <details class="trading-cred-details">
           <summary>${summaryText}</summary>
           <div class="trading-cred-fields">
-            <label>API Key <input type="text" class="trading-api-key" placeholder="lascia vuoto per non cambiare" autocomplete="off" /></label>
-            <label>API Secret <input type="password" class="trading-api-secret" placeholder="lascia vuoto per non cambiare" autocomplete="off" /></label>
+            <label>API Key <input type="text" class="trading-api-key" placeholder="leave empty to keep unchanged" autocomplete="off" /></label>
+            <label>API Secret <input type="password" class="trading-api-secret" placeholder="leave empty to keep unchanged" autocomplete="off" /></label>
             ${passphraseField}
             <div class="trading-size-row">
-              <label>Tipo size
+              <label>Size type
                 <select class="trading-size-mode">
-                  <option value="fixed_usdt" ${c.size_mode === "fixed_usdt" ? "selected" : ""}>USDT fisso</option>
-                  <option value="pct_balance" ${c.size_mode === "pct_balance" ? "selected" : ""}>% saldo</option>
+                  <option value="fixed_usdt" ${c.size_mode === "fixed_usdt" ? "selected" : ""}>Fixed USDT</option>
+                  <option value="pct_balance" ${c.size_mode === "pct_balance" ? "selected" : ""}>% of balance</option>
                 </select>
               </label>
-              <label>Valore <input type="number" class="trading-size-val" value="${c.size_value}" min="1" step="1" /></label>
+              <label>Value <input type="number" class="trading-size-val" value="${c.size_value}" min="1" step="1" /></label>
             </div>
-            <button type="button" class="trading-save-btn">Salva</button>
+            <button type="button" class="trading-save-btn">Save</button>
             <span class="trading-save-status"></span>
           </div>
         </details>
@@ -1438,14 +1439,14 @@
           body: JSON.stringify(body),
         });
         if (resp.ok) {
-          statusEl.textContent = "Salvato ✓";
+          statusEl.textContent = "Saved ✓";
           setTimeout(() => { statusEl.textContent = ""; }, 3000);
         } else {
           const err = await resp.json().catch(() => ({}));
-          statusEl.textContent = err.detail || `Errore (${resp.status})`;
+          statusEl.textContent = err.detail || `Error (${resp.status})`;
         }
       } catch (_) {
-        statusEl.textContent = "Errore di rete";
+        statusEl.textContent = "Network error";
       }
     });
 
@@ -1531,8 +1532,8 @@
     function unverifiedNotice() {
       const exchange = exchangeSel?.value;
       if (!MANUAL_PAIR_EXCHANGES.has(exchange)) {
-        manualPairHint(`Su ${exchange} il pair non si puo' verificare da qui: `
-          + "scrivilo come lo scrive l'exchange.", "warn");
+        manualPairHint(`On ${exchange} the pair can't be verified from here: `
+          + "type it exactly as the exchange writes it.", "warn");
         return true;
       }
       return false;
@@ -1587,11 +1588,11 @@
     const exchange = el("manual-exchange")?.value;
     if (!MANUAL_BALANCE_EXCHANGES.has(exchange)) {
       hint.style.color = "var(--warn)";
-      hint.textContent = "Saldo non disponibile qui per questo exchange.";
+      hint.textContent = "Balance not available here for this exchange.";
       return;
     }
     hint.style.color = "var(--ink-dim)";
-    hint.textContent = "Saldo libero: caricamento…";
+    hint.textContent = "Free balance: loading…";
     try {
       const resp = await fetch("/api/balances");
       if (!resp.ok) throw new Error("bad status");
@@ -1599,14 +1600,14 @@
       const acct = body[exchange];
       const usdt = acct?.balances?.find((b) => b.asset === "USDT");
       if (usdt) {
-        hint.textContent = `Saldo libero: ${usdt.total.toLocaleString("it-IT", { maximumFractionDigits: 2 })} USDT`;
+        hint.textContent = `Free balance: ${usdt.total.toLocaleString("en-US", { maximumFractionDigits: 2 })} USDT`;
       } else {
         hint.style.color = "var(--warn)";
-        hint.textContent = "Nessun saldo USDT su questo exchange.";
+        hint.textContent = "No USDT balance on this exchange.";
       }
     } catch (_) {
       hint.style.color = "var(--warn)";
-      hint.textContent = "Saldo non disponibile (errore di rete).";
+      hint.textContent = "Balance not available (network error).";
     }
   }
 
@@ -1630,7 +1631,7 @@
       const symbol = el("manual-symbol")?.value.trim().toUpperCase() || "—";
       const sizeVal = el("manual-size-val")?.value || "—";
       const unit = el("manual-size-unit")?.textContent || "";
-      summary.textContent = `${activeSide} ${symbol} su ${exchange}, ${sizeVal}${unit}`;
+      summary.textContent = `${activeSide} ${symbol} on ${exchange}, ${sizeVal}${unit}`;
     }
 
     function updateManualExecuteState() {
@@ -1712,13 +1713,13 @@
       const sizeMode = document.querySelector('input[name="mo-size-mode"]:checked')?.value || "pct_balance";
       const sizeValue = parseFloat(el("manual-size-val")?.value);
       const statusEl = el("manual-order-status");
-      if (!symbol) { statusEl.textContent = "Inserisci il pair (es. BTCUSDT)"; statusEl.classList.remove("hidden"); return; }
+      if (!symbol) { statusEl.textContent = "Enter the pair (e.g. BTCUSDT)"; statusEl.classList.remove("hidden"); return; }
       if (!el("manual-confirm-box")?.checked) {
-        statusEl.textContent = "Conferma l'ordine prima di inviarlo";
+        statusEl.textContent = "Confirm the order before sending it";
         statusEl.classList.remove("hidden");
         return;
       }
-      statusEl.textContent = "Invio ordine…";
+      statusEl.textContent = "Sending order…";
       statusEl.classList.remove("hidden", "ok", "error");
       try {
         const resp = await fetch("/api/trading/order", {
@@ -1728,10 +1729,10 @@
         });
         const data = await resp.json().catch(() => ({}));
         if (resp.ok) {
-          statusEl.textContent = `✓ Ordine ${activeSide} ${data.symbol || symbol} inviato`;
+          statusEl.textContent = `✓ ${activeSide} order ${data.symbol || symbol} sent`;
           statusEl.classList.add("ok");
         } else {
-          statusEl.textContent = `✗ ${data.detail || "Errore " + resp.status}`;
+          statusEl.textContent = `✗ ${data.detail || "Error " + resp.status}`;
           statusEl.classList.add("error");
         }
         // Riuscito o fallito, il tentativo e' ora nel diario: il riquadro di
@@ -1739,7 +1740,7 @@
         loadTradingJournal();
         invalidateManualConfirm();
       } catch (_) {
-        statusEl.textContent = "✗ Errore di rete";
+        statusEl.textContent = "✗ Network error";
         statusEl.classList.add("error");
       }
     }
@@ -1752,14 +1753,14 @@
       const symbol = el("manual-symbol")?.value.trim().toUpperCase();
       const statusEl = el("spot-close-status");
       if (!symbol) {
-        statusEl.textContent = "Inserisci il pair da chiudere (es. BTCUSDT)";
+        statusEl.textContent = "Enter the pair to close (e.g. BTCUSDT)";
         statusEl.className = "manual-order-status error";
         return;
       }
-      if (!confirm(`Vendere TUTTO il saldo di ${symbol} su ${exchange}?\n\nOrdine a mercato, denaro reale.`)) return;
+      if (!confirm(`Sell your ENTIRE ${symbol} balance on ${exchange}?\n\nMarket order, real money.`)) return;
       const btn = el("spot-close-btn");
       btn.disabled = true;
-      statusEl.textContent = "Chiusura…";
+      statusEl.textContent = "Closing…";
       statusEl.className = "manual-order-status";
       try {
         const resp = await fetch("/api/trading/spot/close", {
@@ -1769,15 +1770,15 @@
         });
         const data = await readJson(resp);
         if (resp.ok) {
-          statusEl.textContent = `✓ Venduto tutto il saldo di ${data.symbol || symbol}`;
+          statusEl.textContent = `✓ Sold the entire ${data.symbol || symbol} balance`;
           statusEl.className = "manual-order-status ok";
         } else {
-          statusEl.textContent = `✗ ${data.detail || "Errore " + resp.status}`;
+          statusEl.textContent = `✗ ${data.detail || "Error " + resp.status}`;
           statusEl.className = "manual-order-status error";
         }
         loadTradingJournal();
       } catch (err) {
-        statusEl.textContent = "✗ " + (err.message || "Errore di rete");
+        statusEl.textContent = "✗ " + (err.message || "Network error");
         statusEl.className = "manual-order-status error";
       } finally {
         btn.disabled = false;
@@ -1894,8 +1895,8 @@
     const modeNode = el("futures-margin-mode");
     if (modeNode) {
       modeNode.innerHTML = info && !info.isolated_margin
-        ? 'margine <b>condiviso</b> — questo exchange non ha isolated: una posizione che va male intacca le altre'
-        : 'margine <b>isolato</b> — forzato';
+        ? '<b>shared</b> margin — this exchange has no isolated mode: a losing position eats into the others'
+        : '<b>isolated</b> margin — enforced';
       modeNode.classList.toggle("lev-mode-warn", !!(info && !info.isolated_margin));
     }
     const passField = el("futures-passphrase-field");
@@ -1909,7 +1910,7 @@
     el("futures-lev-val").textContent = lev + "×";
     el("futures-confirm-lev").textContent = lev + "×";
     const cap = el("futures-lev-cap");
-    cap.textContent = lev >= maxLev ? "tetto server raggiunto" : `tetto server ${maxLev}×`;
+    cap.textContent = lev >= maxLev ? "server cap reached" : `server cap ${maxLev}×`;
     cap.classList.toggle("lev-cap-hot", lev >= maxLev * 0.7);
 
     const q = futuresQuote;
@@ -1935,7 +1936,7 @@
     }
     const dist = (q.liquidation_price / q.mark_price - 1) * 100;
     setv("fq-notional", fmtNum(q.notional, 2) + " USDT");
-    setv("fq-margin", fmtNum(q.margin_used, 2) + " USDT" + (q.margin_sufficient ? "" : " — insufficiente"),
+    setv("fq-margin", fmtNum(q.margin_used, 2) + " USDT" + (q.margin_sufficient ? "" : " — insufficient"),
          q.margin_sufficient ? "" : "fq-bad");
     setv("fq-liq", fmtNum(q.liquidation_price, 2), "fq-bad");
     setv("fq-dist", (dist >= 0 ? "+" : "") + dist.toFixed(1) + "%",
@@ -1945,7 +1946,7 @@
 
   function fmtNum(v, d) {
     if (v === null || v === undefined || Number.isNaN(v)) return "—";
-    return Number(v).toLocaleString("it-IT", { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });
+    return Number(v).toLocaleString("en-US", { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });
   }
 
   // L'anteprima e' obbligatoria: senza una quote fresca il bottone resta
@@ -1972,7 +1973,7 @@
       futuresQuote = res.ok ? await res.json() : null;
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setFuturesStatus(err.detail || "Anteprima non disponibile", true);
+        setFuturesStatus(err.detail || "Preview not available", true);
       } else {
         el("futures-order-status").classList.add("hidden");
       }
@@ -1998,7 +1999,7 @@
     if (!btn) return;
     const ok = !!futuresQuote && futuresQuote.margin_sufficient && el("futures-confirm-box").checked;
     btn.disabled = !ok;
-    btn.textContent = (futuresSide === "BUY" ? "APRI LONG" : "APRI SHORT")
+    btn.textContent = (futuresSide === "BUY" ? "OPEN LONG" : "OPEN SHORT")
       + (futuresQuote ? " " + Number(el("futures-leverage").value) + "×" : "");
     btn.classList.toggle("mo-execute-buy", futuresSide === "BUY");
     btn.classList.toggle("mo-execute-sell", futuresSide === "SELL");
@@ -2021,10 +2022,10 @@
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "futures-activate-btn";
-    btn.textContent = "Attiva ora";
+    btn.textContent = "Enable now";
     btn.addEventListener("click", async () => {
       btn.disabled = true;
-      btn.textContent = "Attivo…";
+      btn.textContent = "Enabling…";
       try {
         const cred = getFuturesCredCache(exchange);
         await fetch("/api/auth/futures", {
@@ -2040,10 +2041,10 @@
           }),
         });
         await loadFuturesCredentials();
-        setFuturesStatus(`Esecuzione attivata per ${exchange.toUpperCase()} — premi di nuovo per inviare l'ordine.`, false);
+        setFuturesStatus(`Execution enabled for ${exchange.toUpperCase()} — press again to send the order.`, false);
       } catch (_e) {
         btn.disabled = false;
-        btn.textContent = "Attiva ora";
+        btn.textContent = "Enable now";
       }
     });
     node.appendChild(document.createTextNode(" "));
@@ -2051,7 +2052,7 @@
   }
 
   // Il PATCH di attivazione deve rimandare size/leva gia' impostati per
-  // quell'exchange, non i default: altrimenti "Attiva ora" azzererebbe in
+  // quell'exchange, non i default: altrimenti "Enable now" azzererebbe in
   // silenzio una taglia o una leva gia' scelte in precedenza. futuresExchanges
   // (la cache caricata da loadFuturesCredentials) e' l'unica fonte gia' in
   // memoria — nessuna richiesta in piu' solo per leggerla.
@@ -2062,7 +2063,7 @@
   async function submitFuturesOrder() {
     const btn = el("futures-execute-btn");
     btn.disabled = true;
-    setFuturesStatus("Invio ordine…", false);
+    setFuturesStatus("Sending order…", false);
     try {
       const res = await fetch("/api/trading/futures/order", {
         method: "POST",
@@ -2079,13 +2080,13 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const detail = data.detail || "Ordine rifiutato";
+        const detail = data.detail || "Order rejected";
         setFuturesStatus(detail, true);
-        if (typeof detail === "string" && detail.includes("disattivata")) {
+        if (typeof detail === "string" && detail.includes("disabled")) {
           offerFuturesActivation(el("futures-exchange").value);
         }
       } else {
-        setFuturesStatus("Ordine eseguito.", false);
+        setFuturesStatus("Order executed.", false);
         loadExecutedOrders();
         loadPositions();
         el("futures-confirm-box").checked = false;
@@ -2095,13 +2096,13 @@
         // una chiamata facoltativa ma un nome inesistente, e `?.` non protegge
         // da una variabile mai dichiarata — lanciava un ReferenceError PROPRIO
         // QUI, dentro il ramo del successo, e il catch qui sotto lo riscriveva
-        // come "Errore di rete": l'ordine era passato davvero e l'interfaccia
+        // come "Network error": l'ordine era passato davvero e l'interfaccia
         // diceva il contrario, sullo stesso schermo da cui si rischia di
         // rifarlo una seconda volta.
         loadTradingJournal();
       }
     } catch (e) {
-      setFuturesStatus("Errore di rete: " + e.message, true);
+      setFuturesStatus("Network error: " + e.message, true);
     }
     updateFuturesExecuteState();
   }
@@ -2136,21 +2137,21 @@
     const container = el("futures-credentials-list");
     if (!container) return;
     container.innerHTML = futuresExchanges.map((c) => {
-      const summaryText = c.api_key_set ? "Modifica chiave" : "Configura chiave API";
+      const summaryText = c.api_key_set ? "Edit key" : "Set up API key";
       const savedNote = c.api_key_set
-        ? `<div class="trading-cred-saved">🔒 Chiave salvata e cifrata${c.created_at ? " — registrata il " + escapeHtml(new Date(c.created_at * 1000).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" })) : ""}
-             <button type="button" class="trading-cred-delete-btn" title="Elimina questa chiave">Elimina</button></div>`
+        ? `<div class="trading-cred-saved">🔒 Key saved and encrypted${c.created_at ? " — added on " + escapeHtml(new Date(c.created_at * 1000).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })) : ""}
+             <button type="button" class="trading-cred-delete-btn" title="Delete this key">Delete</button></div>`
         : "";
       const riskNote = c.isolated_margin ? "" :
-        `<p class="panel-hint futures-risk-note">${c.name} non ha margine isolato: una posizione che va male puo' intaccare le altre sul conto.</p>`;
+        `<p class="panel-hint futures-risk-note">${c.name} has no isolated margin: a losing position can eat into the others on the account.</p>`;
       const passphraseField = c.needs_passphrase
-        ? `<label>Passphrase ${c.passphrase_set ? "" : "<span class=\"trading-cred-missing\">obbligatoria</span>"} <input type="password" class="futures-cred-passphrase" placeholder="lascia vuoto per non cambiare" /></label>`
+        ? `<label>Passphrase ${c.passphrase_set ? "" : "<span class=\"trading-cred-missing\">required</span>"} <input type="password" class="futures-cred-passphrase" placeholder="leave empty to keep unchanged" /></label>`
         : "";
       return `<div class="trading-cred-card" data-exchange="${c.exchange}">
         <div class="trading-cred-exchange-row">
           <span class="trading-cred-name">${c.name}</span>
           <label class="trading-enabled-toggle">
-            <input type="checkbox" class="futures-cred-enabled-cb" ${c.enabled ? "checked" : ""}> Attivo
+            <input type="checkbox" class="futures-cred-enabled-cb" ${c.enabled ? "checked" : ""}> Enabled
           </label>
         </div>
         ${savedNote}
@@ -2159,20 +2160,20 @@
           <summary>${summaryText}</summary>
           <div class="trading-cred-fields">
             <p class="panel-hint">${c.key_hint || ""}</p>
-            <label>API Key <input type="text" class="futures-cred-api-key" placeholder="lascia vuoto per non cambiare" autocomplete="off" /></label>
-            <label>API Secret <input type="password" class="futures-cred-api-secret" placeholder="lascia vuoto per non cambiare" autocomplete="off" /></label>
+            <label>API Key <input type="text" class="futures-cred-api-key" placeholder="leave empty to keep unchanged" autocomplete="off" /></label>
+            <label>API Secret <input type="password" class="futures-cred-api-secret" placeholder="leave empty to keep unchanged" autocomplete="off" /></label>
             ${passphraseField}
             <div class="trading-size-row">
-              <label>Tipo size
+              <label>Size type
                 <select class="futures-cred-size-mode">
-                  <option value="fixed_usdt" ${c.size_mode === "fixed_usdt" ? "selected" : ""}>USDT fisso</option>
-                  <option value="pct_balance" ${c.size_mode === "pct_balance" ? "selected" : ""}>% saldo</option>
+                  <option value="fixed_usdt" ${c.size_mode === "fixed_usdt" ? "selected" : ""}>Fixed USDT</option>
+                  <option value="pct_balance" ${c.size_mode === "pct_balance" ? "selected" : ""}>% of balance</option>
                 </select>
               </label>
-              <label>Valore <input type="number" class="futures-cred-size-val" value="${c.size_value}" min="1" step="1" /></label>
-              <label>Leva default <input type="number" class="futures-cred-leverage" value="${c.leverage}" min="1" max="${c.max_leverage}" step="1" /></label>
+              <label>Value <input type="number" class="futures-cred-size-val" value="${c.size_value}" min="1" step="1" /></label>
+              <label>Default leverage <input type="number" class="futures-cred-leverage" value="${c.leverage}" min="1" max="${c.max_leverage}" step="1" /></label>
             </div>
-            <button type="button" class="trading-save-btn">Salva</button>
+            <button type="button" class="trading-save-btn">Save</button>
             <span class="trading-save-status"></span>
           </div>
         </details>
@@ -2214,15 +2215,15 @@
           body: JSON.stringify(body),
         });
         if (resp.ok) {
-          statusEl.textContent = "Salvato ✓";
+          statusEl.textContent = "Saved ✓";
           loadFuturesCredentials();
           setTimeout(() => { statusEl.textContent = ""; }, 3000);
         } else {
           const err = await resp.json().catch(() => ({}));
-          statusEl.textContent = err.detail || `Errore (${resp.status})`;
+          statusEl.textContent = err.detail || `Error (${resp.status})`;
         }
       } catch (_) {
-        statusEl.textContent = "Errore di rete";
+        statusEl.textContent = "Network error";
       }
     });
 
@@ -2351,16 +2352,16 @@
         <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" class="liq-gauge-needle" />
         <circle cx="${cx}" cy="${cy}" r="4" class="liq-gauge-hub" />
       </svg>
-      <div class="liq-gauge-label ${distClass}">${distClass === "bear" ? "vicino" : distClass === "warnc" ? "attenzione" : "sicuro"}</div>
+      <div class="liq-gauge-label ${distClass}">${distClass === "bear" ? "close" : distClass === "warnc" ? "caution" : "safe"}</div>
     </div>`;
   }
 
   function renderPositions(positions) {
     const list = el("positions-list");
     const count = el("positions-count");
-    count.textContent = positions.length ? `${positions.length} aperte` : "";
+    count.textContent = positions.length ? `${positions.length} open` : "";
     if (!positions.length) {
-      list.innerHTML = '<li class="pos-empty">Nessuna posizione a leva aperta.</li>';
+      list.innerHTML = '<li class="pos-empty">No open leveraged positions.</li>';
       return;
     }
     list.innerHTML = positions.map((p) => {
@@ -2373,21 +2374,21 @@
         : Math.abs(dist) < 8 ? "bear" : Math.abs(dist) < 15 ? "warnc" : "bull";
       return `<li class="pos-item leveraged">
         <div class="pos-item-top">
-          <span class="trading-auto-badge futures-badge">${p.leverage}× isolato</span>
+          <span class="trading-auto-badge futures-badge">${p.leverage}× isolated</span>
           <b>${p.symbol}</b>
           <span class="section-count">${p.side === "long" ? "LONG" : "SHORT"}</span>
           <span class="section-count">${p.exchange}</span>
         </div>
         <div class="pos-pnl ${pnl >= 0 ? "bull" : "bear"}">${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}</div>
-        <div class="fq-row"><span>Ingresso / mark</span><span>${p.entry_price} → ${p.mark_price}</span></div>
-        <div class="fq-row"><span>Quantita / margine</span><span>${p.quantity} · ${p.margin.toFixed(2)} USDT</span></div>
+        <div class="fq-row"><span>Entry / mark</span><span>${p.entry_price} → ${p.mark_price}</span></div>
+        <div class="fq-row"><span>Quantity / margin</span><span>${p.quantity} · ${p.margin.toFixed(2)} USDT</span></div>
         ${renderLiqGauge(safety, distClass)}
         <div class="liq-foot">
           <span class="bear">liq. ${p.liquidation_price}</span>
           <span class="${distClass}">${dist === null || dist === undefined ? "—" : (dist >= 0 ? "+" : "") + dist.toFixed(1) + "%"}</span>
         </div>
         <div class="pos-actions">
-          <button type="button" class="pos-close-btn" data-exchange="${escapeHtml(p.exchange)}" data-symbol="${escapeHtml(p.symbol)}">Chiudi posizione</button>
+          <button type="button" class="pos-close-btn" data-exchange="${escapeHtml(p.exchange)}" data-symbol="${escapeHtml(p.symbol)}">Close position</button>
         </div>
       </li>`;
     }).join("");
@@ -2403,9 +2404,9 @@
         const exchange = btn.dataset.exchange;
         const symbol = btn.dataset.symbol;
         const what = market === "futures"
-          ? `Chiudere la posizione ${symbol} su ${exchange}?`
-          : `Vendere TUTTO il saldo di ${symbol} su ${exchange}?`;
-        if (!confirm(`${what}\n\nOrdine a mercato, denaro reale.`)) return;
+          ? `Close the ${symbol} position on ${exchange}?`
+          : `Sell your ENTIRE ${symbol} balance on ${exchange}?`;
+        if (!confirm(`${what}\n\nMarket order, real money.`)) return;
         // Lo stato vive fuori dalla lista: loadPositions() qui sotto la
         // ridisegna, e una conferma scritta dentro la card sparirebbe
         // insieme alla posizione appena chiusa.
@@ -2418,7 +2419,7 @@
         };
         btn.disabled = true;
         const prev = btn.textContent;
-        btn.textContent = "Chiusura…";
+        btn.textContent = "Closing…";
         try {
           const resp = await fetch(`/api/trading/${market}/close`, {
             method: "POST",
@@ -2427,17 +2428,17 @@
           });
           const data = await readJson(resp);
           if (!resp.ok) {
-            say("✗ " + (data.detail || `Errore ${resp.status}`), "error");
+            say("✗ " + (data.detail || `Error ${resp.status}`), "error");
             return;
           }
           // closed:false = non c'era niente da chiudere. Non e' un errore, ma
           // nemmeno un successo da festeggiare: dirlo com'e'.
-          say(data.closed === false ? (data.detail || "Nessuna posizione da chiudere.") : "✓ Posizione chiusa.",
+          say(data.closed === false ? (data.detail || "No position to close.") : "✓ Position closed.",
               data.closed === false ? "" : "ok");
           loadPositions();
           loadTradingJournal();
         } catch (err) {
-          say("✗ " + (err.message || "Errore di rete"), "error");
+          say("✗ " + (err.message || "Network error"), "error");
         } finally {
           btn.disabled = false;
           btn.textContent = prev;
@@ -2451,10 +2452,10 @@
   function openAuthModal(mode, opts) {
     authMode = mode || "login";
     authGateActive = !!(opts && opts.gate);
-    el("auth-modal-title").textContent = authMode === "login" ? "Accedi" : "Registrati";
-    el("auth-submit-btn").textContent = authMode === "login" ? "Accedi" : "Registrati";
-    el("auth-switch-text").textContent = authMode === "login" ? "Non hai un account?" : "Hai già un account?";
-    el("auth-switch-btn").textContent = authMode === "login" ? "Registrati" : "Accedi";
+    el("auth-modal-title").textContent = authMode === "login" ? "Log in" : "Sign up";
+    el("auth-submit-btn").textContent = authMode === "login" ? "Log in" : "Sign up";
+    el("auth-switch-text").textContent = authMode === "login" ? "Don't have an account?" : "Already have an account?";
+    el("auth-switch-btn").textContent = authMode === "login" ? "Sign up" : "Log in";
     el("auth-error").classList.add("hidden");
     el("auth-gate-hint").classList.toggle("hidden", !authGateActive);
     el("auth-form").reset();
@@ -2510,7 +2511,7 @@
         });
         const body = await readJson(resp);
         if (!resp.ok) {
-          errorEl.textContent = body.detail || "Errore, riprova.";
+          errorEl.textContent = body.detail || "Error, try again.";
           errorEl.classList.remove("hidden");
           return;
         }
@@ -2520,7 +2521,7 @@
         closeAuthModal();
         if (!appStarted) startApp();
       } catch (err) {
-        errorEl.textContent = err.message || "Errore di rete.";
+        errorEl.textContent = err.message || "Network error.";
         errorEl.classList.remove("hidden");
       }
     });
@@ -2588,7 +2589,7 @@
     const resetBtn = document.createElement("button");
     resetBtn.type = "button";
     resetBtn.className = "param-btn-reset";
-    resetBtn.textContent = "Reset default";
+    resetBtn.textContent = "Reset to default";
     resetBtn.addEventListener("click", async () => {
       try {
         await fetch(`/api/watchlist/${entry.id}/strategy_params`, {
@@ -2604,7 +2605,7 @@
     const saveBtn = document.createElement("button");
     saveBtn.type = "button";
     saveBtn.className = "param-btn-save";
-    saveBtn.textContent = "Salva";
+    saveBtn.textContent = "Save";
     saveBtn.addEventListener("click", async () => {
       const params = {};
       fields.forEach((field) => {
@@ -2642,7 +2643,7 @@
     const openBtn = document.createElement("button");
     openBtn.type = "button";
     openBtn.className = "wl-activate-btn";
-    openBtn.textContent = "+ Attiva strategia da archivio";
+    openBtn.textContent = "+ Activate strategy from archive";
     wrap.appendChild(openBtn);
 
     const box = document.createElement("div");
@@ -2666,12 +2667,12 @@
       box.innerHTML = "";
       const q = document.createElement("p");
       q.className = "wl-flow-q";
-      q.textContent = `${entry.symbol}: questa strategia deve solo avvisarti, o anche operare da sola?`;
+      q.textContent = `${entry.symbol}: should this strategy only alert you, or also trade on its own?`;
       box.appendChild(q);
       const row = document.createElement("div");
       row.className = "wl-mode-row";
-      row.appendChild(mkBtn("Solo alert", () => { flowMode = "alert"; stepArchive(); }));
-      row.appendChild(mkBtn("Anche operazioni automatiche", () => {
+      row.appendChild(mkBtn("Alerts only", () => { flowMode = "alert"; stepArchive(); }));
+      row.appendChild(mkBtn("Also auto-trade", () => {
         flowMode = "auto";
         if (FUTURES_PAIR_EXCHANGES.has(entry.exchange)) stepMarket(); else stepCredCheck();
       }, true));
@@ -2682,17 +2683,17 @@
       box.innerHTML = "";
       const q = document.createElement("p");
       q.className = "wl-flow-q";
-      q.textContent = `Su ${entry.exchange.toUpperCase()}: spot o futures a leva?`;
+      q.textContent = `On ${entry.exchange.toUpperCase()}: spot or leveraged futures?`;
       box.appendChild(q);
       const row = document.createElement("div");
       row.className = "wl-mode-row";
       row.appendChild(mkBtn("Spot", () => { flowMarket = "spot"; stepCredCheck(); }));
-      row.appendChild(mkBtn("Futures (leva)", () => { flowMarket = "futures"; stepCredCheck(); }, true));
+      row.appendChild(mkBtn("Futures (leverage)", () => { flowMarket = "futures"; stepCredCheck(); }, true));
       box.appendChild(row);
     }
 
     async function stepCredCheck() {
-      box.innerHTML = `<p class="wl-flow-q">Verifico la chiave API…</p>`;
+      box.innerHTML = `<p class="wl-flow-q">Checking API key…</p>`;
       const endpoint = flowMarket === "futures" ? "/api/auth/futures" : "/api/auth/trading";
       let list = [];
       try { list = await fetch(endpoint).then((r) => r.json()); } catch { list = []; }
@@ -2713,21 +2714,21 @@
       box.innerHTML = "";
       const q = document.createElement("p");
       q.className = "wl-flow-q";
-      q.textContent = "Tetto massimo per singolo ordine di ingresso (facoltativo):";
+      q.textContent = "Max cap per single entry order (optional):";
       box.appendChild(q);
       const hint = document.createElement("p");
       hint.className = "panel-hint";
-      hint.textContent = "Lascia vuoto per usare sempre l'importo/percentuale impostati sulla chiave exchange, senza limiti aggiuntivi. Non tocca mai le chiusure, che chiudono per intero.";
+      hint.textContent = "Leave empty to always use the amount/percentage set on the exchange key, with no extra limit. Never affects exits, which always close in full.";
       box.appendChild(hint);
       const capInput = document.createElement("input");
       capInput.type = "number";
       capInput.min = "0";
       capInput.step = "1";
-      capInput.placeholder = "Nessun tetto (es. 500 per 500 USDT)";
+      capInput.placeholder = "No cap (e.g. 500 for 500 USDT)";
       box.appendChild(capInput);
       const row = document.createElement("div");
       row.className = "wl-mode-row";
-      row.appendChild(mkBtn("Continua", () => {
+      row.appendChild(mkBtn("Continue", () => {
         const v = parseFloat(capInput.value);
         flowCap = Number.isFinite(v) && v > 0 ? v : 0;
         stepArchive();
@@ -2739,7 +2740,7 @@
       box.innerHTML = "";
       const q = document.createElement("p");
       q.className = "wl-flow-q";
-      q.textContent = `Collega ${entry.exchange.toUpperCase()} (${flowMarket === "futures" ? "futures" : "spot"}) — chiave con permessi di trading, mai di prelievo.`;
+      q.textContent = `Connect ${entry.exchange.toUpperCase()} (${flowMarket === "futures" ? "futures" : "spot"}) — key with trading permissions, never withdrawal.`;
       box.appendChild(q);
       const keyInput = document.createElement("input");
       keyInput.type = "text"; keyInput.placeholder = "API Key"; keyInput.autocomplete = "off";
@@ -2758,9 +2759,9 @@
       const submitBtn = document.createElement("button");
       submitBtn.type = "button";
       submitBtn.className = "wl-mode-btn wl-mode-danger active";
-      submitBtn.textContent = "Connetti";
+      submitBtn.textContent = "Connect";
       submitBtn.addEventListener("click", async () => {
-        if (!keyInput.value || !secretInput.value) { status.textContent = "Chiave e secret obbligatori"; return; }
+        if (!keyInput.value || !secretInput.value) { status.textContent = "Key and secret are required"; return; }
         submitBtn.disabled = true;
         const endpoint = flowMarket === "futures" ? "/api/auth/futures" : "/api/auth/trading";
         const body = {
@@ -2772,8 +2773,8 @@
             method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
           });
           if (resp.ok) { if (flowMode === "auto") stepCap(); else stepArchive(); }
-          else status.textContent = (await resp.json().catch(() => ({}))).detail || `Errore (${resp.status})`;
-        } catch { status.textContent = "Errore di rete"; }
+          else status.textContent = (await resp.json().catch(() => ({}))).detail || `Error (${resp.status})`;
+        } catch { status.textContent = "Network error"; }
         submitBtn.disabled = false;
       });
       box.appendChild(submitBtn);
@@ -2781,7 +2782,7 @@
     }
 
     async function stepArchive() {
-      box.innerHTML = `<p class="wl-flow-q">Carico l'archivio…</p>`;
+      box.innerHTML = `<p class="wl-flow-q">Loading archive…</p>`;
       let data = { items: [] };
       try { data = await fetch("/api/archive").then((r) => r.json()); } catch { /* fallback sotto */ }
       const norm = (s) => (s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -2793,14 +2794,14 @@
       if (!matches.length) {
         const p = document.createElement("p");
         p.className = "panel-hint";
-        p.textContent = `Nessuna configurazione pronta in archivio per ${entry.symbol} su ${entry.exchange.toUpperCase()}.`;
+        p.textContent = `No ready configuration in the archive for ${entry.symbol} on ${entry.exchange.toUpperCase()}.`;
         box.appendChild(p);
         stepFresh();
         return;
       }
       const q = document.createElement("p");
       q.className = "wl-flow-q";
-      q.textContent = "Scegli la strategia dall'archivio:";
+      q.textContent = "Pick a strategy from the archive:";
       box.appendChild(q);
       const fmtPct = (v) => (v == null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(1)}%`);
       matches.forEach((it) => {
@@ -2813,21 +2814,21 @@
         card.innerHTML = `
           <div class="wl-archive-head"><b>${escapeHtml(strategyLabel(it.strategy_name))}</b><span class="wl-archive-ret ${m.total_return_pct > 0 ? "up" : m.total_return_pct < 0 ? "down" : ""}">${fmtPct(m.total_return_pct)}</span></div>
           <div class="wl-archive-stats">
-            <span>${m.num_trades ?? "—"} trade</span>
+            <span>${m.num_trades ?? "—"} trades</span>
             <span>win ${m.win_rate_pct != null ? m.win_rate_pct.toFixed(0) + "%" : "—"}</span>
             <span>DD ${m.max_drawdown_pct != null ? m.max_drawdown_pct.toFixed(1) + "%" : "—"}</span>
             <span>PF ${m.profit_factor != null ? m.profit_factor.toFixed(2) : "—"}</span>
             <span>Sharpe ${m.sharpe_ratio != null ? m.sharpe_ratio.toFixed(2) : "—"}</span>
-            <span>${m.interval || entry.interval || "—"} · ${m.candles ?? "—"} candele</span>
+            <span>${m.interval || entry.interval || "—"} · ${m.candles ?? "—"} candles</span>
           </div>
-          <button type="button" class="wl-archive-use-btn">Usa questa</button>
+          <button type="button" class="wl-archive-use-btn">Use this</button>
           <span class="wl-flow-status"></span>
         `;
         const useBtn = card.querySelector(".wl-archive-use-btn");
         const status = card.querySelector(".wl-flow-status");
         useBtn.addEventListener("click", async () => {
           useBtn.disabled = true;
-          status.textContent = "Attivo…";
+          status.textContent = "Activating…";
           try {
             const resp = await fetch(`/api/archive/${it.id}/apply-to-alert`, {
               method: "POST", headers: { "Content-Type": "application/json" },
@@ -2844,15 +2845,15 @@
                   });
                 }
               }
-              status.textContent = "✓ Attivata";
+              status.textContent = "✓ Activated";
               loadWatchlist();
             } else {
               const err = await resp.json().catch(() => ({}));
-              status.textContent = err.detail || `Errore (${resp.status})`;
+              status.textContent = err.detail || `Error (${resp.status})`;
               useBtn.disabled = false;
             }
           } catch {
-            status.textContent = "Errore di rete";
+            status.textContent = "Network error";
             useBtn.disabled = false;
           }
         });
@@ -2861,7 +2862,7 @@
       const freshBtn = document.createElement("button");
       freshBtn.type = "button";
       freshBtn.className = "wl-activate-btn";
-      freshBtn.textContent = "Testa una strategia nuova invece";
+      freshBtn.textContent = "Test a new strategy instead";
       freshBtn.addEventListener("click", () => { box.innerHTML = ""; stepFresh(); });
       box.appendChild(freshBtn);
     }
@@ -2872,7 +2873,7 @@
     function stepFresh() {
       const q = document.createElement("p");
       q.className = "wl-flow-q";
-      q.textContent = "Testa una strategia con i parametri di default:";
+      q.textContent = "Test a strategy with default parameters:";
       box.appendChild(q);
       (state.availableStrategies || []).forEach((name) => {
         const btn = document.createElement("button");
@@ -2944,10 +2945,10 @@
       if (resp.ok) {
         entries = await resp.json();
       } else {
-        showTabError("watchlist-list", `Errore caricamento watchlist (${resp.status}).`);
+        showTabError("watchlist-list", `Error loading watchlist (${resp.status}).`);
       }
     } catch (err) {
-      showTabError("watchlist-list", "Impossibile caricare la watchlist: problema di rete.");
+      showTabError("watchlist-list", "Couldn't load the watchlist: network problem.");
     }
     state.alertEntries = entries; // read by renderFavorites() for the alert-bell indicator
     renderFavorites();
@@ -2956,11 +2957,11 @@
       Array.from(list.querySelectorAll(".tick-card.open")).map((c) => c.dataset.entryId)
     );
     list.innerHTML = "";
-    el("watchlist-count").textContent = entries.length ? `${entries.length} attiv${entries.length === 1 ? "o" : "i"}` : "";
+    el("watchlist-count").textContent = entries.length ? `${entries.length} active` : "";
     if (!entries.length) {
       const li = document.createElement("li");
       li.className = "panel-hint";
-      li.textContent = "Nessun ticker in watchlist.";
+      li.textContent = "No tickers in watchlist.";
       list.appendChild(li);
       return;
     }
@@ -2974,11 +2975,11 @@
       const activeCount = entry.strategies.length;
       const hasCustomParams = Object.keys(entry.strategy_params || {}).length > 0;
       head.innerHTML = `
-        <span><span class="wl-symbol">${entry.symbol}</span><span class="wl-exch">${entry.asset_type === "crypto" ? entry.exchange.toUpperCase() : "Azioni"} · ${entry.interval}</span></span>
-        ${entry.on_close ? '<span class="wl-close-badge" title="Alert alla chiusura della candela">CLOSE</span>' : ""}
-        ${hasCustomParams ? '<span class="wl-custom-badge" title="Uno o più parametri personalizzati">★</span>' : ""}
-        <span class="wl-summary">${activeCount ? `${activeCount} attiv${activeCount === 1 ? "a" : "e"}` : "nessuna attiva"}</span>
-        <button type="button" class="wl-head-remove" title="Rimuovi questo ticker dalla watchlist">✕</button>
+        <span><span class="wl-symbol">${entry.symbol}</span><span class="wl-exch">${entry.asset_type === "crypto" ? entry.exchange.toUpperCase() : "Stocks"} · ${entry.interval}</span></span>
+        ${entry.on_close ? '<span class="wl-close-badge" title="Alert on candle close">CLOSE</span>' : ""}
+        ${hasCustomParams ? '<span class="wl-custom-badge" title="One or more custom parameters">★</span>' : ""}
+        <span class="wl-summary">${activeCount ? `${activeCount} active` : "none active"}</span>
+        <button type="button" class="wl-head-remove" title="Remove this ticker from the watchlist">✕</button>
         <span class="wl-caret">▾</span>
       `;
       // La x sulla riga chiusa toglie l'intero ticker senza dover prima
@@ -3001,7 +3002,7 @@
       const intervalRow = document.createElement("div");
       intervalRow.className = "strat-row wl-interval-row";
       const intervalLabel = document.createElement("span");
-      intervalLabel.textContent = "Timeframe strategie";
+      intervalLabel.textContent = "Strategy timeframe";
       const intervalSelect = document.createElement("select");
       intervalSelect.className = "wl-interval-select";
       CANONICAL_INTERVALS.forEach((iv) => {
@@ -3033,11 +3034,11 @@
       const onCloseRow = document.createElement("div");
       onCloseRow.className = "strat-row wl-onclose-row";
       const onCloseLabel = document.createElement("span");
-      onCloseLabel.textContent = "Alla chiusura della candela";
+      onCloseLabel.textContent = "On candle close";
       const onCloseToggle = document.createElement("button");
       onCloseToggle.type = "button";
       onCloseToggle.className = "wl-toggle" + (entry.on_close ? " on" : "");
-      onCloseToggle.title = "Se attivo, l'alert scatta solo quando la candela chiude — niente falsi segnali intra-bar";
+      onCloseToggle.title = "When on, the alert fires only when the candle closes — no false intra-bar signals";
       onCloseToggle.innerHTML = '<span class="knob"></span>';
       onCloseToggle.addEventListener("click", async () => {
         const nextOn = !onCloseToggle.classList.contains("on");
@@ -3075,7 +3076,7 @@
           const gearBtn = document.createElement("button");
           gearBtn.type = "button";
           gearBtn.className = "strat-gear" + (customParams ? " active" : "");
-          gearBtn.title = "Parametri di questa strategia per questo ticker";
+          gearBtn.title = "This strategy's parameters for this ticker";
           gearBtn.innerHTML =
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
           gearBtn.addEventListener("click", (e) => {
@@ -3119,8 +3120,8 @@
           freqRow.className = "strat-sub-row";
           const freqSel = document.createElement("select");
           freqSel.className = "wl-freq-select";
-          freqSel.title = "Frequenza degli alert per questa strategia";
-          [["every", "Ogni segnale"], ["once", "Solo la prima volta"]].forEach(([val, label]) => {
+          freqSel.title = "Alert frequency for this strategy";
+          [["every", "Every signal"], ["once", "First time only"]].forEach(([val, label]) => {
             const opt = document.createElement("option");
             opt.value = val;
             opt.textContent = label;
@@ -3137,7 +3138,7 @@
           // Per-strategy interval selector
           const stratIvSel = document.createElement("select");
           stratIvSel.className = "wl-freq-select";
-          stratIvSel.title = "Timeframe specifico per questa strategia";
+          stratIvSel.title = "Timeframe specific to this strategy";
           const defaultOpt = document.createElement("option");
           defaultOpt.value = "";
           defaultOpt.textContent = `Default (${entry.interval})`;
@@ -3160,7 +3161,7 @@
           const testBtn = document.createElement("button");
           testBtn.type = "button";
           testBtn.className = "wl-test-btn";
-          testBtn.title = "Invia un test su Telegram con l'ultimo segnale rilevato";
+          testBtn.title = "Send a Telegram test with the latest detected signal";
           testBtn.textContent = "🧪";
           testBtn.addEventListener("click", async (e) => {
             e.stopPropagation();
@@ -3190,11 +3191,11 @@
           const alertBtn = document.createElement("button");
           alertBtn.type = "button";
           alertBtn.className = "wl-mode-btn" + (isAuto ? "" : " active");
-          alertBtn.textContent = "Solo alert";
+          alertBtn.textContent = "Alerts only";
           const autoBtn = document.createElement("button");
           autoBtn.type = "button";
           autoBtn.className = "wl-mode-btn wl-mode-danger" + (isAuto ? " active" : "");
-          autoBtn.textContent = "Trading automatico";
+          autoBtn.textContent = "Auto-trading";
           const setMode = async (auto) => {
             alertBtn.classList.toggle("active", !auto);
             autoBtn.classList.toggle("active", auto);
@@ -3211,7 +3212,7 @@
           if (isAuto) {
             const hint = document.createElement("p");
             hint.className = "panel-hint wl-autotrade-hint";
-            hint.textContent = `Ordini reali su ${entry.exchange.toUpperCase()} ad ogni segnale — richiede API key configurate e abilitate qui sotto per questo exchange.`;
+            hint.textContent = `Real orders on ${entry.exchange.toUpperCase()} on every signal — requires API keys set up and enabled below for this exchange.`;
             body.appendChild(hint);
 
             // Spot/futures esiste solo dove l'exchange ha anche un adattatore
@@ -3228,7 +3229,7 @@
               const futBtn = document.createElement("button");
               futBtn.type = "button";
               futBtn.className = "wl-mode-btn wl-mode-danger" + (isFutures ? " active" : "");
-              futBtn.textContent = "Futures (leva)";
+              futBtn.textContent = "Futures (leverage)";
               const setMarket = async (market) => {
                 spotBtn.classList.toggle("active", market === "spot");
                 futBtn.classList.toggle("active", market === "futures");
@@ -3245,7 +3246,7 @@
               if (isFutures) {
                 const futHint = document.createElement("p");
                 futHint.className = "panel-hint wl-autotrade-hint";
-                futHint.textContent = "Leva e margine secondo le credenziali futures configurate qui sotto per questo exchange.";
+                futHint.textContent = "Leverage and margin follow the futures credentials set up below for this exchange.";
                 body.appendChild(futHint);
               }
             }
@@ -3258,13 +3259,13 @@
             capRow.className = "strat-sub-row wl-cap-row";
             const capLabel = document.createElement("span");
             capLabel.className = "wl-cap-label";
-            capLabel.textContent = "Tetto per ingresso (USDT):";
+            capLabel.textContent = "Cap per entry (USDT):";
             const capInput = document.createElement("input");
             capInput.type = "number";
             capInput.min = "0";
             capInput.step = "1";
             capInput.className = "wl-cap-input";
-            capInput.placeholder = "nessuno";
+            capInput.placeholder = "none";
             capInput.value = entry.size_cap_usdt?.[name] || "";
             let capTimer = null;
             capInput.addEventListener("input", () => {
@@ -3289,10 +3290,10 @@
           body.appendChild(statsRow);
           fetch(`/api/watchlist/${entry.id}/stats`).then(r => r.json()).then(stats => {
             const s = stats[name];
-            if (!s || !s.last_ts) { statsRow.textContent = "Nessun alert inviato"; return; }
+            if (!s || !s.last_ts) { statsRow.textContent = "No alerts sent"; return; }
             const diff = Math.floor(Date.now() / 1000) - s.last_ts;
-            const ago = diff < 3600 ? `${Math.floor(diff / 60)}m fa` : diff < 86400 ? `${Math.floor(diff / 3600)}h fa` : new Date(s.last_ts * 1000).toLocaleDateString("it-IT");
-            statsRow.textContent = `Ultimo: ${ago} · ${s.count} alert totali`;
+            const ago = diff < 3600 ? `${Math.floor(diff / 60)}m ago` : diff < 86400 ? `${Math.floor(diff / 3600)}h ago` : new Date(s.last_ts * 1000).toLocaleDateString("en-US");
+            statsRow.textContent = `Last: ${ago} · ${s.count} alerts total`;
           }).catch(() => { statsRow.textContent = ""; });
         }
       });
@@ -3300,7 +3301,7 @@
       const removeBtn = document.createElement("button");
       removeBtn.type = "button";
       removeBtn.className = "wl-remove";
-      removeBtn.textContent = "✕ Rimuovi ticker";
+      removeBtn.textContent = "✕ Remove ticker";
       removeBtn.style.marginTop = "4px";
       removeBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
@@ -3335,7 +3336,7 @@
       const body = await resp.json();
       renderArchive(body.items || []);
     } catch {
-      list.innerHTML = '<li class="panel-hint">Archivio non raggiungibile.</li>';
+      list.innerHTML = '<li class="panel-hint">Archive unreachable.</li>';
     }
   }
 
@@ -3345,13 +3346,13 @@
     if (!list) return;
     if (count) count.textContent = items.length ? String(items.length) : "";
     if (!items.length) {
-      list.innerHTML = '<li class="panel-hint">Nessuna strategia archiviata. Attivane una dalla watchlist, oppure salvala dal Laboratorio.</li>';
+      list.innerHTML = '<li class="panel-hint">No archived strategies. Activate one from the watchlist, or save one from the Lab.</li>';
       return;
     }
 
     const pct = (v) => (v === null || v === undefined ? "—" : `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`);
     const num = (v, d = 2) => (v === null || v === undefined ? "—" : v.toFixed(d));
-    const when = (ts) => new Date(ts * 1000).toLocaleDateString("it-IT",
+    const when = (ts) => new Date(ts * 1000).toLocaleDateString("en-US",
       { day: "2-digit", month: "short", year: "2-digit" });
 
     // Condivisa fra la card (dove avvisa) e il confronto fra voci dello
@@ -3360,10 +3361,10 @@
     const warnFlagsFor = (e) => {
       const o = e.optimizer || {};
       const warn = [];
-      if (o.regime_passed === false) warn.push("gate non superato");
-      if (o.overfitted) warn.push("sovradattato");
-      if (o.deterministic === false) warn.push("in parte campionata");
-      if (o.pbo != null && o.pbo >= 0.2) warn.push(`sovra-ottimizzazione ${(o.pbo * 100).toFixed(0)}%`);
+      if (o.regime_passed === false) warn.push("gate not passed");
+      if (o.overfitted) warn.push("overfitted");
+      if (o.deterministic === false) warn.push("partly sampled");
+      if (o.pbo != null && o.pbo >= 0.2) warn.push(`over-optimization ${(o.pbo * 100).toFixed(0)}%`);
       return warn;
     };
 
@@ -3372,14 +3373,14 @@
       const body = e.state === "pronto" && m
         ? `<div class="arch-metrics">
              <span class="${m.total_return_pct >= 0 ? "bull" : "bear"}">${pct(m.total_return_pct)}</span>
-             <span>${m.num_trades} trade</span>
+             <span>${m.num_trades} trades</span>
              <span>DD ${pct(m.max_drawdown_pct)}</span>
              <span>PF ${num(m.profit_factor)}</span>
-             <span>${m.candles} candele · ${m.interval}</span>
+             <span>${m.candles} candles · ${m.interval}</span>
            </div>`
         : e.state === "fallito"
-        ? `<div class="arch-failed">Backtest non riuscito: ${escapeHtml(e.error || "motivo non registrato")}</div>`
-        : '<div class="arch-pending">Backtest in corso…</div>';
+        ? `<div class="arch-failed">Backtest failed: ${escapeHtml(e.error || "reason not recorded")}</div>`
+        : '<div class="arch-pending">Backtest running…</div>';
       const params = Object.entries(e.params || {})
         .map(([k, v]) => `${escapeHtml(k)}=${escapeHtml(String(v))}`).join(" · ");
       // Come si è arrivati a quei parametri. Senza, due risultati con lo stesso
@@ -3387,36 +3388,36 @@
       // e uno no — sembrerebbero la stessa cosa.
       const o = e.optimizer || {};
       const flags = [];
-      if (o.mode) flags.push(`ricerca ${o.mode === "plateau" ? "stabile" : o.mode === "grid" ? "griglia" : "rapida"}`);
+      if (o.mode) flags.push(`${o.mode === "plateau" ? "stable" : o.mode === "grid" ? "grid" : "quick"} search`);
       if (o.evaluations) flags.push(`${o.evaluations} backtest`);
       if (o.out_of_sample_return_pct != null) {
-        flags.push(`fuori campione ${o.out_of_sample_return_pct >= 0 ? "+" : ""}${o.out_of_sample_return_pct.toFixed(1)}%`);
+        flags.push(`out-of-sample ${o.out_of_sample_return_pct >= 0 ? "+" : ""}${o.out_of_sample_return_pct.toFixed(1)}%`);
       }
       const warn = warnFlagsFor(e);
       const badgeHtml = badge === "best"
-        ? '<span class="arch-best-badge" title="Fra le voci di questo ticker, quella che regge meglio ai controlli">★ Consigliata</span>'
+        ? '<span class="arch-best-badge" title="Among this ticker\'s entries, the one that holds up best under the checks">★ Recommended</span>'
         : badge === "least-bad"
-        ? '<span class="arch-best-badge arch-caution-badge" title="Nessuna voce di questo ticker supera tutti i controlli — questa e\' la meno peggio">meno peggio</span>'
+        ? '<span class="arch-best-badge arch-caution-badge" title="No entry for this ticker passes every check — this is the least bad">least bad</span>'
         : "";
       return `
         <li class="arch-card${badge === "best" ? " arch-best" : ""}" data-id="${e.id}">
           <div class="arch-head">
             ${badgeHtml}
             <span class="arch-strat">${escapeHtml(strategyLabel(e.strategy_name))}</span>
-            <span class="arch-src">${e.source === "alert" ? "da alert" : "salvata a mano"}</span>
+            <span class="arch-src">${e.source === "alert" ? "from alert" : "saved manually"}</span>
             <span class="arch-date">${when(e.created_at)}</span>
           </div>
           ${body}
           ${flags.length ? `<div class="arch-how">${flags.map(escapeHtml).join(" · ")}</div>` : ""}
           ${warn.length ? `<div class="arch-warn">⚠ ${warn.map(escapeHtml).join(" · ")}</div>` : ""}
-          ${params ? `<div class="arch-params">${params}</div>` : '<div class="arch-params">parametri di default</div>'}
+          ${params ? `<div class="arch-params">${params}</div>` : '<div class="arch-params">default parameters</div>'}
           ${e.note ? `<div class="arch-note">${escapeHtml(e.note)}</div>` : ""}
           <div class="arch-actions">
-            <button type="button" class="arch-apply" data-id="${e.id}">Applica al grafico</button>
-            <button type="button" class="arch-alert" data-id="${e.id}">Attiva l'alert</button>
+            <button type="button" class="arch-apply" data-id="${e.id}">Apply to chart</button>
+            <button type="button" class="arch-alert" data-id="${e.id}">Enable alert</button>
             <button type="button" class="arch-export" data-id="${e.id}">⤓ Excel</button>
-            <button type="button" class="arch-share" data-id="${e.id}">⇪ Condividi</button>
-            <button type="button" class="arch-del" data-id="${e.id}">Elimina</button>
+            <button type="button" class="arch-share" data-id="${e.id}">⇪ Share</button>
+            <button type="button" class="arch-del" data-id="${e.id}">Delete</button>
           </div>
           <p class="arch-status hidden" data-status="${e.id}"></p>
         </li>`;
@@ -3452,14 +3453,14 @@
       const bits = [];
       bits.push(best.flags.length
         ? `⚠ ${best.flags.join(", ")}`
-        : "nessun controllo statistico saltato");
-      bits.push(`${best.usedOOS ? "rendimento fuori campione" : "rendimento"} ${pct(best.ret)}, drawdown ${pct(-best.dd)}`);
+        : "no statistical check skipped");
+      bits.push(`${best.usedOOS ? "out-of-sample return" : "return"} ${pct(best.ret)}, drawdown ${pct(-best.dd)}`);
       const deltaRet = best.ret - runnerUp.ret;
       if (Math.abs(deltaRet) >= 0.5) {
-        bits.push(`${deltaRet >= 0 ? "sopra" : "sotto"} la seconda voce di ${Math.abs(deltaRet).toFixed(1)} punti`);
+        bits.push(`${Math.abs(deltaRet).toFixed(1)} points ${deltaRet >= 0 ? "above" : "below"} the runner-up`);
       }
       if (best.flags.length === 0 && runnerUp.flags.length > 0) {
-        bits.push("le altre saltano almeno un controllo");
+        bits.push("the others fail at least one check");
       }
 
       // Nessuna voce pulita: dirlo chiaro invece di consigliarne comunque una
@@ -3475,8 +3476,8 @@
         bestId: allFlagged ? null : best.entry.id,
         leastBadId: allFlagged ? best.entry.id : null,
         html: allFlagged
-          ? `<div class="arch-recommend arch-recommend-warn">Nessuna voce di ${escapeHtml(best.entry.symbol)} supera tutti i controlli — trattale come esplorative, non come segnale operativo. Quella che regge meglio: <b>${escapeHtml(strategyLabel(best.entry.strategy_name))}</b> (${bits.map(escapeHtml).join(" · ")}).</div>`
-          : `<div class="arch-recommend">★ Consigliata: <b>${escapeHtml(strategyLabel(best.entry.strategy_name))}</b> — ${bits.map(escapeHtml).join(" · ")}</div>`,
+          ? `<div class="arch-recommend arch-recommend-warn">No entry for ${escapeHtml(best.entry.symbol)} passes every check — treat them as exploratory, not as a trading signal. The one that holds up best: <b>${escapeHtml(strategyLabel(best.entry.strategy_name))}</b> (${bits.map(escapeHtml).join(" · ")}).</div>`
+          : `<div class="arch-recommend">★ Recommended: <b>${escapeHtml(strategyLabel(best.entry.strategy_name))}</b> — ${bits.map(escapeHtml).join(" · ")}</div>`,
       };
     };
 
@@ -3527,7 +3528,7 @@
       btn.addEventListener("click", async () => {
         try {
           const resp = await fetch(`/api/archive/${btn.dataset.id}/export`);
-          if (!resp.ok) throw new Error(`Errore ${resp.status}`);
+          if (!resp.ok) throw new Error(`Error ${resp.status}`);
           const data = await resp.json();
           const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
           const url = URL.createObjectURL(blob);
@@ -3537,7 +3538,7 @@
           a.click();
           URL.revokeObjectURL(url);
         } catch (err) {
-          alert("Impossibile esportare: " + err.message);
+          alert("Couldn't export: " + err.message);
         }
       });
     });
@@ -3593,12 +3594,12 @@
           const resp = await fetch(`/api/archive/${id}/apply-to-alert`, { method: "POST" });
           const data = await readJson(resp);
           if (!resp.ok) {
-            say("✗ " + (data.detail || `Errore ${resp.status}`), "error");
+            say("✗ " + (data.detail || `Error ${resp.status}`), "error");
             return;
           }
           const n = Object.keys(data.params || {}).length;
-          say(`✓ Alert attivo su ${entry ? entry.symbol : ""} (${data.interval || ""}) — `
-              + `${strategyLabel(data.strategy_name)}, ${n ? n + " parametri archiviati applicati" : "parametri di default"}`, "ok");
+          say(`✓ Alert active on ${entry ? entry.symbol : ""} (${data.interval || ""}) — `
+              + `${strategyLabel(data.strategy_name)}, ${n ? n + " archived parameters applied" : "default parameters"}`, "ok");
           loadWatchlist();
         } catch (err) {
           // readJson() alza un errore che nomina stato e corpo della risposta
@@ -3606,7 +3607,7 @@
           // qui e' l'unica differenza fra "il server ha risposto male" e "il
           // browser non e' arrivato al server": scartarlo lasciava un "Errore
           // di rete" che non si puo' diagnosticare.
-          say("✗ " + (err.message || "Errore di rete"), "error");
+          say("✗ " + (err.message || "Network error"), "error");
         } finally {
           btn.disabled = false;
           btn.textContent = prev;
@@ -3696,7 +3697,7 @@
 
   async function saveLabToArchive() {
     if (!state.user) {
-      labEl("lab-status").textContent = "Accedi per salvare nell'archivio.";
+      labEl("lab-status").textContent = "Log in to save to the archive.";
       labEl("lab-status").classList.remove("hidden");
       return;
     }
@@ -3722,8 +3723,8 @@
     });
     const status = labEl("lab-status");
     status.textContent = resp.ok
-      ? "Salvata nell'archivio (scheda Watchlist). Il backtest viene ricalcolato dal server."
-      : "Salvataggio non riuscito.";
+      ? "Saved to the archive (Watchlist tab). The backtest is recomputed by the server."
+      : "Save failed.";
     status.classList.remove("hidden");
     if (resp.ok) loadArchive();
   }
@@ -3754,11 +3755,11 @@
           });
           if (!resp.ok) {
             const err = await resp.json().catch(() => ({}));
-            throw new Error(err.detail || `Errore ${resp.status}`);
+            throw new Error(err.detail || `Error ${resp.status}`);
           }
           loadArchive();
         } catch (err) {
-          alert("Impossibile importare: " + err.message);
+          alert("Couldn't import: " + err.message);
         }
       });
     }
@@ -3793,7 +3794,7 @@
     } catch {
       const head = text.trim().slice(0, 120);
       throw new Error(
-        `Il server ha risposto ${resp.status} ${resp.statusText || ""} senza JSON`
+        `The server responded ${resp.status} ${resp.statusText || ""} without JSON`
         + (head ? ` — "${head}"` : "")
       );
     }
@@ -3814,7 +3815,7 @@
       const secs = Math.max(...running.map((j) => j.elapsed || 0));
       pill.className = "opt-pill";
       pill.innerHTML = `<span class="op-spin" aria-hidden="true"></span>`
-        + `<span class="op-text">${running.length === 1 ? "1 ricerca" : running.length + " ricerche"} · `
+        + `<span class="op-text">${running.length === 1 ? "1 search" : running.length + " searches"} · `
         + `${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, "0")}</span>`;
       pill.title = running.map((j) => j.sub).join(" · ");
     } else {
@@ -3823,8 +3824,8 @@
       const kind = failed ? "failed" : stopped ? "" : "done";
       pill.className = "opt-pill " + kind;
       pill.innerHTML = `<span class="op-mark">${failed ? "✕" : stopped ? "◼" : "✓"}</span>`
-        + `<span class="op-text">${failed ? "ricerca fallita"
-          : stopped ? "ricerca fermata" : "salvata in archivio"}</span>`;
+        + `<span class="op-text">${failed ? "search failed"
+          : stopped ? "search stopped" : "saved to archive"}</span>`;
     }
     pill.classList.remove("hidden");
   }
@@ -3883,39 +3884,39 @@
   // Un parametro che ne cambiasse la forma va cambiato in entrambi i posti.
   function plateauAnimParseLine(m) {
     let mm;
-    if ((mm = /^cerco i confini su (\d+) assi/.exec(m))) {
+    if ((mm = /^mapping boundaries on (\d+) axes/.exec(m))) {
       plateauAnim.totalAxes = +mm[1];
-    } else if ((mm = /^asse (.+?): (\d+) confin\w+ \S+ (\d+) intervall\w+ \((\d+) backtest\)/.exec(m))) {
+    } else if ((mm = /^axis (.+?): (\d+) boundar\w+ \S+ (\d+) interval\w* \((\d+) backtests\)/.exec(m))) {
       plateauAnim.axes.push({ name: mm[1], boundaries: +mm[2], cells: +mm[3], usedBt: +mm[4] });
       plateauAnim.axisBusy = 0;   // quell'asse e' chiuso, si riparte da zero sul prossimo
-    } else if ((mm = /^asse .+?: ancora al lavoro \S+ (\d+) backtest finora/.exec(m))) {
+    } else if ((mm = /^axis .+?: still working \S+ (\d+) backtests so far/.exec(m))) {
       // Un asse pesante puo' metterci decine di secondi prima della riga che
       // lo chiude: senza questa, il pannello restava fermo su "asse N/tot"
       // senza dire nulla — sembrava bloccato. Non e' un asse in piu', e'
       // quanto si e' gia' lavorato su quello ancora aperto.
       plateauAnim.axisBusy = +mm[1];
-    } else if ((mm = /= (\d+) celle(?:\s|$)/.exec(m)) && m.startsWith("griglia:")) {
+    } else if ((mm = /= (\d+) cells(?:\s|$)/.exec(m)) && m.startsWith("grid:")) {
       plateauAnim.gridCells = +mm[1];
-    } else if ((mm = /^(\d+) celle oltre il budget di (\d+):/.exec(m))) {
+    } else if ((mm = /^(\d+) cells over the budget of (\d+):/.exec(m))) {
       plateauAnim.gridCells = +mm[1];
       plateauAnim.budget = +mm[2];
-    } else if ((mm = /^provo il centro di (\d+) celle \(enumerate tutte\)/.exec(m))) {
+    } else if ((mm = /^trying the center of (\d+) cells \(all enumerated\)/.exec(m))) {
       plateauAnim.budget = +mm[1];
-    } else if ((mm = /^celle (\d+) \S+ (\d+) configurazioni distinte finora/.exec(m))) {
+    } else if ((mm = /^cells (\d+) \S+ (\d+) distinct configurations so far/.exec(m))) {
       plateauAnim.openedSoFar = +mm[1];
       plateauAnim.distinctSoFar = +mm[2];
-    } else if ((mm = /^(\d+) configurazioni distinte su (\d+) celle provate/.exec(m))) {
+    } else if ((mm = /^(\d+) distinct configurations over (\d+) cells tried/.exec(m))) {
       plateauAnim.distinctFinal = +mm[1];
       plateauAnim.openedFinal = +mm[2];
-    } else if ((mm = /ne scuoto (\d+) con (\d+) spostamenti/.exec(m))) {
+    } else if ((mm = /shaking (\d+) with (\d+) random shifts/.exec(m))) {
       plateauAnim.finalistsExpected = +mm[1];
       plateauAnim.probeSamples = +mm[2];
-    } else if ((mm = /^finalista (\d+)\/(\d+): regge (\d+) volt\w+ su (\d+) \S+ ([+-][\d.]+)% su (\d+) trade/.exec(m))) {
+    } else if ((mm = /^finalist (\d+)\/(\d+): holds (\d+) times? out of (\d+) \S+ ([+-][\d.]+)% over (\d+) trades/.exec(m))) {
       plateauAnim.finalists.push({
         rank: +mm[1], total: +mm[2], agreeN: +mm[3], agreeTotal: +mm[4],
         ret: parseFloat(mm[5]), trades: +mm[6],
       });
-    } else if ((mm = /^scelto: ([+-][\d.]+)% su (\d+) trade, stabile (\d+)% delle volte/.exec(m))) {
+    } else if ((mm = /^picked: ([+-][\d.]+)% over (\d+) trades, stable (\d+)% of the time/.exec(m))) {
       plateauAnim.picked = { ret: parseFloat(mm[1]), trades: +mm[2], stablePct: +mm[3] };
     }
   }
@@ -4036,7 +4037,7 @@
   }
 
   function plateauActBoundaries(ctx, W, H, t, T, pad) {
-    const label = `I confini — asse ${plateauAnim.axes.length}/${plateauAnim.totalAxes || "?"}`;
+    const label = `The bounds — axis ${plateauAnim.axes.length}/${plateauAnim.totalAxes || "?"}`;
     ctx.font = `500 10px var(--font-mono)`; ctx.fillStyle = T.dim;
     ctx.textAlign = "left"; ctx.textBaseline = "top";
     ctx.fillText(label, pad, 6);
@@ -4083,11 +4084,11 @@
         ctx.beginPath(); ctx.arc(sx, y, 2.4, 0, 6.2832); ctx.fillStyle = T.bull; ctx.fill();
         ctx.font = "400 9px var(--font-mono)"; ctx.fillStyle = T.bull;
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
-        ctx.fillText(`${plateauAnim.axisBusy} bt · al lavoro…`, x1 + 6, y);
+        ctx.fillText(`${plateauAnim.axisBusy} bt · working…`, x1 + 6, y);
       } else {
         ctx.font = "400 9px var(--font-mono)"; ctx.fillStyle = T.border;
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
-        ctx.fillText("in attesa", x1 + 6, y);
+        ctx.fillText("waiting", x1 + 6, y);
       }
     }
   }
@@ -4103,11 +4104,11 @@
     plateauGlow(ctx, cx, cy, 46, T.bull, T.dark ? 0.22 : 0.10, T.dark);
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.font = "700 21px var(--font-mono)"; ctx.fillStyle = T.ink;
-    ctx.fillText(plateauAnim.gridCells.toLocaleString("it-IT") + " celle", cx, cy - 8);
+    ctx.fillText(plateauAnim.gridCells.toLocaleString("en-US") + " cells", cx, cy - 8);
     ctx.font = "400 10px var(--font-mono)"; ctx.fillStyle = T.dim;
     ctx.fillText(plateauAnim.budget
-      ? `budget di ${plateauAnim.budget.toLocaleString("it-IT")} backtest`
-      : "provate tutte", cx, cy + 15);
+      ? `budget of ${plateauAnim.budget.toLocaleString("en-US")} backtests`
+      : "all tried", cx, cy + 15);
   }
 
   // ── Atto 3: l'apertura guidata — una spirale che si accende dal centro
@@ -4119,10 +4120,10 @@
   function plateauActOpen(ctx, W, H, t, T) {
     ctx.font = "500 10px var(--font-mono)"; ctx.fillStyle = T.dim;
     ctx.textAlign = "left"; ctx.textBaseline = "top";
-    ctx.fillText("L'apertura guidata", 14, 6);
+    ctx.fillText("Guided expansion", 14, 6);
     ctx.textAlign = "right";
-    ctx.fillText(`${plateauAnim.gridCells.toLocaleString("it-IT")} celle · budget `
-      + `${(plateauAnim.budget || plateauAnim.gridCells).toLocaleString("it-IT")}`, W - 14, 6);
+    ctx.fillText(`${plateauAnim.gridCells.toLocaleString("en-US")} cells · budget `
+      + `${(plateauAnim.budget || plateauAnim.gridCells).toLocaleString("en-US")}`, W - 14, 6);
     ctx.textAlign = "left";
 
     const budget = plateauAnim.budget || plateauAnim.gridCells || 1;
@@ -4161,15 +4162,15 @@
     }
 
     ctx.font = "400 10px var(--font-mono)"; ctx.fillStyle = T.ink;
-    ctx.fillText(`${opened.toLocaleString("it-IT")} celle aperte`, 14, H - 26);
+    ctx.fillText(`${opened.toLocaleString("en-US")} cells opened`, 14, H - 26);
     ctx.fillStyle = T.bull;
-    ctx.fillText(`${plateauAnim.distinctSoFar.toLocaleString("it-IT")} configurazioni distinte`, 14, H - 12);
+    ctx.fillText(`${plateauAnim.distinctSoFar.toLocaleString("en-US")} distinct configurations`, 14, H - 12);
   }
 
   // ── Atti 4-5: lo scuotimento e la scelta — orbite di puntini veri (verdi
   // quanto ha retto, rossi quanto no) intorno a ogni finalista. ──
   function plateauActShakeAndPick(ctx, W, H, t, T, act) {
-    const title = act === 4 ? "La scelta" : "Lo scuotimento";
+    const title = act === 4 ? "The pick" : "The shake-out";
     ctx.font = "500 10px var(--font-mono)"; ctx.fillStyle = T.dim;
     ctx.textAlign = "left"; ctx.textBaseline = "top";
     ctx.fillText(title, 14, 6);
@@ -4229,7 +4230,7 @@
     if (act === 4 && plateauAnim.picked) {
       ctx.font = "600 11px var(--font-mono)"; ctx.fillStyle = T.ink;
       ctx.textAlign = "right"; ctx.textBaseline = "top";
-      ctx.fillText(`stabile ${plateauAnim.picked.stablePct}% delle volte`, W - 14, 6);
+      ctx.fillText(`stable ${plateauAnim.picked.stablePct}% of the time`, W - 14, 6);
     }
     ctx.textAlign = "left"; ctx.textBaseline = "top";
     ctx.fillStyle = T.border;
@@ -4303,8 +4304,8 @@
     // La ricerca gira sul server: chiudere questa finestra, la scheda o il
     // telefono non la ferma. Va detto, altrimenti si resta a guardare.
     el("opt-progress-sub").textContent = job.sub
-      + " — puoi chiudere: continua sul server, resta un indicatore in basso, "
-      + "arriva un riepilogo su Telegram e finisce in archivio.";
+      + " — you can close this: it keeps running on the server, an indicator stays at the bottom, "
+      + "a summary arrives on Telegram and it ends up in the archive.";
     const list = el("opt-progress-log");
     list.innerHTML = "";
     appendOptLog(job.log);
@@ -4374,12 +4375,12 @@
       const resp = await fetch(`/api/jobs/${job.id}?since=${job.seen}`);
       if (resp.status === 404) {
         const body = await readJson(resp).catch(() => ({}));
-        const err = new Error(body.detail || "Lavoro non trovato o scaduto");
+        const err = new Error(body.detail || "Job not found or expired");
         err.terminal = true;
         throw err;
       }
       if (!resp.ok) {
-        throw new Error(`Lavoro non raggiungibile (${resp.status})`);
+        throw new Error(`Job unreachable (${resp.status})`);
       }
       job.pollFailures = 0;
       const data = await readJson(resp);
@@ -4394,7 +4395,7 @@
       if (data.state === "annullato") {
         // Fermata apposta: non e' un fallimento e non va raccontata come tale.
         job.state = "annullato";
-        job.footText = "Fermata.";
+        job.footText = "Stopped.";
         job.footKind = "";
         job.seenDone = true;
         if (optViewing === job.id) {
@@ -4404,19 +4405,19 @@
       } else if (data.state === "finito") {
         job.state = "finito";
         job.result = data.result;
-        job.footText = "Fatto. Salvata in archivio.";
+        job.footText = "Done. Saved to archive.";
         job.footKind = "ok";
         job.seenDone = optViewing === job.id;
         if (optViewing === job.id) optProgressFoot(job.footText, job.footKind);
         onOptFinished(job);
       } else if (data.state === "fallito") {
         job.state = "fallito";
-        job.error = data.error || "Ottimizzazione fallita";
+        job.error = data.error || "Optimization failed";
         job.footText = job.error;
         job.footKind = "error";
         job.seenDone = optViewing === job.id;
         if (optViewing === job.id) optProgressFoot(job.footText, job.footKind);
-        labEl("lab-status").textContent = "Errore ottimizzazione: " + job.error;
+        labEl("lab-status").textContent = "Optimization error: " + job.error;
         labEl("lab-status").classList.remove("hidden");
       }
     } catch (err) {
@@ -4430,7 +4431,7 @@
         return;
       }
       job.state = "fallito";
-      job.error = err.message || "Errore di rete";
+      job.error = err.message || "Network error";
       job.footText = job.error;
       job.footKind = "error";
       if (optViewing === job.id) optProgressFoot(job.footText, job.footKind);
@@ -4446,7 +4447,7 @@
     if (!body) return;
     if (labState.symbol !== job.symbol || labState.strategy !== job.strategy) {
       labEl("lab-status").textContent =
-        `Ricerca su ${job.symbol} conclusa: è in archivio (il Laboratorio ora mostra altro).`;
+        `Search on ${job.symbol} finished: it's in the archive (the Lab is now showing something else).`;
       labEl("lab-status").classList.remove("hidden");
       return;
     }
@@ -4481,7 +4482,7 @@
       const body = await resp.json();
       renderTradingJournal(body.items || []);
     } catch {
-      list.innerHTML = '<li class="panel-hint">Diario non raggiungibile.</li>';
+      list.innerHTML = '<li class="panel-hint">Order log unreachable.</li>';
     }
   }
 
@@ -4491,15 +4492,15 @@
     if (!list) return;
     if (count) count.textContent = items.length ? String(items.length) : "";
     if (!items.length) {
-      list.innerHTML = '<li class="panel-hint">Nessun tentativo registrato. Con le chiavi configurate, qui compare ogni ordine — eseguito, fallito o saltato, con il motivo.</li>';
+      list.innerHTML = '<li class="panel-hint">No attempts recorded. With keys set up, every order shows up here — executed, failed or skipped, with the reason.</li>';
       return;
     }
     const when = (ts) => {
       const diff = Math.floor(Date.now() / 1000) - ts;
-      if (diff < 60) return "ora";
-      if (diff < 3600) return `${Math.floor(diff / 60)}m fa`;
-      if (diff < 86400) return `${Math.floor(diff / 3600)}h fa`;
-      return new Date(ts * 1000).toLocaleDateString("it-IT", { day: "2-digit", month: "short" });
+      if (diff < 60) return "now";
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      return new Date(ts * 1000).toLocaleDateString("en-US", { day: "2-digit", month: "short" });
     };
     const mark = { eseguito: "✓", fallito: "✕", saltato: "–" };
     const pnlLabel = (e) => {
@@ -4551,15 +4552,15 @@
     const container = el("alert-log-list");
     if (!container) return;
     if (!entries.length) {
-      container.innerHTML = '<li class="panel-hint">Nessun alert inviato ancora.</li>';
+      container.innerHTML = '<li class="panel-hint">No alerts sent yet.</li>';
       return;
     }
     const fmtTs = (ts) => {
       const diff = Math.floor(Date.now() / 1000) - ts;
-      if (diff < 60) return "Ora";
-      if (diff < 3600) return `${Math.floor(diff / 60)}m fa`;
-      if (diff < 86400) return `${Math.floor(diff / 3600)}h fa`;
-      return new Date(ts * 1000).toLocaleDateString("it-IT", { day: "2-digit", month: "short" });
+      if (diff < 60) return "Now";
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      return new Date(ts * 1000).toLocaleDateString("en-US", { day: "2-digit", month: "short" });
     };
     const icon = (type) => {
       if (type.includes("long") || type.includes("above")) return "▲";
@@ -4643,26 +4644,26 @@
     const container = el("price-alerts-list");
     if (!container) return;
     if (!alerts.length) {
-      container.innerHTML = '<li class="panel-hint">Nessun alert su prezzo configurato.</li>';
+      container.innerHTML = '<li class="panel-hint">No price alerts set up.</li>';
       return;
     }
-    const fmtTs = (ts) => ts ? new Date(ts * 1000).toLocaleString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
+    const fmtTs = (ts) => ts ? new Date(ts * 1000).toLocaleString("en-US", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
     container.innerHTML = alerts.map(a => {
-      const dirLabel = a.condition === "crosses_above" ? "▲ sopra" : "▼ sotto";
+      const dirLabel = a.condition === "crosses_above" ? "▲ above" : "▼ below";
       const dirCls = a.condition === "crosses_above" ? "bull" : "bear";
-      const statusBadge = !a.active ? '<span class="pa-badge inactive">inattivo</span>' : a.once_only ? '<span class="pa-badge once">una volta</span>' : '<span class="pa-badge repeat">ripetuto</span>';
-      const lastTrig = a.last_triggered ? `Scattato: ${fmtTs(a.last_triggered)}` : "Mai scattato";
+      const statusBadge = !a.active ? '<span class="pa-badge inactive">inactive</span>' : a.once_only ? '<span class="pa-badge once">once</span>' : '<span class="pa-badge repeat">repeating</span>';
+      const lastTrig = a.last_triggered ? `Triggered: ${fmtTs(a.last_triggered)}` : "Never triggered";
       return `<li class="pa-card ${a.active ? "" : "pa-inactive"}" data-id="${a.id}">
         <div class="pa-head">
           <span class="pa-symbol">${a.symbol}</span>
           <span class="${dirCls} pa-dir">${dirLabel}</span>
-          <span class="pa-price">${a.price.toLocaleString("it-IT", { maximumFractionDigits: 6 })}</span>
+          <span class="pa-price">${a.price.toLocaleString("en-US", { maximumFractionDigits: 6 })}</span>
           ${statusBadge}
         </div>
         ${a.note ? `<div class="pa-note">${a.note}</div>` : ""}
-        <div class="pa-meta">${lastTrig}${a.trigger_count > 0 ? ` · ${a.trigger_count}× scattato` : ""}</div>
+        <div class="pa-meta">${lastTrig}${a.trigger_count > 0 ? ` · ${a.trigger_count}× triggered` : ""}</div>
         <div class="pa-actions">
-          <button class="pa-toggle-btn" data-id="${a.id}" data-active="${a.active}">${a.active ? "Disattiva" : "Riattiva"}</button>
+          <button class="pa-toggle-btn" data-id="${a.id}" data-active="${a.active}">${a.active ? "Disable" : "Re-enable"}</button>
           <button class="pa-del-btn" data-id="${a.id}">✕</button>
         </div>
       </li>`;
@@ -5026,17 +5027,17 @@
   // of an already-placed drawing yet — that's a later iteration.
   const DRAW_TOOL_POINTS = { cursor: 0, trend_line: 2, hline: 1, hray: 1, extended_line: 2, rectangle: 2, range: 2, fib: 2, text: 1, arrow: 2, channel: 3, ellipse: 2, fractal: 2 };
   const DRAW_TOOL_LABELS = {
-    trend_line: "Linea di tendenza",
-    extended_line: "Linea estesa",
-    hline: "Linea orizzontale",
-    hray: "Raggio orizzontale",
-    rectangle: "Rettangolo",
-    range: "Misura (prezzo + tempo)",
-    fib: "Ritracciamento Fibonacci",
-    text: "Testo",
-    arrow: "Freccia",
-    channel: "Canale parallelo",
-    ellipse: "Ellisse",
+    trend_line: "Trend line",
+    extended_line: "Extended line",
+    hline: "Horizontal line",
+    hray: "Horizontal ray",
+    rectangle: "Rectangle",
+    range: "Measure (price + time)",
+    fib: "Fibonacci retracement",
+    text: "Text",
+    arrow: "Arrow",
+    channel: "Parallel channel",
+    ellipse: "Ellipse",
   };
 
   const drawState = {
@@ -5070,7 +5071,7 @@
     const pct = p1.price !== 0 ? (dPrice / p1.price) * 100 : 0;
     const dSeconds = Math.abs(p2.time - p1.time);
     const dDays = dSeconds / 86400;
-    const timeLabel = dDays >= 1 ? `${dDays.toFixed(1)}g` : `${Math.round(dSeconds / 3600)}h`;
+    const timeLabel = dDays >= 1 ? `${dDays.toFixed(1)}d` : `${Math.round(dSeconds / 3600)}h`;
     const sign = dPrice >= 0 ? "+" : "";
     return `${sign}${dPrice.toFixed(2)} (${sign}${pct.toFixed(2)}%) · ${timeLabel}`;
   }
@@ -5171,7 +5172,7 @@
     if (d.type === "text") {
       ctx.setLineDash([]); ctx.fillStyle = baseColor;
       ctx.font = "bold 13px system-ui, sans-serif";
-      ctx.fillText(d.text || "Testo", x1 + 6, y1);
+      ctx.fillText(d.text || "Text", x1 + 6, y1);
       ctx.beginPath(); ctx.arc(x1, y1, 3, 0, Math.PI * 2); ctx.fill();
       ctx.restore(); return;
     }
@@ -5388,7 +5389,7 @@
         const p2Body = Math.abs(prev.close - prev.open);
         const sameDir = (prev3.close > prev3.open) === (prev2.close > prev2.open) && (prev2.close > prev2.open) === prevBull;
         if (sameDir && p3Body > p2Body && p2Body > prevBody * 1.1 && body < prevBody * 0.6) {
-          markers.push({ time: c.time, position: prevBull ? "aboveBar" : "belowBar", color: "#fbbf24", shape: "circle", text: "Rallenta" });
+          markers.push({ time: c.time, position: prevBull ? "aboveBar" : "belowBar", color: "#fbbf24", shape: "circle", text: "Slowing" });
           continue;
         }
       }
@@ -5655,15 +5656,15 @@
         const slopeDecel = Math.abs(slopePrev) > 0.05 && Math.abs(slope) < Math.abs(slopePrev) * 0.6;
 
         if (slopeDecel && trendUp && i === candles.length - 1) {
-          markers.push({ time: t, position: "aboveBar", color: "#f59e0b", shape: "circle", text: "↘ Trend rallenta" });
+          markers.push({ time: t, position: "aboveBar", color: "#f59e0b", shape: "circle", text: "↘ Trend slowing" });
         } else if (slopeDecel && trendDown && i === candles.length - 1) {
-          markers.push({ time: t, position: "belowBar", color: "#f59e0b", shape: "circle", text: "↗ Trend rallenta" });
+          markers.push({ time: t, position: "belowBar", color: "#f59e0b", shape: "circle", text: "↗ Trend slowing" });
         }
 
         // Trend forte in accelerazione — solo sull'ultima candela per non affollare
         if (slopeAccel && Math.abs(slope) > 0.3 && i === candles.length - 1) {
           const col = trendUp ? "#22c55e" : "#ef4444";
-          const lbl = trendUp ? "⚡ Trend forte ↑" : "⚡ Trend forte ↓";
+          const lbl = trendUp ? "⚡ Strong trend ↑" : "⚡ Strong trend ↓";
           markers.push({ time: t, position: trendUp ? "belowBar" : "aboveBar", color: col, shape: "arrowUp", text: lbl });
         }
       }
@@ -5676,14 +5677,14 @@
         const shrinking = body < prevBody && prevBody < prev2Body;
         if ((allUp || allDown) && shrinking && body < atr * 0.4) {
           const col = allUp ? "#f59e0b" : "#f59e0b";
-          const lbl = allUp ? "⚠ Esaurimento ↑" : "⚠ Esaurimento ↓";
+          const lbl = allUp ? "⚠ Exhaustion ↑" : "⚠ Exhaustion ↓";
           markers.push({ time: t, position: allUp ? "aboveBar" : "belowBar", color: col, shape: "circle", text: lbl });
         }
       }
 
       // ── Inside bar — contrazione di volatilità ──────────────────────────
       if (c.high < prev.high && c.low > prev.low && range < atr * 0.6) {
-        markers.push({ time: t, position: "aboveBar", color: "#a78bfa", shape: "circle", text: "◼ Contrazione" });
+        markers.push({ time: t, position: "aboveBar", color: "#a78bfa", shape: "circle", text: "◼ Contraction" });
         continue; // non sovrapporre altri segnali sulla stessa barra
       }
 
@@ -5698,16 +5699,16 @@
       // ── Segnali combinati RSI + candela ────────────────────────────────
       if (rsi != null) {
         if (rsi > 72 && !isBull && upperWick > body * 0.8) {
-          markers.push({ time: t, position: "aboveBar", color: "#ef4444", shape: "arrowDown", text: "↙ Satura RSI+" });
+          markers.push({ time: t, position: "aboveBar", color: "#ef4444", shape: "arrowDown", text: "↙ RSI+ saturated" });
           continue;
         }
         if (rsi < 28 && isBull && lowerWick > body * 0.8) {
-          markers.push({ time: t, position: "belowBar", color: "#22c55e", shape: "arrowUp", text: "↗ Esausto RSI−" });
+          markers.push({ time: t, position: "belowBar", color: "#22c55e", shape: "arrowUp", text: "↗ RSI− exhausted" });
           continue;
         }
         // RSI neutrale su zona di supporto/resistenza (range 43-57)
         if (rsi >= 43 && rsi <= 57 && body / range < 0.35 && i === candles.length - 1) {
-          markers.push({ time: t, position: "aboveBar", color: "#6b7280", shape: "circle", text: "~ Indecisione" });
+          markers.push({ time: t, position: "aboveBar", color: "#6b7280", shape: "circle", text: "~ Indecision" });
         }
       }
     }
@@ -5912,7 +5913,7 @@
     if (!drawState.drawings.length) {
       const li = document.createElement("li");
       li.className = "panel-hint";
-      li.textContent = "Nessun disegno su questo grafico.";
+      li.textContent = "No drawings on this chart.";
       list.appendChild(li);
       return;
     }
@@ -6014,7 +6015,7 @@
 
     let text;
     if (type === "text") {
-      text = window.prompt("Testo dell'annotazione:");
+      text = window.prompt("Annotation text:");
       if (!text) {
         setDrawTool("cursor");
         return;
@@ -6097,7 +6098,7 @@
     const segment = candles.filter((c) => c.time >= t0 && c.time <= t1);
     if (segment.length < 3) {
       const banner = el("error-banner");
-      banner.textContent = "Seleziona un intervallo più ampio: servono almeno 3 candele da ricopiare.";
+      banner.textContent = "Select a wider range: at least 3 candles are needed to copy.";
       banner.classList.remove("hidden");
       return;
     }
@@ -6132,9 +6133,9 @@
     const container = el("main-chart");
     const label = document.createElement("div");
     label.className = "fractal-label";
-    label.title = "Trascina qui o direttamente sulle candele per spostare il frattale";
-    label.innerHTML = `<span>🔮 Frattale — ${segment.length} candele ricopiate</span>` +
-      `<button type="button" class="fractal-label-close" title="Rimuovi">✕</button>`;
+    label.title = "Drag here or directly on the candles to move the fractal";
+    label.innerHTML = `<span>🔮 Fractal — ${segment.length} candles copied</span>` +
+      `<button type="button" class="fractal-label-close" title="Remove">✕</button>`;
     label.querySelector(".fractal-label-close").addEventListener("click", (e) => {
       e.stopPropagation();
       removeFractalReplay(id);
@@ -6370,57 +6371,57 @@
   // ── Marker click popup ────────────────────────────────────────────────────
   // Ogni tipo di segnale contestuale ha una descrizione e un peso 1-10.
   const MARKER_INFO = {
-    "↘ Trend rallenta": {
-      desc: "L'EMA20 accelerava verso l'alto ma ora sta rallentando. Il momentum del trend in corso si sta esaurendo — può precedere una pausa o un reversal.",
+    "↘ Trend slowing": {
+      desc: "EMA20 was accelerating upward but is now slowing. The current trend's momentum is fading — may precede a pause or a reversal.",
       score: 6,
     },
-    "↗ Trend rallenta": {
-      desc: "L'EMA20 accelerava verso il basso ma ora rallenta. Il momentum ribassista si indebolisce — potenziale pavimento a breve.",
+    "↗ Trend slowing": {
+      desc: "EMA20 was accelerating downward but is now slowing. Bearish momentum is weakening — potential short-term floor.",
       score: 6,
     },
-    "⚡ Trend forte ↑": {
-      desc: "Pendenza EMA in forte accelerazione rialzista (>0.3 ATR per barra). Trend momentum elevato: pull-back brevi e poco profondi tipicamente.",
+    "⚡ Strong trend ↑": {
+      desc: "EMA slope in strong bullish acceleration (>0.3 ATR per bar). High trend momentum: pullbacks are typically short and shallow.",
       score: 8,
     },
-    "⚡ Trend forte ↓": {
-      desc: "Pendenza EMA in forte accelerazione ribassista. Pressione di vendita intensa: evitare long contro-trend senza conferma.",
+    "⚡ Strong trend ↓": {
+      desc: "EMA slope in strong bearish acceleration. Heavy selling pressure: avoid counter-trend longs without confirmation.",
       score: 8,
     },
-    "⚠ Esaurimento ↑": {
-      desc: "Tre candele rialziste consecutive con corpi decrescenti — il rialzo perde forza. Frequente prima di un ritracciamento o consolidamento.",
+    "⚠ Exhaustion ↑": {
+      desc: "Three consecutive bullish candles with shrinking bodies — the rally is losing steam. Common before a pullback or consolidation.",
       score: 5,
     },
-    "⚠ Esaurimento ↓": {
-      desc: "Tre candele ribassiste consecutive con corpi decrescenti — il ribasso perde forza. Potenziale rimbalzo tecnico a breve.",
+    "⚠ Exhaustion ↓": {
+      desc: "Three consecutive bearish candles with shrinking bodies — the sell-off is losing steam. Potential short-term technical bounce.",
       score: 5,
     },
-    "◼ Contrazione": {
-      desc: "Inside bar: massimo e minimo contenuti nella candela precedente, range < 0.6 ATR. Compressione di volatilità — spesso precede un breakout direzionale.",
+    "◼ Contraction": {
+      desc: "Inside bar: high and low contained within the previous candle, range < 0.6 ATR. Volatility compression — often precedes a directional breakout.",
       score: 7,
     },
     "→ Momentum ↑": {
-      desc: "Marubozu rialzista: corpo > 88% del range, senza wick significativi. Acquirenti in pieno controllo per tutta la candela.",
+      desc: "Bullish marubozu: body > 88% of the range, no significant wicks. Buyers in full control for the whole candle.",
       score: 7,
     },
     "→ Momentum ↓": {
-      desc: "Marubozu ribassista: venditori dominanti senza respiro. Spesso continua nella candela successiva.",
+      desc: "Bearish marubozu: sellers dominate without a breather. Often continues into the next candle.",
       score: 7,
     },
-    "↙ Satura RSI+": {
-      desc: "RSI > 72 + candela ribassista con wick superiore lungo. Doppio segnale di ipercomprato: il prezzo ha provato livelli alti ma è stato respinto.",
+    "↙ RSI+ saturated": {
+      desc: "RSI > 72 + bearish candle with a long upper wick. Double overbought signal: price tested higher levels but got rejected.",
       score: 8,
     },
-    "↗ Esausto RSI−": {
-      desc: "RSI < 28 + candela rialzista con wick inferiore lungo. Doppio segnale di ipervenduto: il prezzo ha testato i minimi ma è rimbalzato.",
+    "↗ RSI− exhausted": {
+      desc: "RSI < 28 + bullish candle with a long lower wick. Double oversold signal: price tested the lows but bounced.",
       score: 8,
     },
-    "~ Indecisione": {
-      desc: "RSI neutro (43-57) + corpo piccolo (<35% del range). Nessuna forza direzionale: meglio attendere una candela di conferma prima di entrare.",
+    "~ Indecision": {
+      desc: "Neutral RSI (43-57) + small body (<35% of the range). No directional strength: better to wait for a confirmation candle before entering.",
       score: 3,
     },
-    "IN long": { desc: "Segnale di ingresso long dalla strategia attiva.", score: 9 },
-    "IN short": { desc: "Segnale di ingresso short dalla strategia attiva.", score: 9 },
-    "OUT": { desc: "Segnale di uscita dalla posizione corrente.", score: 8 },
+    "IN long": { desc: "Long entry signal from the active strategy.", score: 9 },
+    "IN short": { desc: "Short entry signal from the active strategy.", score: 9 },
+    "OUT": { desc: "Exit signal for the current position.", score: 8 },
   };
 
   function scoreColor(s) {
@@ -6431,12 +6432,12 @@
 
   function showMarkerPopup(marker, px, py) {
     const popup = el("marker-popup");
-    const info = MARKER_INFO[marker.text] || { desc: "Segnale automatico del grafico.", score: 5 };
+    const info = MARKER_INFO[marker.text] || { desc: "Automatic chart signal.", score: 5 };
     const fillColor = scoreColor(info.score);
     popup.innerHTML = `
       <div class="marker-popup-header">
         <span class="marker-popup-label" style="color:${marker.color}">${marker.text}</span>
-        <button class="marker-popup-close" onclick="document.getElementById('marker-popup').classList.add('hidden')" aria-label="Chiudi">×</button>
+        <button class="marker-popup-close" onclick="document.getElementById('marker-popup').classList.add('hidden')" aria-label="Close">×</button>
       </div>
       <div class="marker-popup-desc">${info.desc}</div>
       <div class="marker-popup-score">
@@ -6505,7 +6506,7 @@
     const pct = (last - first) / first * 100;
     const dir = pct > 0.5 ? "bull" : pct < -0.5 ? "bear" : "neutral";
     const strength = Math.min(1, Math.abs(pct) / 5);
-    return { dir, strength, label, detail: `${pct > 0 ? "+" : ""}${pct.toFixed(2)}% su ${N} candele` };
+    return { dir, strength, label, detail: `${pct > 0 ? "+" : ""}${pct.toFixed(2)}% over ${N} candles` };
   }
 
   // ── Phase detection (Agent 1) ─────────────────────────────────────────────
@@ -6728,7 +6729,7 @@
       const n = Math.max(20, Math.floor(allCandles.length * windowPct));
       const proxy = allCandles.slice(-n);
       const t = _computeTrend(proxy, indicators, tfStr);
-      if (t) t.detail = `stima su ${n} candele ${iv}`;
+      if (t) t.detail = `estimate over ${n} ${iv} candles`;
       return t;
     };
 
@@ -6789,78 +6790,78 @@
       // F0. Decel angolare + compressione (25%) — segnale più importante
       if (impAngle.compressing) {
         setupScore += 25;
-        factors.push({ label: `Angolo impulso in decel. (${(impAngle.decelRatio * 100).toFixed(0)}%) + compressione`, present: true });
+        factors.push({ label: `Impulse angle decelerating (${(impAngle.decelRatio * 100).toFixed(0)}%) + compression`, present: true });
       } else if (impAngle.isDecelerating) {
         setupScore += 12;
-        factors.push({ label: `Angolo impulso in decel. (${(impAngle.decelRatio * 100).toFixed(0)}%)`, present: true });
+        factors.push({ label: `Impulse angle decelerating (${(impAngle.decelRatio * 100).toFixed(0)}%)`, present: true });
       } else {
-        factors.push({ label: "Nessuna decel. angolare", present: false });
+        factors.push({ label: "No angular deceleration", present: false });
       }
 
       // F1. RSI divergence (22%)
       const relDivs = divergenceLines.filter(d => d.t2 >= t0 && d.t1 <= t1v && d.type === (direction === "bull" ? "bull" : "bear"));
-      if (relDivs.length > 0) { setupScore += 22; factors.push({ label: "Divergenza RSI confermata", present: true }); }
-      else { factors.push({ label: "Nessuna divergenza RSI", present: false }); }
+      if (relDivs.length > 0) { setupScore += 22; factors.push({ label: "RSI divergence confirmed", present: true }); }
+      else { factors.push({ label: "No RSI divergence", present: false }); }
 
       // F2. Swing structure HL/LH (16%)
       const hasStruct = direction === "bull"
         ? swings.lows.length >= 2 && swings.lows.slice(-1)[0].price > swings.lows.slice(-2)[0].price
         : swings.highs.length >= 2 && swings.highs.slice(-1)[0].price < swings.highs.slice(-2)[0].price;
-      if (hasStruct) { setupScore += 16; factors.push({ label: direction === "bull" ? "Minimi crescenti (HL)" : "Massimi decrescenti (LH)", present: true }); }
-      else { factors.push({ label: direction === "bull" ? "Struttura HL non confermata" : "Struttura LH non confermata", present: false }); }
+      if (hasStruct) { setupScore += 16; factors.push({ label: direction === "bull" ? "Higher lows (HL)" : "Lower highs (LH)", present: true }); }
+      else { factors.push({ label: direction === "bull" ? "HL structure not confirmed" : "LH structure not confirmed", present: false }); }
 
       // F3. MTF alignment (11%)
       const mtfAligned = macroBias !== "neutral" && contextBias !== "neutral" && macroBias === contextBias && macroBias === direction;
-      if (mtfAligned) { setupScore += 11; factors.push({ label: `MTF allineati ${hier.macro || ""}+${hier.context || ""}`, present: true }); }
-      else { factors.push({ label: "MTF non allineati", present: false }); }
+      if (mtfAligned) { setupScore += 11; factors.push({ label: `MTF aligned ${hier.macro || ""}+${hier.context || ""}`, present: true }); }
+      else { factors.push({ label: "MTF not aligned", present: false }); }
 
       // F4. Slope/body deceleration (10%)
       const hasDecel = vel.slopeDeccel > 0.3 || vel.bodyDeccel > 0.3 || (vel.swingDeccel != null && vel.swingDeccel > 0.3);
-      if (hasDecel) { setupScore += 10; factors.push({ label: `Decelerazione ${vel.slopeDeccel > vel.bodyDeccel ? "slope" : "body"}`, present: true }); }
-      else { factors.push({ label: "Nessuna decelerazione significativa", present: false }); }
+      if (hasDecel) { setupScore += 10; factors.push({ label: `${vel.slopeDeccel > vel.bodyDeccel ? "Slope" : "Body"} deceleration`, present: true }); }
+      else { factors.push({ label: "No significant deceleration", present: false }); }
 
       // F5. Inside bar / NR (8%)
       const lc = visible[visible.length - 1], pc = visible[visible.length - 2];
       const isInsideBar = lc && pc && lc.high < pc.high && lc.low > pc.low;
       const isNR = lc && pc && (lc.high - lc.low) < (pc.high - pc.low) * 0.75;
-      if (isInsideBar || isNR) { setupScore += 8; factors.push({ label: isInsideBar ? "Inside bar (compressione)" : "NR: range in riduzione", present: true }); }
-      else { factors.push({ label: "Nessuna contrazione", present: false }); }
+      if (isInsideBar || isNR) { setupScore += 8; factors.push({ label: isInsideBar ? "Inside bar (compression)" : "NR: narrowing range", present: true }); }
+      else { factors.push({ label: "No contraction", present: false }); }
 
       // F6. Exhaustion signal count (5%)
-      if (phaseResult.exhaustSignals >= 2) { setupScore += 5; factors.push({ label: `${phaseResult.exhaustSignals} segnali esaurimento`, present: true }); }
-      else { factors.push({ label: "Esaurimento non confermato", present: false }); }
+      if (phaseResult.exhaustSignals >= 2) { setupScore += 5; factors.push({ label: `${phaseResult.exhaustSignals} exhaustion signals`, present: true }); }
+      else { factors.push({ label: "Exhaustion not confirmed", present: false }); }
 
       // F7. Velocity composite (3%)
-      if (Math.abs(vel.composite) > 0.20) { setupScore += 3; factors.push({ label: `Momentum ${vel.composite > 0 ? "in riduzione" : "in aumento"} (${(vel.composite*100).toFixed(0)}%)`, present: true }); }
-      else { factors.push({ label: "Momentum stabile", present: false }); }
+      if (Math.abs(vel.composite) > 0.20) { setupScore += 3; factors.push({ label: `Momentum ${vel.composite > 0 ? "decreasing" : "increasing"} (${(vel.composite*100).toFixed(0)}%)`, present: true }); }
+      else { factors.push({ label: "Momentum stable", present: false }); }
     }
 
     const phaseLabels = {
-      "IMPULSO":        "Trend in corso — attendi ritracciamento",
-      "RITRACCIAMENTO": "Ritracciamento in atto",
-      "ESAURIMENTO":    impAngle.compressing ? `Impulso ${impAngle.impulseDir === "bear" ? "ribassista" : "rialzista"} esaurito — attesa rottura` : "Ritracciamento in esaurimento",
-      "PIVOT":          "Pivot confermato — setup attivo",
-      "LATERALE":       impAngle.compressing ? `Compressione post-impulso ${impAngle.impulseDir === "bear" ? "ribassista" : "rialzista"}` : "Struttura laterale",
+      "IMPULSO":        "Trend in progress — wait for a pullback",
+      "RITRACCIAMENTO": "Pullback in progress",
+      "ESAURIMENTO":    impAngle.compressing ? `${impAngle.impulseDir === "bear" ? "Bearish" : "Bullish"} impulse exhausted — waiting for a break` : "Pullback running out of steam",
+      "PIVOT":          "Pivot confirmed — setup active",
+      "LATERALE":       impAngle.compressing ? `Post-impulse compression (${impAngle.impulseDir === "bear" ? "bearish" : "bullish"})` : "Sideways structure",
     };
 
     const scoreColor  = setupScore >= 75 ? "#00d68f" : setupScore >= 50 ? "#f2a93b" : "#8899aa";
-    const timeWindow  = phase === "PIVOT" ? "Entry confermata" :
-                        phase === "ESAURIMENTO" ? "1-3 candele al pivot" :
-                        phase === "RITRACCIAMENTO" ? "Attendi segnali di esaurimento" :
-                        phase === "IMPULSO" ? "Attendi ritracciamento" : "Nessun setup attivo";
+    const timeWindow  = phase === "PIVOT" ? "Entry confirmed" :
+                        phase === "ESAURIMENTO" ? "1-3 candles to the pivot" :
+                        phase === "RITRACCIAMENTO" ? "Wait for exhaustion signals" :
+                        phase === "IMPULSO" ? "Wait for a pullback" : "No active setup";
 
     let keyLevel = null;
     if (direction === "bull" && swings.lows.length > 0)
-      keyLevel = { price: swings.lows.slice(-1)[0].price, desc: "Ultimo swing low — supporto" };
+      keyLevel = { price: swings.lows.slice(-1)[0].price, desc: "Last swing low — support" };
     else if (direction === "bear" && swings.highs.length > 0)
-      keyLevel = { price: swings.highs.slice(-1)[0].price, desc: "Ultimo swing high — resistenza" };
+      keyLevel = { price: swings.highs.slice(-1)[0].price, desc: "Last swing high — resistance" };
 
-    const mainRisk = impAngle.compressing && !gateMacro ? "Macro non allineata alla rottura attesa" :
-                     !gateMacro       ? "Bias macro non determinato" :
-                     !gateVelocity    ? "Momentum ancora nella direzione del ritracciamento" :
-                     !gateRSI         ? (direction === "bull" ? "RSI in zona ipercomprata" : "RSI in zona ipervenduta") :
-                     phaseResult.retracePct > 0.618 ? "Ritracciamento profondo — possibile inversione strutturale" :
-                     "Setup nella norma";
+    const mainRisk = impAngle.compressing && !gateMacro ? "Macro not aligned with the expected break" :
+                     !gateMacro       ? "Macro bias undetermined" :
+                     !gateVelocity    ? "Momentum still in the pullback direction" :
+                     !gateRSI         ? (direction === "bull" ? "RSI in overbought zone" : "RSI in oversold zone") :
+                     phaseResult.retracePct > 0.618 ? "Deep pullback — possible structural reversal" :
+                     "Setup within normal range";
 
     return {
       phase, phaseLabel: phaseLabels[phase] || phase, trend, phaseTrend: trend,
@@ -6875,11 +6876,11 @@
 
   function _renderBreakoutResult(res, popup) {
     if (!res) {
-      popup.innerHTML = `<div class="bp-header"><span class="bp-title">Analisi Setup</span><button class="marker-popup-close" onclick="document.getElementById('breakout-popup').classList.add('hidden')">×</button></div><p style="color:var(--ink-dim);font-size:12px;margin:8px 0 0">Dati insufficienti nel range visibile.</p>`;
+      popup.innerHTML = `<div class="bp-header"><span class="bp-title">Setup analysis</span><button class="marker-popup-close" onclick="document.getElementById('breakout-popup').classList.add('hidden')">×</button></div><p style="color:var(--ink-dim);font-size:12px;margin:8px 0 0">Not enough data in the visible range.</p>`;
       return;
     }
 
-    const dirLabel = res.direction === "bull" ? "▲ LONG" : res.direction === "bear" ? "▼ SHORT" : "→ NEUTRO";
+    const dirLabel = res.direction === "bull" ? "▲ LONG" : res.direction === "bear" ? "▼ SHORT" : "→ NEUTRAL";
     const dirColor = res.direction === "bull" ? "#00d68f" : res.direction === "bear" ? "#ff4560" : "#8899aa";
     const phaseColors = { "IMPULSO": "#8899aa", "RITRACCIAMENTO": "#f2a93b", "ESAURIMENTO": "#ffb347", "PIVOT": "#00d68f", "LATERALE": "#667788" };
     const phaseColor = phaseColors[res.phase] || "#8899aa";
@@ -6887,7 +6888,7 @@
     const mtfRows = res.mtfContext.map(m => {
       const icon = m.dir === "bull" ? "▲" : m.dir === "bear" ? "▼" : "→";
       const col  = m.dir === "bull" ? "#00d68f" : m.dir === "bear" ? "#ff4560" : "#8899aa";
-      return `<div class="bp-mtf-row"><span class="bp-mtf-tf">${m.role === "macro" ? "MACRO" : "CONTESTO"} ${m.tf.toUpperCase()}</span><span class="bp-mtf-dir" style="color:${col}">${icon} ${m.dir.toUpperCase()}</span><span class="bp-mtf-detail">${m.detail}</span></div>`;
+      return `<div class="bp-mtf-row"><span class="bp-mtf-tf">${m.role === "macro" ? "MACRO" : "CONTEXT"} ${m.tf.toUpperCase()}</span><span class="bp-mtf-dir" style="color:${col}">${icon} ${m.dir.toUpperCase()}</span><span class="bp-mtf-detail">${m.detail}</span></div>`;
     }).join("");
 
     const factorRows = res.factors.map(f => {
@@ -6905,10 +6906,10 @@
     popup.innerHTML = `
       <div class="bp-header">
         <span class="bp-title">Setup · ${res.iv.toUpperCase()}</span>
-        <button class="marker-popup-close" onclick="document.getElementById('breakout-popup').classList.add('hidden')" aria-label="Chiudi">×</button>
+        <button class="marker-popup-close" onclick="document.getElementById('breakout-popup').classList.add('hidden')" aria-label="Close">×</button>
       </div>
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
-        <span style="font-family:var(--font-mono);font-size:10px;font-weight:700;color:${phaseColor};text-transform:uppercase;letter-spacing:.06em">${res.phase}</span>
+        <span style="font-family:var(--font-mono);font-size:10px;font-weight:700;color:${phaseColor};text-transform:uppercase;letter-spacing:.06em">${({ IMPULSO: "IMPULSE", RITRACCIAMENTO: "PULLBACK", ESAURIMENTO: "EXHAUSTION", LATERALE: "SIDEWAYS" })[res.phase] || res.phase}</span>
         <span style="color:${dirColor};font-size:16px;font-weight:700">${dirLabel}</span>
       </div>
       <div style="font-size:11px;color:var(--ink-dim);margin-bottom:8px">${res.phaseLabel}</div>
@@ -6921,10 +6922,10 @@
       <div style="font-size:10px;color:var(--ink-dim);margin-bottom:8px">⏱ ${res.timeWindow}</div>
       ` : `<div style="font-size:11px;color:#8899aa;margin-bottom:8px">⏳ ${res.timeWindow}</div>`}
       ${mtfRows ? `<div class="bp-mtf" style="margin-bottom:6px">${mtfRows}</div>` : ""}
-      <div class="bp-section-label">${res.setupValid ? "FATTORI QUALITÀ" : "STRUTTURA"}</div>
+      <div class="bp-section-label">${res.setupValid ? "QUALITY FACTORS" : "STRUCTURE"}</div>
       <div class="bp-factors">${factorRows}${keyLevelHtml}</div>
       ${res.setupValid ? `<div style="font-size:10px;color:#8899aa;margin-top:4px">⚠ ${res.mainRisk}</div>` : ""}
-      <div class="bp-footer">${res.candleCount} candele${velStr}${retrStr}</div>
+      <div class="bp-footer">${res.candleCount} candles${velStr}${retrStr}</div>
     `;
     popup.classList.remove("hidden");
 
@@ -6957,12 +6958,12 @@
     // Show loading state immediately
     popup.innerHTML = `
       <div class="bp-header">
-        <span class="bp-title">Analisi Setup</span>
-        <button class="marker-popup-close" onclick="document.getElementById('breakout-popup').classList.add('hidden')" aria-label="Chiudi">×</button>
+        <span class="bp-title">Setup analysis</span>
+        <button class="marker-popup-close" onclick="document.getElementById('breakout-popup').classList.add('hidden')" aria-label="Close">×</button>
       </div>
       <div class="bp-thinking">
         <div class="bp-dots"><span></span><span></span><span></span></div>
-        <div class="bp-thinking-label">Analisi in corso…</div>
+        <div class="bp-thinking-label">Analyzing…</div>
       </div>
     `;
     popup.classList.remove("hidden");
@@ -7088,40 +7089,40 @@
       const sym = (el("ticker-input")?.value || "").trim().toUpperCase() || "—";
       const priceStr = price != null ? price.toFixed(4).replace(/\.?0+$/, (m, o, s) => s.includes(".") ? "" : m) : null;
       const items = [
-        { label: "Reimposta visualizzazione", key: "Alt+R", action: () => { try { mainChart.timeScale().fitContent(); } catch { /* */ } } },
-        priceStr ? { label: `Copia prezzo  ${priceStr}`, action: () => navigator.clipboard?.writeText(priceStr) } : null,
-        { label: `Copia simbolo  ${sym}`, action: () => navigator.clipboard?.writeText(sym) },
+        { label: "Reset view", key: "Alt+R", action: () => { try { mainChart.timeScale().fitContent(); } catch { /* */ } } },
+        priceStr ? { label: `Copy price  ${priceStr}`, action: () => navigator.clipboard?.writeText(priceStr) } : null,
+        { label: `Copy symbol  ${sym}`, action: () => navigator.clipboard?.writeText(sym) },
         { separator: true },
-        priceStr ? { label: `Aggiungi alert su ${sym} a ${priceStr}…`, action: () => {
+        priceStr ? { label: `Add alert on ${sym} at ${priceStr}…`, action: () => {
           const tab = document.querySelector('[data-tab="alert"]');
           if (tab) tab.click();
           const inp = document.getElementById("pa-price");
           if (inp) { inp.value = priceStr; inp.focus(); }
         }} : null,
-        { label: "Apri nel Lab →", action: () => { setArea("lab"); } },
+        { label: "Open in Lab →", action: () => { setArea("lab"); } },
         { separator: true },
-        { label: "Linea orizzontale", action: () => setDrawTool("hline") },
-        { label: "Raggio orizzontale →", action: () => setDrawTool("hray") },
-        { label: "Linea di tendenza", action: () => setDrawTool("trend_line") },
-        { label: "Linea estesa ↔", action: () => setDrawTool("extended_line") },
-        { label: "Rettangolo", action: () => setDrawTool("rectangle") },
-        { label: "Righello (misura prezzo/tempo)", action: () => setDrawTool("range") },
-        { label: "Ellisse", action: () => setDrawTool("ellipse") },
-        { label: "Canale parallelo", action: () => setDrawTool("channel") },
-        { label: "Freccia", action: () => setDrawTool("arrow") },
+        { label: "Horizontal line", action: () => setDrawTool("hline") },
+        { label: "Horizontal ray →", action: () => setDrawTool("hray") },
+        { label: "Trend line", action: () => setDrawTool("trend_line") },
+        { label: "Extended line ↔", action: () => setDrawTool("extended_line") },
+        { label: "Rectangle", action: () => setDrawTool("rectangle") },
+        { label: "Ruler (measure price/time)", action: () => setDrawTool("range") },
+        { label: "Ellipse", action: () => setDrawTool("ellipse") },
+        { label: "Parallel channel", action: () => setDrawTool("channel") },
+        { label: "Arrow", action: () => setDrawTool("arrow") },
         { label: "Fibonacci", action: () => setDrawTool("fib") },
-        { label: "Testo", action: () => setDrawTool("text") },
+        { label: "Text", action: () => setDrawTool("text") },
         { separator: true },
-        { label: "Frattale (ricopia un intervallo)", action: () => setDrawTool("fractal") },
+        { label: "Fractal (copy a range)", action: () => setDrawTool("fractal") },
         { separator: true },
         drawState.drawings.length
-          ? { label: "Rimuovi tutti i disegni", action: () => {
-              if (window.confirm("Cancellare tutti i disegni su questo grafico?")) clearAllDrawings();
+          ? { label: "Remove all drawings", action: () => {
+              if (window.confirm("Delete all drawings on this chart?")) clearAllDrawings();
             } }
           : null,
-        { label: "Rimuovi tutti gli indicatori sul prezzo", action: () => clearAllPriceIndicators() },
+        { label: "Remove all price indicators", action: () => clearAllPriceIndicators() },
         { separator: true },
-        { label: "Impostazioni grafico…", action: () => { const btn = document.getElementById("chart-settings-btn"); if (btn) btn.click(); } },
+        { label: "Chart settings…", action: () => { const btn = document.getElementById("chart-settings-btn"); if (btn) btn.click(); } },
       ].filter(Boolean);
 
       menuEl = document.createElement("ul");
@@ -7164,7 +7165,7 @@
       });
     });
     el("draw-clear-btn").addEventListener("click", () => {
-      if (drawState.drawings.length && window.confirm("Cancellare tutti i disegni su questo grafico?")) {
+      if (drawState.drawings.length && window.confirm("Delete all drawings on this chart?")) {
         clearAllDrawings();
       }
     });
@@ -7185,7 +7186,7 @@
       drawBtn.classList.toggle("active", rail.classList.contains("mobile-tools-open"));
     });
     clearBtn.addEventListener("click", () => {
-      if (drawState.drawings.length && window.confirm("Cancellare tutti i disegni su questo grafico?")) {
+      if (drawState.drawings.length && window.confirm("Delete all drawings on this chart?")) {
         clearAllDrawings();
       }
     });
@@ -7606,7 +7607,7 @@
     allSignals.slice(-40).forEach((sig) => {
       const li = document.createElement("li");
       li.className = sig.type.includes("long") ? "long-signal" : "short-signal";
-      const time = new Date(sig.time * 1000).toLocaleString("it-IT");
+      const time = new Date(sig.time * 1000).toLocaleString("en-US");
       li.innerHTML = `[${sig.tf.toUpperCase()}] ${sig.label} — ${sig.price.toPrecision(6)}<span class="alert-time">${time}</span>`;
       log.appendChild(li);
     });
@@ -7723,7 +7724,7 @@
           shape: isBuy ? "arrowUp" : "arrowDown",
           // L'etichetta dice sempre da dove viene l'ordine: automatico dalla
           // strategia, oppure premuto a mano.
-          text: `● ${auto ? strategyLabel(o.strategy_name) : "manuale"}${price}`,
+          text: `● ${auto ? strategyLabel(o.strategy_name) : "manual"}${price}`,
         };
       })
       .filter(Boolean);
@@ -7742,7 +7743,7 @@
     const hi = Math.max(...candles.map((c) => c.high));
     const lo = Math.min(...candles.map((c) => c.low));
     const chg = (last.close / first.close - 1) * 100;
-    const fmt = (v) => Number(v).toLocaleString("it-IT", { maximumFractionDigits: v < 10 ? 6 : 2 });
+    const fmt = (v) => Number(v).toLocaleString("en-US", { maximumFractionDigits: v < 10 ? 6 : 2 });
     el("cs-last").textContent = fmt(last.close);
     const c = el("cs-chg");
     c.textContent = (chg >= 0 ? "+" : "") + chg.toFixed(2) + "%";
@@ -7868,11 +7869,11 @@
     });
 
     if (note) {
-      const parts = [`${bt.trades.length - outside} operazioni su ${bt.trades.length} sul grafico`];
-      if (outside) parts.push(`${outside} fuori dall'intervallo mostrato`);
+      const parts = [`${bt.trades.length - outside} of ${bt.trades.length} trades on the chart`];
+      if (outside) parts.push(`${outside} outside the visible range`);
       const shown = state.data.timeframes[state.activeTimeframe].interval;
       if (bt.interval && shown && bt.interval !== shown) {
-        parts.push(`backtest su ${bt.interval}, grafico su ${shown}: ogni operazione è agganciata alla candela aperta in quel momento`);
+        parts.push(`backtest on ${bt.interval}, chart on ${shown}: each trade is pinned to the candle open at that moment`);
       }
       note.textContent = parts.join(" · ") + ".";
       note.classList.remove("hidden");
@@ -7927,7 +7928,7 @@
       pctEl.className = "equity-stamp-pct " + (bt.total_return_pct >= 0 ? "positive" : "negative");
     }
     const subEl = el("equity-stamp-sub");
-    if (subEl) subEl.textContent = `equity ${bt.final_equity.toLocaleString("it-IT", { maximumFractionDigits: 0 })}`;
+    if (subEl) subEl.textContent = `equity ${bt.final_equity.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 
     const chipsEl = el("backtest-chips");
     if (chipsEl) {
@@ -7947,22 +7948,22 @@
     const detailsEl = el("backtest-details");
     if (detailsEl) detailsEl.innerHTML = `
       <div class="stat"><div class="stat-label">Trade</div><div class="stat-value">${bt.num_trades}</div></div>
-      <div class="stat"><div class="stat-label">Equity finale</div><div class="stat-value">${bt.final_equity.toLocaleString("it-IT", { maximumFractionDigits: 0 })}</div></div>
+      <div class="stat"><div class="stat-label">Final equity</div><div class="stat-value">${bt.final_equity.toLocaleString("en-US", { maximumFractionDigits: 0 })}</div></div>
     `;
 
     el("operations-count").textContent = bt.num_trades ? `${bt.num_trades}` : "";
     const opsList = el("operations-list");
     opsList.innerHTML = "";
     if (!bt.trades.length) {
-      opsList.innerHTML = `<li class="operations-empty">Nessuna operazione nel periodo</li>`;
+      opsList.innerHTML = `<li class="operations-empty">No trades in the period</li>`;
     } else {
       const dateFmt = { day: "2-digit", month: "short", year: "2-digit" };
       [...bt.trades].reverse().forEach((t) => {
         const li = document.createElement("li");
         li.className = "operation-row";
         const dirIcon = t.direction === "long" ? "▲" : "▼";
-        const entryDate = new Date(t.entry_time * 1000).toLocaleDateString("it-IT", dateFmt);
-        const exitDate = new Date(t.exit_time * 1000).toLocaleDateString("it-IT", dateFmt);
+        const entryDate = new Date(t.entry_time * 1000).toLocaleDateString("en-US", dateFmt);
+        const exitDate = new Date(t.exit_time * 1000).toLocaleDateString("en-US", dateFmt);
         const pnlClass = t.pnl_pct >= 0 ? "positive" : "negative";
         li.innerHTML = `
           <span class="op-dir ${t.direction}">${dirIcon}</span>
@@ -8066,7 +8067,7 @@
     list.innerHTML = "";
     if (summary.top_confluence_zones.length === 0) {
       const li = document.createElement("li");
-      li.textContent = "Nessuna zona di confluenza multi-timeframe rilevata al momento.";
+      li.textContent = "No multi-timeframe confluence zones detected right now.";
       list.appendChild(li);
     }
     summary.top_confluence_zones.forEach((z) => {
@@ -8097,7 +8098,7 @@
 
   function showError(message) {
     const banner = el("error-banner");
-    banner.textContent = `${message} Verifica il ticker e il tipo di asset selezionato (Azioni/Crypto).`;
+    banner.textContent = `${message} Check the ticker and the selected asset type (Stocks/Crypto).`;
     banner.classList.remove("hidden");
   }
 
@@ -8176,7 +8177,7 @@
       const url = `/api/analyze?symbol=${encodeURIComponent(symbol)}&asset_type=${state.assetType}&exchange=${state.cryptoExchange}&${intervalQuery()}&${getStrategyAndBacktestQuery()}`;
       const resp = await fetch(url);
       if (!resp.ok) {
-        showTabError("error-banner", `Aggiornamento automatico fallito (${resp.status}).`);
+        showTabError("error-banner", `Auto-refresh failed (${resp.status}).`);
         return;
       }
       // Il backtest "profondo" gia' caricato (refreshDeepBacktest, sulla
@@ -8211,7 +8212,7 @@
       const body = await resp.json();
       if (!resp.ok) {
         const detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
-        throw new Error(detail || `Errore ${resp.status}`);
+        throw new Error(detail || `Error ${resp.status}`);
       }
       state.data = body;
       state.seenAlertKeys = new Set();
@@ -8247,7 +8248,7 @@
         }
       }
     }).catch((err) => {
-      showError(err.message || "Errore durante l'analisi del ticker.");
+      showError(err.message || "Error while analyzing the ticker.");
       el("empty-state").classList.remove("hidden");
     }).finally(() => {
       el("loading").classList.add("hidden");
@@ -8390,10 +8391,10 @@
         state.favoriteQuotes = {};
         quotes.forEach((q) => { state.favoriteQuotes[q.id] = q; });
       } else {
-        showTabError("favorite-rows", `Errore aggiornamento quotazioni (${resp.status}).`);
+        showTabError("favorite-rows", `Error refreshing quotes (${resp.status}).`);
       }
     } catch (err) {
-      showTabError("favorite-rows", "Impossibile aggiornare le quotazioni: problema di rete.");
+      showTabError("favorite-rows", "Couldn't refresh quotes: network problem.");
     }
     renderFavorites();
   }
@@ -8414,7 +8415,7 @@
     );
 
     el("favorites-count").textContent = state.favorites.length
-      ? `${state.favorites.length} salvat${state.favorites.length === 1 ? "o" : "i"}`
+      ? `${state.favorites.length} saved`
       : "";
     empty.classList.toggle("hidden", state.favorites.length > 0);
     if (!items.length) return;
@@ -8449,7 +8450,7 @@
       symRow.appendChild(sym);
       const badge = document.createElement("span");
       badge.className = "wl-badge";
-      badge.textContent = entry.asset_type === "crypto" ? entry.exchange : "azioni";
+      badge.textContent = entry.asset_type === "crypto" ? entry.exchange : "stocks";
       symRow.appendChild(badge);
       const hasAlert = (state.alertEntries || []).some(
         (a) => a.symbol === entry.symbol && a.asset_type === entry.asset_type && a.exchange === entry.exchange
@@ -8457,14 +8458,14 @@
       if (hasAlert) {
         const bell = document.createElement("span");
         bell.className = "wl-bell";
-        bell.title = "Alert Telegram attivo su questo ticker";
+        bell.title = "Telegram alert active on this ticker";
         bell.textContent = "●";
         symRow.appendChild(bell);
       }
       main.appendChild(symRow);
       const exch = document.createElement("div");
       exch.className = "wl-exch";
-      exch.textContent = isActive ? "In grafico ora" : entry.asset_type === "crypto" ? `${entry.exchange} · crypto` : "azioni";
+      exch.textContent = isActive ? "On chart now" : entry.asset_type === "crypto" ? `${entry.exchange} · crypto` : "stocks";
       main.appendChild(exch);
 
       const quote = state.favoriteQuotes[entry.id];
@@ -8482,7 +8483,7 @@
         const y0 = 20, y1 = up ? 4 : 20, yMid = up ? 20 : 4;
         // simple 2-segment path: flat lead-in, then the real move.
         sparkWrap.innerHTML =
-          `<svg class="wl-spark" viewBox="0 0 48 24" role="img" aria-label="Variazione ${quote.change_pct.toFixed(2)}%">` +
+          `<svg class="wl-spark" viewBox="0 0 48 24" role="img" aria-label="Change ${quote.change_pct.toFixed(2)}%">` +
           `<path d="M2,${y0} L24,${y0} L46,${y1}" fill="none" stroke="${up ? "var(--bull)" : "var(--bear)"}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>` +
           `<circle cx="46" cy="${y1}" r="2" fill="${up ? "var(--bull)" : "var(--bear)"}"/>` +
           `</svg>`;
@@ -8496,7 +8497,7 @@
       price.className = "wl-price";
       price.textContent =
         quote && quote.price != null
-          ? quote.price.toLocaleString("it-IT", { maximumFractionDigits: quote.price < 10 ? 4 : 2 })
+          ? quote.price.toLocaleString("en-US", { maximumFractionDigits: quote.price < 10 ? 4 : 2 })
           : "—";
       right.appendChild(price);
       const change = document.createElement("div");
@@ -8509,7 +8510,7 @@
       remove.type = "button";
       remove.className = "wl-remove";
       remove.textContent = "✕";
-      remove.title = "Rimuovi dalla watchlist";
+      remove.title = "Remove from watchlist";
       remove.addEventListener("click", async (e) => {
         e.stopPropagation();
         await fetch(`/api/favorites/${entry.id}`, { method: "DELETE" });
@@ -8523,7 +8524,7 @@
       const caret = document.createElement("button");
       caret.type = "button";
       caret.className = "wl-row-caret";
-      caret.title = "Alert e trading automatico per questo ticker";
+      caret.title = "Alerts and auto-trading for this ticker";
       caret.textContent = "▾";
       caret.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -8576,13 +8577,13 @@
         row.className = "wl-row-strat-item";
         const isAuto = !!match.auto_trade?.[name];
         const isFutures = match.market?.[name] === "futures";
-        row.innerHTML = `<b>${name}</b> <span class="wl-mini-badge${isAuto ? " danger" : ""}">${isAuto ? (isFutures ? "Futures" : "Auto") : "Alert"}</span>`;
+        row.innerHTML = `<b>${escapeHtml(strategyLabel(name))}</b> <span class="wl-mini-badge${isAuto ? " danger" : ""}">${isAuto ? (isFutures ? "Futures" : "Auto") : "Alert"}</span>`;
         list.appendChild(row);
       });
       box.appendChild(list);
       const hint = document.createElement("p");
       hint.className = "panel-hint";
-      hint.textContent = "Gestione fine (parametri, frequenza, timeframe) resta nella tab Alert.";
+      hint.textContent = "Fine-tuning (parameters, frequency, timeframe) stays in the Alert tab.";
       box.appendChild(hint);
     }
     box.appendChild(buildActivationFlow(match || favEntry, autoOpen));
@@ -8681,7 +8682,7 @@
       exchange.className = "sug-exchange sug-exchange-" + item.provider;
       exchange.textContent = item.exchange;
       if (item.asset_type === "crypto") {
-        exchange.title = "Prezzi e livelli calcolati su questo exchange — possono differire leggermente da altri exchange per lo stesso simbolo.";
+        exchange.title = "Prices and levels computed on this exchange — they may differ slightly from other exchanges for the same symbol.";
       }
       li.appendChild(main);
       li.appendChild(exchange);
@@ -8739,7 +8740,7 @@
     if (!items.length) {
       const li = document.createElement("li");
       li.className = "mts-empty";
-      li.textContent = state.suggestions.length ? "Nessun risultato per questo filtro" : "Digita per cercare un ticker";
+      li.textContent = state.suggestions.length ? "No results for this filter" : "Type to search a ticker";
       list.appendChild(li);
       return;
     }
@@ -8761,7 +8762,7 @@
       sym.textContent = item.symbol;
       const badge = document.createElement("span");
       badge.className = "mts-badge";
-      badge.textContent = item.asset_type === "crypto" ? "crypto" : item.asset_type === "dex" ? "dex" : "azioni";
+      badge.textContent = item.asset_type === "crypto" ? "crypto" : item.asset_type === "dex" ? "dex" : "stocks";
       symRow.appendChild(sym);
       symRow.appendChild(badge);
       const name = document.createElement("span");
@@ -8882,7 +8883,7 @@
     state.pineScripts = resp.ok ? await resp.json() : [];
     const select = el("pine-script-select");
     const current = select.value;
-    select.innerHTML = '<option value="">— Nuovo script —</option>';
+    select.innerHTML = '<option value="">— New script —</option>';
     state.pineScripts.forEach((s) => {
       const opt = document.createElement("option");
       opt.value = s.id;
@@ -8958,13 +8959,13 @@
   }
 
   async function analyzePineSource() {
-    const name = el("pine-script-name").value.trim() || "Script senza nome";
+    const name = el("pine-script-name").value.trim() || "Untitled script";
     const source = pineCM.getValue();
     if (!source.trim()) {
-      pineSetStatus("pine-parse-status", "Incolla o carica uno script prima di analizzare.", "error");
+      pineSetStatus("pine-parse-status", "Paste or upload a script before analyzing.", "error");
       return;
     }
-    pineSetStatus("pine-parse-status", "Analisi in corso…", "");
+    pineSetStatus("pine-parse-status", "Analyzing…", "");
     try {
       const resp = await fetch("/api/pinescript", {
         method: "POST",
@@ -8973,15 +8974,15 @@
       });
       const body = await resp.json();
       if (!resp.ok) {
-        pineSetStatus("pine-parse-status", typeof body.detail === "string" ? body.detail : "Errore di parsing.", "error");
+        pineSetStatus("pine-parse-status", typeof body.detail === "string" ? body.detail : "Parse error.", "error");
         return;
       }
-      pineSetStatus("pine-parse-status", `Script valido — ${body.params.length} parametri rilevati.`, "ok");
+      pineSetStatus("pine-parse-status", `Valid script — ${body.params.length} parameters detected.`, "ok");
       await loadPineScripts();
       el("pine-script-select").value = body.id;
       renderPineParamsForm(body);
     } catch (err) {
-      pineSetStatus("pine-parse-status", "Errore di rete durante l'analisi.", "error");
+      pineSetStatus("pine-parse-status", "Network error during analysis.", "error");
     }
   }
 
@@ -9001,19 +9002,19 @@
     el("pine-script-name").value = body.name;
     pineCM.setValue(body.source);
     renderPineParamsForm(body);
-    pineSetStatus("pine-parse-status", `Script caricato — ${body.params.length} parametri.`, "ok");
+    pineSetStatus("pine-parse-status", `Script loaded — ${body.params.length} parameters.`, "ok");
   }
 
   async function applyPineScript() {
     if (!state.activePineScriptId) {
-      pineSetStatus("pine-run-status", "Analizza e salva uno script prima di applicarlo.", "error");
+      pineSetStatus("pine-run-status", "Analyze and save a script before applying it.", "error");
       return;
     }
     if (!state.data) {
-      pineSetStatus("pine-run-status", "Cerca prima un ticker.", "error");
+      pineSetStatus("pine-run-status", "Search a ticker first.", "error");
       return;
     }
-    pineSetStatus("pine-run-status", "Esecuzione script…", "");
+    pineSetStatus("pine-run-status", "Running script…", "");
     try {
       const resp = await fetch(`/api/pinescript/${state.activePineScriptId}/run`, {
         method: "POST",
@@ -9029,12 +9030,12 @@
       });
       const body = await resp.json();
       if (!resp.ok) {
-        pineSetStatus("pine-run-status", typeof body.detail === "string" ? body.detail : "Errore di esecuzione.", "error");
+        pineSetStatus("pine-run-status", typeof body.detail === "string" ? body.detail : "Execution error.", "error");
         return;
       }
       if (body.needs_mapping) {
         populateSignalMappingCandidates(body.candidates);
-        pineSetStatus("pine-run-status", body.warning || "Seleziona la mappatura dei segnali.", "error");
+        pineSetStatus("pine-run-status", body.warning || "Select the signal mapping.", "error");
         return;
       }
       state.pineActive = true;
@@ -9042,9 +9043,9 @@
       el("pine-clear-btn").classList.remove("hidden");
       renderPineStrategy(body.strategy);
       renderPineBacktest(body.backtest);
-      pineSetStatus("pine-run-status", "Applicato al grafico.", "ok");
+      pineSetStatus("pine-run-status", "Applied to chart.", "ok");
     } catch (err) {
-      pineSetStatus("pine-run-status", "Errore di rete durante l'esecuzione.", "error");
+      pineSetStatus("pine-run-status", "Network error during execution.", "error");
     }
   }
 
@@ -9069,7 +9070,7 @@
     strategyState.signals.slice(-40).forEach((sig) => {
       const li = document.createElement("li");
       li.className = sig.type.includes("long") ? "long-signal" : "short-signal";
-      const time = new Date(sig.time * 1000).toLocaleString("it-IT");
+      const time = new Date(sig.time * 1000).toLocaleString("en-US");
       li.innerHTML = `[${state.activeTimeframe.toUpperCase()}] ${sig.label} — ${sig.price.toPrecision(6)}<span class="alert-time">${time}</span>`;
       log.appendChild(li);
     });
@@ -9106,7 +9107,7 @@
 
     el("pine-delete-btn").addEventListener("click", async () => {
       if (!state.activePineScriptId) return;
-      if (!confirm("Eliminare questo script?")) return;
+      if (!confirm("Delete this script?")) return;
       await fetch(`/api/pinescript/${state.activePineScriptId}`, { method: "DELETE" });
       state.activePineScriptId = null;
       el("pine-params-form").classList.add("hidden");
@@ -9141,11 +9142,11 @@
   // dei due lati viene ogni pezzo.
 
   const ISSUE_STATUS_LABEL = {
-    "aperto": "Aperto",
-    "in corso": "In corso",
-    "risolto": "Risolto",
-    "riaperto": "Riaperto",
-    "scartato": "Scartato",
+    "aperto": "Open",
+    "in corso": "In progress",
+    "risolto": "Resolved",
+    "riaperto": "Reopened",
+    "scartato": "Dismissed",
   };
 
   async function loadIssues() {
@@ -9154,18 +9155,18 @@
     // Uno stato esplicito prima della richiesta: un pannello vuoto altrimenti
     // significa contemporaneamente "sto caricando", "non c'e' niente" e "e'
     // fallito", e chi guarda non puo' distinguerli. E' successo davvero.
-    list.innerHTML = '<p class="issues-empty">Caricamento…</p>';
+    list.innerHTML = '<p class="issues-empty">Loading…</p>';
     try {
       const resp = await fetch("/api/issues", { cache: "no-store" });
-      if (!resp.ok) throw new Error(`il server ha risposto ${resp.status}`);
+      if (!resp.ok) throw new Error(`the server responded ${resp.status}`);
       const body = await resp.json();
-      if (!body || !Array.isArray(body.items)) throw new Error("risposta inattesa dal server");
+      if (!body || !Array.isArray(body.items)) throw new Error("unexpected response from the server");
       renderIssues(body);
     } catch (err) {
       list.innerHTML =
-        `<p class="issues-empty">Impossibile caricare le segnalazioni: `
+        `<p class="issues-empty">Couldn't load reports: `
         + `${escapeHtml(err && err.message ? err.message : String(err))}`
-        + `<br><button type="button" id="issues-retry" class="issues-retry">Riprova</button></p>`;
+        + `<br><button type="button" id="issues-retry" class="issues-retry">Retry</button></p>`;
       const retry = el("issues-retry");
       if (retry) retry.addEventListener("click", loadIssues);
     }
@@ -9204,7 +9205,7 @@
 
     const list = el("issues-list");
     if (!items.length) {
-      list.innerHTML = '<p class="issues-empty">Nessuna segnalazione. Scrivi la prima qui sopra.</p>';
+      list.innerHTML = '<p class="issues-empty">No reports yet. Write the first one above.</p>';
       return;
     }
     // Aperte per prime: una bacheca che apre sulle cose gia' chiuse nasconde
@@ -9224,12 +9225,12 @@
     if (found) {
       const filtering = issuesView.query || wanted !== "tutte";
       found.textContent = filtering
-        ? `${filtered.length} su ${items.length}`
+        ? `${filtered.length} of ${items.length}`
         : "";
       found.classList.toggle("hidden", !filtering);
     }
     if (!filtered.length) {
-      list.innerHTML = '<p class="issues-empty">Nessuna segnalazione corrisponde.</p>';
+      list.innerHTML = '<p class="issues-empty">No matching reports.</p>';
       return;
     }
 
@@ -9243,7 +9244,7 @@
     const cardHtml = (it) => {
       const r = it.resolution;
       const when = it.created_at
-        ? new Date(it.created_at * 1000).toLocaleDateString("it-IT")
+        ? new Date(it.created_at * 1000).toLocaleDateString("en-US")
         : "";
       // Richiudibile: con decine di voci, tenerle tutte aperte di default
       // (anche solo quelle "da fare") e' un muro di testo — ogni colonna
@@ -9263,27 +9264,27 @@
           <div class="issue-res-head">Claude</div>
           <p class="issue-res-summary">${escapeHtml(r.summary || "")}</p>
           ${r.detail ? `<pre class="issue-res-detail">${escapeHtml(r.detail)}</pre>` : ""}
-          ${r.next ? `<p class="issue-res-next"><b>Prossimo passo:</b> ${escapeHtml(r.next)}</p>` : ""}
+          ${r.next ? `<p class="issue-res-next"><b>Next step:</b> ${escapeHtml(r.next)}</p>` : ""}
           ${r.commit ? `<p class="issue-res-commit">commit <code>${escapeHtml(r.commit)}</code></p>` : ""}
         </div>` : ""}
         ${(it.replies || []).map((rp) => `
           <div class="issue-reply ${rp.side === "claude" ? "from-claude" : ""}">
-            <span class="ir-who">${rp.side === "claude" ? "Claude" : escapeHtml(rp.author || "tu")}</span>
-            ${rp.reopen ? '<span class="ir-reopen">riaperta</span>' : ""}
+            <span class="ir-who">${rp.side === "claude" ? "Claude" : escapeHtml(rp.author || "you")}</span>
+            ${rp.reopen ? '<span class="ir-reopen">reopened</span>' : ""}
             <p>${escapeHtml(rp.text)}</p>
           </div>`).join("")}
         <form class="issue-reply-form" data-issue="${escapeHtml(it.id)}">
-          <textarea rows="2" placeholder="Rispondi — se il problema si vede ancora, dillo qui" required></textarea>
+          <textarea rows="2" placeholder="Reply — if the problem still shows up, say so here" required></textarea>
           <div class="irf-row">
-            <label><input type="checkbox" name="reopen" /> Non risolto, riapri</label>
-            <button type="submit">Invia</button>
+            <label><input type="checkbox" name="reopen" /> Not resolved, reopen</label>
+            <button type="submit">Send</button>
           </div>
           <p class="irf-status hidden"></p>
         </form>
         <div class="issue-manual-row" data-issue="${escapeHtml(it.id)}">
           ${it.status === "risolto" || it.status === "scartato"
-            ? `<button type="button" class="issue-manual-btn is-reopen" data-status="aperto">Riapri</button>`
-            : `<button type="button" class="issue-manual-btn is-close" data-status="risolto">Chiudi manualmente</button>`}
+            ? `<button type="button" class="issue-manual-btn is-reopen" data-status="aperto">Reopen</button>`
+            : `<button type="button" class="issue-manual-btn is-close" data-status="risolto">Close manually</button>`}
           <p class="issue-manual-status hidden"></p>
         </div>
       </details>`;
@@ -9293,9 +9294,9 @@
     // che mostrata in fila. "riaperto" resta con "aperto" (e' ancora da
     // fare), "scartato" con "risolto" (e' comunque chiuso).
     const columns = [
-      { key: "aperto", label: "Aperto", items: [] },
-      { key: "in-corso", label: "In corso", items: [] },
-      { key: "risolto", label: "Risolto", items: [] },
+      { key: "aperto", label: "Open", items: [] },
+      { key: "in-corso", label: "In progress", items: [] },
+      { key: "risolto", label: "Resolved", items: [] },
     ];
     const colFor = (status) => {
       if (status === "in corso") return 1;
@@ -9311,7 +9312,7 @@
           <span class="board-count">${col.items.length}</span>
         </div>
         <div class="board-col-body">
-          ${col.items.length ? col.items.map(cardHtml).join("") : '<p class="issues-empty board-col-empty">Niente qui.</p>'}
+          ${col.items.length ? col.items.map(cardHtml).join("") : '<p class="issues-empty board-col-empty">Nothing here.</p>'}
         </div>
       </div>`).join("")}</div>`;
 
@@ -9324,7 +9325,7 @@
         const text = area.value.trim();
         if (!text) return;
         status.classList.remove("hidden");
-        status.textContent = "Invio…";
+        status.textContent = "Sending…";
         try {
           const resp = await fetch(`/api/issues/${form.dataset.issue}/replies`, {
             method: "POST",
@@ -9333,15 +9334,15 @@
           });
           if (!resp.ok) {
             const body = await resp.json().catch(() => ({}));
-            status.textContent = body.detail === "Accesso richiesto"
-              ? "Accedi per rispondere."
-              : (body.detail || "Non inviata.");
+            status.textContent = body.detail === "Sign-in required"
+              ? "Log in to reply."
+              : (body.detail || "Not sent.");
             return;
           }
           area.value = "";
           loadIssues();
         } catch {
-          status.textContent = "Rete non raggiungibile.";
+          status.textContent = "Network unreachable.";
         }
       });
     });
@@ -9354,7 +9355,7 @@
         const newStatus = btn.dataset.status;
         btn.disabled = true;
         statusEl.classList.remove("hidden");
-        statusEl.textContent = newStatus === "risolto" ? "Chiudo…" : "Riapro…";
+        statusEl.textContent = newStatus === "risolto" ? "Closing…" : "Reopening…";
         try {
           const resp = await fetch(`/api/issues/${issueId}`, {
             method: "PATCH",
@@ -9363,15 +9364,15 @@
           });
           if (!resp.ok) {
             const body = await resp.json().catch(() => ({}));
-            statusEl.textContent = body.detail === "Accesso richiesto"
-              ? "Accedi per farlo."
-              : (body.detail || "Non riuscito.");
+            statusEl.textContent = body.detail === "Sign-in required"
+              ? "Log in to do this."
+              : (body.detail || "Failed.");
             btn.disabled = false;
             return;
           }
           loadIssues();
         } catch {
-          statusEl.textContent = "Rete non raggiungibile.";
+          statusEl.textContent = "Network unreachable.";
           btn.disabled = false;
         }
       });
@@ -9393,11 +9394,11 @@
     const el2 = el("sidenav-deploy-info");
     if (!el2 || !deployedAtEpoch) return;
     const d = new Date(deployedAtEpoch * 1000);
-    const stamp = d.toLocaleString("it-IT", {
+    const stamp = d.toLocaleString("en-US", {
       day: "2-digit", month: "2-digit", year: "2-digit",
       hour: "2-digit", minute: "2-digit",
     });
-    el2.textContent = `Aggiornato ${stamp}`;
+    el2.textContent = `Updated ${stamp}`;
   }
 
   async function checkAssetVersion() {
@@ -9466,7 +9467,7 @@
       const status = el("issue-form-status");
       const title = el("issue-title").value.trim();
       if (!title) return;
-      status.textContent = "Invio…";
+      status.textContent = "Sending…";
       try {
         const resp = await fetch("/api/issues", {
           method: "POST",
@@ -9478,16 +9479,16 @@
           }),
         });
         if (resp.status === 401) {
-          status.textContent = "Devi accedere per segnalare (pulsante Accedi in alto).";
+          status.textContent = "Log in to report (Log in button at the top).";
           return;
         }
         if (!resp.ok) {
           const b = await resp.json().catch(() => ({}));
-          throw new Error(typeof b.detail === "string" ? b.detail : `Errore ${resp.status}`);
+          throw new Error(typeof b.detail === "string" ? b.detail : `Error ${resp.status}`);
         }
         el("issue-title").value = "";
         el("issue-detail").value = "";
-        status.textContent = "Segnalazione registrata.";
+        status.textContent = "Report submitted.";
         setTimeout(() => { status.textContent = ""; }, 3000);
         loadIssues();
       } catch (err) {
@@ -9610,7 +9611,7 @@
   // (and its internal .tabs) that desktop already has. Script Pine and Saldi
   // are reached through the Altro menu, not the bottom nav itself, so they
   // still map onto the same mechanism without a 6th/7th tab.
-  const RIGHT_PANEL_TITLES = { backtest: "Backtest", alert: "Alert", strategie: "Strategie", trading: "Trading", saldi: "Saldi", analisi: "Analisi", watchlist: "Watchlist" };
+  const RIGHT_PANEL_TITLES = { backtest: "Backtest", alert: "Alert", strategie: "Strategies", trading: "Trading", saldi: "Balances", analisi: "Analysis", watchlist: "Watchlist" };
 
   function showMobileScreen(target) {
     if (!window.matchMedia("(max-width: 760px)").matches) return;
@@ -9647,7 +9648,7 @@
       // backtest | alert | saldi | analisi — shared right-panel, pick the internal tab
       const panel = document.querySelector(".right-panel");
       panel.classList.add("mobile-open");
-      panel.querySelector(".drawer-header span").textContent = RIGHT_PANEL_TITLES[target] || "Pannello";
+      panel.querySelector(".drawer-header span").textContent = RIGHT_PANEL_TITLES[target] || "Panel";
       document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === target));
       document.querySelectorAll(".tab-content").forEach((c) => {
         c.classList.toggle("active", c.dataset.tabContent === target);
@@ -9739,10 +9740,10 @@
       `<span>${escapeHtml(label)}</span><span class="icl-count">${count}</span></button>`;
     const parts = [
       indicatorLibraryFilter === null
-        ? `<button type="button" data-filter="" class="active"><span>Tutti</span><span class="icl-count">${catalog.length}</span></button>`
-        : `<button type="button" data-filter=""><span>Tutti</span><span class="icl-count">${catalog.length}</span></button>`,
-      btn("__favorites", "★ Preferiti", favCount),
-      `<div class="indicator-modal-nav-label">Categorie</div>`,
+        ? `<button type="button" data-filter="" class="active"><span>All</span><span class="icl-count">${catalog.length}</span></button>`
+        : `<button type="button" data-filter=""><span>All</span><span class="icl-count">${catalog.length}</span></button>`,
+      btn("__favorites", "★ Favorites", favCount),
+      `<div class="indicator-modal-nav-label">Categories</div>`,
     ];
     [...byCategory.entries()]
       .sort((a, b) => a[1].label.localeCompare(b[1].label))
@@ -9778,8 +9779,8 @@
 
     if (!filtered.length) {
       const msg = indicatorLibraryFilter === "__favorites"
-        ? "Nessun preferito ancora — clicca la stella su un indicatore per aggiungerlo qui."
-        : "Nessun indicatore trovato — prova un altro termine.";
+        ? "No favorites yet — click the star on an indicator to add it here."
+        : "No indicator found — try another term.";
       box.innerHTML = `<div class="icl-empty">${msg}</div>`;
       return;
     }
@@ -9798,9 +9799,9 @@
       const isActive = activeIds.has(s.id);
       const isFav = state.favoriteIndicatorIds.has(s.id);
       return `<div class="icl-item${isActive ? " active" : ""}" data-indicator-id="${escapeHtml(s.id)}">` +
-        `<button type="button" class="icl-star${isFav ? " on" : ""}" data-fav-indicator="${escapeHtml(s.id)}" title="${isFav ? "Togli dai preferiti" : "Aggiungi ai preferiti"}">${isFav ? "★" : "☆"}</button>` +
+        `<button type="button" class="icl-star${isFav ? " on" : ""}" data-fav-indicator="${escapeHtml(s.id)}" title="${isFav ? "Remove from favorites" : "Add to favorites"}">${isFav ? "★" : "☆"}</button>` +
         `<div class="icl-item-main"><div class="icl-item-head"><span class="icl-item-label">${escapeHtml(s.label)}</span>` +
-        `<span class="icl-kind">${s.kind === "overlay" ? "sul prezzo" : "riquadro proprio"}</span></div>` +
+        `<span class="icl-kind">${s.kind === "overlay" ? "on price" : "own pane"}</span></div>` +
         `<p class="icl-desc">${escapeHtml(s.description || "")}</p></div></div>`;
     };
     const parts = [];
@@ -9829,7 +9830,7 @@
     }
     box.innerHTML = state.customIndicators
       .map((c) => `<span class="indicator-chip">${escapeHtml(c.label)}` +
-        `<button type="button" data-remove-indicator="${escapeHtml(c.id)}" title="Rimuovi">✕</button></span>`)
+        `<button type="button" data-remove-indicator="${escapeHtml(c.id)}" title="Remove">✕</button></span>`)
       .join("");
     box.querySelectorAll("[data-remove-indicator]").forEach((btn) => {
       btn.addEventListener("click", () => toggleCustomIndicator(btn.dataset.removeIndicator));
@@ -9855,7 +9856,7 @@
         return `<span class="chart-legend-chip">` +
           `<span class="chart-legend-dot" style="background:${color}"></span>` +
           `<span class="chart-legend-name" data-info-indicator="${escapeHtml(c.id)}">${escapeHtml(c.label)}</span>` +
-          `<button type="button" data-remove-indicator="${escapeHtml(c.id)}" title="Rimuovi">✕</button></span>`;
+          `<button type="button" data-remove-indicator="${escapeHtml(c.id)}" title="Remove">✕</button></span>`;
       })
       .join("");
     box.querySelectorAll("[data-remove-indicator]").forEach((btn) => {
@@ -9880,11 +9881,11 @@
     popup.innerHTML = `
       <div class="marker-popup-header">
         <span class="marker-popup-label">${escapeHtml(spec.label)}</span>
-        <button class="marker-popup-close" onclick="document.getElementById('marker-popup').classList.add('hidden')" aria-label="Chiudi">×</button>
+        <button class="marker-popup-close" onclick="document.getElementById('marker-popup').classList.add('hidden')" aria-label="Close">×</button>
       </div>
       <div class="marker-popup-desc">${escapeHtml(spec.description || "")}</div>
       <div class="marker-popup-score">
-        <span class="marker-popup-score-label">${spec.kind === "overlay" ? "SUL PREZZO" : "RIQUADRO PROPRIO"}</span>
+        <span class="marker-popup-score-label">${spec.kind === "overlay" ? "ON PRICE" : "OWN PANE"}</span>
       </div>`;
     const vw = window.innerWidth, vh = window.innerHeight;
     const W = 280, H = 120;
@@ -10061,7 +10062,7 @@
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
         removeBtn.className = "osc-remove-btn";
-        removeBtn.title = "Rimuovi questo indicatore";
+        removeBtn.title = "Remove this indicator";
         removeBtn.textContent = "✕";
         removeBtn.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -10190,7 +10191,7 @@
         showResolvedPair(null);
         const hint = el("watchlist-resolved-pair");
         hint.textContent =
-          "Ticker non trovato su questo exchange — seleziona una coppia dal menu che appare mentre scrivi.";
+          "Ticker not found on this exchange — pick a pair from the menu that appears as you type.";
         hint.classList.remove("hidden");
         hint.classList.add("wl-resolved-pair-error");
         return;
@@ -10359,7 +10360,7 @@
       // per un componente che quasi nessuno apre in ogni sessione.
       initPineEditor();
     } catch (err) {
-      console.error("initPineEditor() fallito — lo Script Pine potrebbe non funzionare, il resto dell'app si', continuo:", err);
+      console.error("initPineEditor() failed — Pine Script may not work, the rest of the app does, continuing:", err);
     }
     bindPineUI();
     loadPineScripts();
@@ -10543,7 +10544,7 @@
     });
     const badge = labEl("lab-filters-badge");
     if (badge) {
-      badge.textContent = active ? `${active} attivo${active > 1 ? "i" : ""}` : "";
+      badge.textContent = active ? `${active} active` : "";
       badge.classList.toggle("hidden", active === 0);
     }
     return active;
@@ -10579,10 +10580,10 @@
     if (!d) { box.classList.add("hidden"); return; }
     box.classList.toggle("mismatch", !!d.differs_from_chart);
     box.innerHTML =
-      `<div class="lab-du-head">${d.differs_from_chart ? "⚠ Dati diversi dal grafico" : "Dati usati"}</div>`
-      + `<div class="lab-du-row"><span>Timeframe ottimizzazione</span><b>${escapeHtml(d.interval)}</b></div>`
-      + `<div class="lab-du-row"><span>Timeframe grafico</span><b>${escapeHtml(d.chart_interval)}</b></div>`
-      + `<div class="lab-du-row"><span>Candele</span><b>${d.candles}</b></div>`
+      `<div class="lab-du-head">${d.differs_from_chart ? "⚠ Data differs from the chart" : "Data used"}</div>`
+      + `<div class="lab-du-row"><span>Optimization timeframe</span><b>${escapeHtml(d.interval)}</b></div>`
+      + `<div class="lab-du-row"><span>Chart timeframe</span><b>${escapeHtml(d.chart_interval)}</b></div>`
+      + `<div class="lab-du-row"><span>Candles</span><b>${d.candles}</b></div>`
       + `<p class="lab-du-note">${escapeHtml(d.note || "")}</p>`;
     box.classList.remove("hidden");
   }
@@ -10596,20 +10597,20 @@
     const det = body.deterministic;
     const bits = [];
     bits.push(`<div class="lab-regime-head ${ok ? "ok" : "warn"}">`
-      + `${ok ? "✓ Regime compatibile" : "⚠ Regime non compatibile"}</div>`);
+      + `${ok ? "✓ Compatible regime" : "⚠ Incompatible regime"}</div>`);
     bits.push(`<div class="lab-regime-reason">${escapeHtml(r.reason || "")}</div>`);
     const stats = [];
     if (r.variance_ratio != null) {
-      stats.push(`<span title="Variance ratio: quanto la varianza dei rendimenti su piu' periodi si allontana da quella di una passeggiata aleatoria. 1.0 = random walk.">VR ${r.variance_ratio.toFixed(3)}</span>`);
+      stats.push(`<span title="Variance ratio: how far the variance of multi-period returns strays from that of a random walk. 1.0 = random walk.">VR ${r.variance_ratio.toFixed(3)}</span>`);
     }
     if (r.vr_z != null) {
-      stats.push(`<span title="Punteggio z del VR: quante deviazioni standard e' lontano da 1 (random walk).">z ${r.vr_z >= 0 ? "+" : ""}${r.vr_z.toFixed(2)}</span>`);
+      stats.push(`<span title="VR z-score: how many standard deviations it is from 1 (random walk).">z ${r.vr_z >= 0 ? "+" : ""}${r.vr_z.toFixed(2)}</span>`);
     }
     if (r.vr_p_one_sided != null) {
-      stats.push(`<span title="P-value one-sided: probabilita' di vedere questo VR (o piu' estremo) se la serie fosse davvero una passeggiata aleatoria. Sotto 0.05 e' considerato significativo.">p ${r.vr_p_one_sided.toFixed(4)}</span>`);
+      stats.push(`<span title="One-sided p-value: probability of seeing this VR (or more extreme) if the series really were a random walk. Below 0.05 is considered significant.">p ${r.vr_p_one_sided.toFixed(4)}</span>`);
     }
     if (r.hurst != null) {
-      stats.push(`<span title="Esponente di Hurst: sopra 0.5 indica persistenza (trend), sotto 0.5 inversione, 0.5 e' random walk.">H ${r.hurst.toFixed(3)}</span>`);
+      stats.push(`<span title="Hurst exponent: above 0.5 means persistence (trend), below 0.5 mean-reversion, 0.5 is a random walk.">H ${r.hurst.toFixed(3)}</span>`);
     }
     if (stats.length) bits.push(`<div class="lab-regime-stats">${stats.join(" · ")}</div>`);
     // Il VR da solo non basta: e' la combinazione con il p-value che dice se
@@ -10620,15 +10621,15 @@
       const farFromOne = Math.abs(vr - 1) >= 0.1;
       const significant = p < 0.05;
       const regimeVerdict = (farFromOne && significant)
-        ? `VR ${vr < 1 ? "sotto" : "sopra"} 1 in modo significativo (p ${p.toFixed(4)}): la serie mostra una vera direzione, non solo rumore.`
-        : `VR vicino a 1 o non significativo (p ${p.toFixed(4)}): la serie si comporta come una passeggiata aleatoria, non si vede una direzione affidabile.`;
+        ? `VR significantly ${vr < 1 ? "below" : "above"} 1 (p ${p.toFixed(4)}): the series shows a real direction, not just noise.`
+        : `VR close to 1 or not significant (p ${p.toFixed(4)}): the series behaves like a random walk, no reliable direction.`;
       bits.push(`<div class="lab-regime-sub">${regimeVerdict}</div>`);
     }
     if (det != null) {
       bits.push(`<div class="lab-regime-det ${det ? "ok" : "warn"}">`
         + (det
-          ? "Risultato riproducibile: rieseguendo con gli stessi dati otterrai gli stessi parametri."
-          : "Alcuni rami hanno superato il budget e sono stati campionati: quella parte del risultato non è riproducibile.")
+          ? "Reproducible result: re-running on the same data will give the same parameters."
+          : "Some branches exceeded the budget and were sampled: that part of the result is not reproducible.")
         + "</div>");
     }
     const d = body.deflated_sharpe;
@@ -10637,9 +10638,9 @@
       bits.push(
         `<div class="lab-regime-det ${ok ? "ok" : "warn"}">`
         + `Sharpe ${d.sharpe != null ? d.sharpe.toFixed(2) : "—"} · `
-        + `soglia per ${d.n_trials} tentativi ${d.sharpe_threshold != null ? d.sharpe_threshold.toFixed(2) : "—"} · `
-        + `affidabilità ${(d.deflated * 100).toFixed(1)}%`
-        + (ok ? "" : " — non distinguibile dal migliore di altrettanti tentativi sul rumore")
+        + `threshold for ${d.n_trials} trials ${d.sharpe_threshold != null ? d.sharpe_threshold.toFixed(2) : "—"} · `
+        + `reliability ${(d.deflated * 100).toFixed(1)}%`
+        + (ok ? "" : " — indistinguishable from the best of as many trials on pure noise")
         + "</div>");
     }
     // Il PBO non e' un doppione dello Sharpe deflazionato: quello corregge un
@@ -10649,11 +10650,11 @@
     if (o && o.pbo != null) {
       bits.push(
         `<div class="lab-regime-det ${o.acceptable ? "ok" : "warn"}">`
-        + `Sovra-ottimizzazione ${(o.pbo * 100).toFixed(0)}% `
-        + `<span class="lab-regime-sub">(${o.n_candidates} candidati, ${o.n_splits} suddivisioni)</span>`
+        + `Over-optimization ${(o.pbo * 100).toFixed(0)}% `
+        + `<span class="lab-regime-sub">(${o.n_candidates} candidates, ${o.n_splits} splits)</span>`
         + (o.acceptable
-          ? " — la configurazione scelta regge anche sulle metà che non l'hanno selezionata"
-          : " — quanto spesso, fra i candidati, il migliore in campione finisce sotto la mediana fuori campione")
+          ? " — the chosen configuration also holds on the halves that didn't select it"
+          : " — how often, among the candidates, the in-sample best ends up below the out-of-sample median")
         + "</div>");
     }
     (body.pipeline_notes || []).forEach((n) => {
@@ -10671,9 +10672,9 @@
     if (!box) return;
     const rows = body.branches || [];
     if (rows.length < 2) { box.classList.add("hidden"); return; }
-    const head = `<div class="lab-branch-title">Varianti confrontate</div>`
+    const head = `<div class="lab-branch-title">Variants compared</div>`
       + `<table class="lab-branch-tbl"><thead><tr>`
-      + `<th>variante</th><th>par.</th><th>storico</th><th>verifica</th><th>trade</th>`
+      + `<th>variant</th><th>par.</th><th>history</th><th>validation</th><th>trades</th>`
       + `</tr></thead><tbody>`;
     const trs = rows.map((b) => {
       const val = b.validation_return_pct == null
@@ -10681,8 +10682,8 @@
         : `${b.validation_return_pct >= 0 ? "+" : ""}${b.validation_return_pct.toFixed(1)}%`;
       const vt = b.validation_trades == null ? "" : ` <span class="lab-branch-tr">(${b.validation_trades})</span>`;
       return `<tr class="${b.chosen ? "chosen" : ""}">`
-        + `<td>${escapeHtml(b.label)}${b.chosen ? ' <span class="lab-branch-pick">scelta</span>' : ""}`
-        + `${b.enumerated ? "" : ' <span class="lab-branch-samp" title="Spazio troppo grande per essere esplorato interamente: questa riga non è riproducibile">campionata</span>'}</td>`
+        + `<td>${escapeHtml(b.label)}${b.chosen ? ' <span class="lab-branch-pick">chosen</span>' : ""}`
+        + `${b.enumerated ? "" : ' <span class="lab-branch-samp" title="Space too large to explore fully: this row is not reproducible">sampled</span>'}</td>`
         + `<td class="n">${b.dims}</td>`
         + `<td class="n">${b.total_return_pct >= 0 ? "+" : ""}${b.total_return_pct.toFixed(1)}%</td>`
         + `<td class="n">${val}${vt}</td>`
@@ -10858,25 +10859,25 @@
     const best = cands.find((c) => c.rank === 1) || cands[0];
     const near = cands.filter((c) => c !== best && c.score >= best.score * 0.9).length;
     const verdict = near >= 3
-      ? `<b class="bull">${near} vicini</b> entro il 10% del migliore: l'area regge.`
+      ? `<b class="bull">${near} neighbors</b> within 10% of the best: the area holds.`
       : near >= 1
-      ? `<b class="warnc">solo ${near}</b> entro il 10% del migliore: area stretta.`
-      : `<b class="bear">nessun vicino</b> entro il 10%: il migliore e' isolato, difficile che si ripeta.`;
+      ? `<b class="warnc">only ${near}</b> within 10% of the best: narrow area.`
+      : `<b class="bear">no neighbors</b> within 10%: the best is isolated, unlikely to repeat.`;
     const badge = near >= 3
-      ? `<span class="plateau-badge plateau-badge-bull">Plateau stabile</span>`
+      ? `<span class="plateau-badge plateau-badge-bull">Stable plateau</span>`
       : near >= 1
-      ? `<span class="plateau-badge plateau-badge-warn">Area stretta</span>`
-      : `<span class="plateau-badge plateau-badge-bear">Isolato</span>`;
+      ? `<span class="plateau-badge plateau-badge-warn">Narrow area</span>`
+      : `<span class="plateau-badge plateau-badge-bear">Isolated</span>`;
 
     box.classList.remove("hidden");
     box.innerHTML = `
       <div class="plateau-head">
-        <span class="section-eyebrow">Mappa dei candidati</span>
+        <span class="section-eyebrow">Candidate map</span>
         ${badge}
-        <span class="section-count">${cands.length} in rosa</span>
+        <span class="section-count">${cands.length} shortlisted</span>
       </div>
       <svg class="plateau-svg" viewBox="0 0 ${W} ${H}" width="100%" role="img"
-           aria-label="Dispersione dei candidati migliori su ${kx} e ${ky}">
+           aria-label="Scatter of the top candidates on ${kx} and ${ky}">
         <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${H - padB}" stroke="var(--border)"/>
         <line x1="${padL}" y1="${H - padB}" x2="${W - padR}" y2="${H - padB}" stroke="var(--border)"/>
         <text x="${padL - 6}" y="${padT + 8}" text-anchor="end" font-size="9" fill="var(--ink-faint)" font-family="var(--font-mono)">${yMax}</text>
@@ -10887,7 +10888,7 @@
         <text x="10" y="${H / 2}" font-size="9" fill="var(--ink-dim)" font-family="var(--font-mono)" transform="rotate(-90 10 ${H / 2})" text-anchor="middle">${ky}</text>
         ${dots}
       </svg>
-      <p class="plateau-note">${verdict} Il cerchio piu' grande e chiaro e' il punteggio piu' alto; <b>◆</b> e' la configurazione scelta.</p>`;
+      <p class="plateau-note">${verdict} The largest, brightest circle is the top score; <b>◆</b> is the chosen configuration.</p>`;
   }
 
   function renderLabResults(bt) {
@@ -10901,7 +10902,7 @@
     const finalEquity = bt.equity_curve.length ? bt.equity_curve[bt.equity_curve.length - 1][1] : 0;
     const initCap = parseFloat(labEl("lab-initial-capital").value) || 10000;
     const sideEl = labEl("lab-return-side");
-    sideEl.innerHTML = `equity finale<br/><b class="${isPos ? "" : "neg"}">${Math.round(finalEquity).toLocaleString("it-IT")} $</b><br/>su ${initCap.toLocaleString("it-IT")} $`;
+    sideEl.innerHTML = `final equity<br/><b class="${isPos ? "" : "neg"}">${Math.round(finalEquity).toLocaleString("en-US")} $</b><br/>from ${initCap.toLocaleString("en-US")} $`;
 
     const pf = bt.profit_factor !== null ? bt.profit_factor.toFixed(2) : "∞";
     const wr = bt.win_rate_pct !== null ? bt.win_rate_pct.toFixed(0) + "%" : "—";
@@ -10910,7 +10911,7 @@
     const consec = bt.max_consecutive_losses != null ? bt.max_consecutive_losses : null;
 
     // Date range from backend
-    const fmtDate = (ms) => ms ? new Date(ms).toLocaleDateString("it-IT", { month: "short", year: "numeric" }) : null;
+    const fmtDate = (ms) => ms ? new Date(ms).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : null;
     const ds = fmtDate(bt.data_start);
     const de = fmtDate(bt.data_end);
     const dateRange = ds && de ? ` · <span class="meta-dates">${ds} → ${de}</span>` : "";
@@ -10920,17 +10921,17 @@
     // ottenuti con ipotesi diverse non sono confrontabili fra loro.
     const fillAt = bt.fill_at || "signal_close";
     const fillTag = fillAt === "next_open"
-      ? ' · <span class="fill-tag fill-real" title="Ingressi e uscite riempiti all&rsquo;apertura della candela successiva al segnale: il prezzo che si puo&rsquo; davvero ottenere.">apertura successiva</span>'
-      : ' · <span class="fill-tag fill-real" title="Ingressi e uscite riempiti al prezzo di chiusura della candela che verifica la condizione: lo stesso istante in cui, dal vivo, arriva l&rsquo;alert.">al verificarsi della condizione</span>';
+      ? ' · <span class="fill-tag fill-real" title="Entries and exits filled at the open of the candle after the signal: the price you can actually get.">next open</span>'
+      : ' · <span class="fill-tag fill-real" title="Entries and exits filled at the close of the candle that meets the condition: the same moment the live alert fires.">on condition</span>';
 
-    labEl("lab-result-meta").innerHTML = `<button type="button" class="lab-trades-link">${bt.num_trades} trade</button> · ${bt.interval || labState.tf}${dateRange}${fillTag}`;
+    labEl("lab-result-meta").innerHTML = `<button type="button" class="lab-trades-link">${bt.num_trades} trades</button> · ${bt.interval || labState.tf}${dateRange}${fillTag}`;
 
     // 3-chip base row + optional Sharpe chip
     let chipsHtml = `
       <div><div class="chip-lbl">Win rate</div><div class="chip-val ${bt.win_rate_pct >= 50 ? "pos" : "neg"}">${wr}</div></div>
       <div><div class="chip-lbl">Drawdown</div><div class="chip-val neg">${dd}</div></div>
-      <div><div class="chip-lbl">Prof. factor</div><div class="chip-val" title="Quanto si guadagna sui trade vincenti rispetto a quanto si perde su quelli perdenti: sopra 1 vuol dire che il sistema e' in utile complessivo.">${pf}</div></div>`;
-    if (sharpe !== null) chipsHtml += `<div><div class="chip-lbl">Sharpe</div><div class="chip-val ${parseFloat(sharpe) >= 1 ? "pos" : ""}" title="Rendimento rispetto al rischio preso: sopra 1 e' considerato buono, sotto 0 significa perdere rischiando.">${sharpe}</div></div>`;
+      <div><div class="chip-lbl">Prof. factor</div><div class="chip-val" title="How much the winning trades make compared to what the losing ones lose: above 1 means the system is profitable overall.">${pf}</div></div>`;
+    if (sharpe !== null) chipsHtml += `<div><div class="chip-lbl">Sharpe</div><div class="chip-val ${parseFloat(sharpe) >= 1 ? "pos" : ""}" title="Return relative to the risk taken: above 1 is considered good, below 0 means losing while taking risk.">${sharpe}</div></div>`;
     if (consec !== null) chipsHtml += `<div><div class="chip-lbl">Max loss streak</div><div class="chip-val neg">${consec}</div></div>`;
     labEl("lab-stat-chips").innerHTML = chipsHtml;
     labEl("lab-result-block").classList.remove("hidden");
@@ -10940,9 +10941,9 @@
     const chartSymbol = state.data ? state.data.symbol : null;
     const applyText = labEl("lab-apply-text");
     if (chartSymbol && chartSymbol !== labState.symbol) {
-      applyText.innerHTML = `Il grafico mostra <b>${chartSymbol}</b> — applicando passerà a <b>${labState.symbol}</b> con gli ingressi/uscite del test.`;
+      applyText.innerHTML = `The chart shows <b>${chartSymbol}</b> — applying will switch to <b>${labState.symbol}</b> with the test's entries/exits.`;
     } else {
-      applyText.innerHTML = `Applica i risultati di <b>${labState.symbol}</b> sul grafico (ingressi/uscite del test).`;
+      applyText.innerHTML = `Apply the <b>${labState.symbol}</b> results to the chart (the test's entries/exits).`;
     }
     labEl("lab-apply-strip").classList.remove("hidden");
 
@@ -10960,13 +10961,13 @@
     const isTrades = bt.trades || [];
     const totalCount = isTrades.length + oosTrades.length;
     el("lab-trades-title").textContent = oosTrades.length
-      ? `${isTrades.length} operazioni IS + ${oosTrades.length} OOS`
-      : `${bt.num_trades} operazioni`;
+      ? `${isTrades.length} IS trades + ${oosTrades.length} OOS`
+      : `${bt.num_trades} trades`;
 
     const dateFmt = { day: "2-digit", month: "short", year: "2-digit" };
-    const fmtTs = (ms) => new Date(ms * 1000).toLocaleDateString("it-IT", dateFmt);
-    const fmtPrice = (p) => p.toLocaleString("it-IT", { maximumFractionDigits: 4 });
-    const fmtMoney = (v) => v.toLocaleString("it-IT", { maximumFractionDigits: 0 });
+    const fmtTs = (ms) => new Date(ms * 1000).toLocaleDateString("en-US", dateFmt);
+    const fmtPrice = (p) => p.toLocaleString("en-US", { maximumFractionDigits: 4 });
+    const fmtMoney = (v) => v.toLocaleString("en-US", { maximumFractionDigits: 0 });
 
     const renderRow = (t, i, isOos) => {
       const isWin = t.pnl_abs > 0;
@@ -10990,16 +10991,16 @@
 
     let html = `<table class="lab-trades-table">
       <thead><tr>
-        <th>#</th><th>Dir</th><th>Entrata</th><th>Uscita</th>
+        <th>#</th><th>Dir</th><th>Entry date</th><th>Exit date</th>
         <th>Entry</th><th>Exit</th><th>P&amp;L %</th><th>P&amp;L $</th><th>Equity</th>
       </tr></thead><tbody>`;
 
     if (!isTrades.length && !oosTrades.length) {
-      html += `<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--ink-dim)">Nessuna operazione</td></tr>`;
+      html += `<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--ink-dim)">No trades</td></tr>`;
     } else {
       isTrades.forEach((t, i) => { html += renderRow(t, i, false); });
       if (oosTrades.length) {
-        html += `<tr class="oos-separator"><td colspan="9">— Out-of-sample (${oosTrades.length} trade) — dati non usati in ottimizzazione</td></tr>`;
+        html += `<tr class="oos-separator"><td colspan="9">— Out-of-sample (${oosTrades.length} trades) — data not used in optimization</td></tr>`;
         oosTrades.forEach((t, i) => { html += renderRow(t, i, true); });
       }
     }
@@ -11029,7 +11030,7 @@
 
   async function runLabBacktest() {
     if (!labState.symbol) {
-      labEl("lab-status").textContent = "Inserisci prima un ticker.";
+      labEl("lab-status").textContent = "Enter a ticker first.";
       labEl("lab-status").classList.remove("hidden");
       return;
     }
@@ -11039,7 +11040,7 @@
     optBtn.disabled = true;
     labEl("lab-result-block").classList.add("hidden");
     labEl("lab-apply-strip").classList.add("hidden");
-    labEl("lab-status").textContent = "Backtest in corso… (può richiedere qualche secondo)";
+    labEl("lab-status").textContent = "Backtest running… (may take a few seconds)";
     labEl("lab-status").classList.remove("hidden");
     await withAsyncButton(runBtn, async () => {
       const params = buildLabQuery();
@@ -11047,25 +11048,25 @@
       if (seq !== labState.seq) return;
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
-        throw new Error(typeof body.detail === "string" ? body.detail : `Errore ${resp.status}`);
+        throw new Error(typeof body.detail === "string" ? body.detail : `Error ${resp.status}`);
       }
       const bt = await resp.json();
       labEl("lab-status").classList.add("hidden");
       renderLabResults(bt);
     }).catch((err) => {
       if (seq !== labState.seq) return;
-      labEl("lab-status").textContent = "Errore: " + (err.message || "backtest fallito.");
+      labEl("lab-status").textContent = "Error: " + (err.message || "backtest failed.");
     }).finally(() => { optBtn.disabled = false; });
   }
 
   async function runLabOptimize() {
     if (!labState.symbol) {
-      labEl("lab-status").textContent = "Inserisci prima un ticker.";
+      labEl("lab-status").textContent = "Enter a ticker first.";
       labEl("lab-status").classList.remove("hidden");
       return;
     }
     if (!OPTIMIZABLE_STRATEGIES.has(labState.strategy)) {
-      labEl("lab-status").textContent = "Questa strategia non supporta l'ottimizzazione automatica.";
+      labEl("lab-status").textContent = "This strategy doesn't support automatic optimization.";
       labEl("lab-status").classList.remove("hidden");
       return;
     }
@@ -11085,7 +11086,7 @@
       const resp = await fetch(`/api/optimize/start?${params.toString()}`, { method: "POST" });
       const started = await readJson(resp);
       if (!resp.ok) {
-        throw new Error(typeof started.detail === "string" ? started.detail : `Errore ${resp.status}`);
+        throw new Error(typeof started.detail === "string" ? started.detail : `Error ${resp.status}`);
       }
       const symbol = labState.symbol;
       optJobs.set(started.job_id, {
@@ -11093,7 +11094,7 @@
         symbol,
         strategy: labState.strategy,
         mode: optMode,
-        title: optMode === "plateau" ? "Ricerca stabile in corso" : "Ottimizzazione in corso",
+        title: optMode === "plateau" ? "Stable search running" : "Optimizing",
         sub: `${labState.displaySymbol || symbol} · ${strategyLabel(labState.strategy)}`,
         state: "in corso",
         elapsed: 0,
@@ -11106,9 +11107,9 @@
       // Il pulsante torna subito disponibile: il lavoro e' sul server, quindi
       // niente vieta di lanciarne un altro mentre questo continua.
       labEl("lab-status").textContent =
-        "In corso sul server. Puoi chiudere la finestra o lanciarne un'altra.";
+        "Running on the server. You can close the window or start another one.";
     } catch (err) {
-      labEl("lab-status").textContent = "Errore ottimizzazione: " + (err.message || "");
+      labEl("lab-status").textContent = "Optimization error: " + (err.message || "");
     }
   }
 
@@ -11278,12 +11279,12 @@
         });
 
         if (addResp.status === 401) {
-          show("Devi accedere per attivare i segnali.", true);
+          show("Log in to activate signals.", true);
           btn.disabled = false; btn.textContent = prevText; return;
         }
         if (!addResp.ok) {
           const err = await addResp.json().catch(() => ({}));
-          show("Errore: " + (err.detail || addResp.status), true);
+          show("Error: " + (err.detail || addResp.status), true);
           btn.disabled = false; btn.textContent = prevText; return;
         }
         const entry = await addResp.json();
@@ -11302,7 +11303,7 @@
           });
           if (!paramsResp.ok) {
             const err = await paramsResp.json().catch(() => ({}));
-            show("Parametri non salvati: " + (err.detail || paramsResp.status), true);
+            show("Parameters not saved: " + (err.detail || paramsResp.status), true);
             btn.disabled = false; btn.textContent = prevText; return;
           }
         }
@@ -11315,16 +11316,16 @@
         });
         if (!stratResp.ok) {
           const err = await stratResp.json().catch(() => ({}));
-          show("Strategia non attivata: " + (err.detail || stratResp.status), true);
+          show("Strategy not activated: " + (err.detail || stratResp.status), true);
           btn.disabled = false; btn.textContent = prevText; return;
         }
         loadWatchlist();
         loadArchive();
 
-        show(`✅ Segnali attivi per ${labState.symbol} (${labState.tf}) — ${strategyLabel(labState.strategy)}`, false);
-        btn.textContent = "✅ Attivo";
+        show(`✅ Signals active for ${labState.symbol} (${labState.tf}) — ${strategyLabel(labState.strategy)}`, false);
+        btn.textContent = "✅ Active";
       } catch (err) {
-        show("Errore di rete: " + err.message, true);
+        show("Network error: " + err.message, true);
         btn.disabled = false; btn.textContent = prevText;
       }
     });
@@ -11357,7 +11358,7 @@
       // parte resta un problema del grafico, non di tutto il resto.
       initCharts();
     } catch (err) {
-      console.error("initCharts() fallito — il grafico potrebbe non funzionare, il resto dell'app si', continuo:", err);
+      console.error("initCharts() failed — the chart may not work, the rest of the app does, continuing:", err);
     }
     bindUI();
     bindLabUI();
@@ -11476,7 +11477,7 @@
       cockpit.classList.toggle("chart-wide", on);
       btn.classList.toggle("active", on);
       btn.setAttribute("aria-pressed", String(on));
-      btn.title = on ? "Restringi il grafico" : "Allarga il grafico";
+      btn.title = on ? "Shrink chart" : "Expand chart";
       requestAnimationFrame(() => resizeAllCharts(true));
     };
     let saved = false;
@@ -11521,12 +11522,12 @@
       if (!optViewing) return;
       const btn = el("opt-progress-stop");
       btn.disabled = true;
-      btn.textContent = "Fermo…";
+      btn.textContent = "Stopping…";
       try {
         await fetch(`/api/jobs/${optViewing}/cancel`, { method: "POST" });
       } catch { /* il prossimo giro di polling lo dira' comunque */ }
       btn.disabled = false;
-      btn.textContent = "Ferma";
+      btn.textContent = "Stop";
     });
     // La pastiglia riapre il log del lavoro piu' recente: e' l'unico modo di
     // tornare a vedere una ricerca dopo aver chiuso la finestra.
@@ -11644,7 +11645,7 @@
     start(jobId, { symbol, strategy, mode, title, sub } = {}) {
       optJobs.set(jobId, {
         id: jobId, symbol, strategy, mode,
-        title: title || (mode === "plateau" ? "Ricerca stabile in corso" : "Ottimizzazione in corso"),
+        title: title || (mode === "plateau" ? "Stable search running" : "Optimizing"),
         sub: sub || `${symbol} · ${strategyLabel(strategy)}`,
         state: "in corso", elapsed: 0, log: [], seen: 0, seenDone: false,
       });
@@ -11680,7 +11681,7 @@
     if (!details.open || started) return;
     started = true;
     import("@onchain/main.js").catch((error) => {
-      console.error("Wallet on-chain: avvio del modulo fallito", error);
+      console.error("On-chain wallet: module failed to start", error);
     });
   });
 })();

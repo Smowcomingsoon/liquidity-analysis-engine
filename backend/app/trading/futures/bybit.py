@@ -29,12 +29,12 @@ BASE = "https://api.bybit.com"
 RECV_WINDOW = "10000"
 
 _HINTS = {
-    "10003": "chiave API non valida per Bybit",
-    "10004": "il secret non corrisponde alla chiave",
-    "110007": "margine insufficiente per l'importo richiesto",
-    "110043": "la leva era gia' quella richiesta",
-    "10016": "Bybit non risponde (manutenzione o problema loro)",
-    "not modified": "impostazione gia' al valore richiesto",
+    "10003": "invalid API key for Bybit",
+    "10004": "the secret does not match the key",
+    "110007": "insufficient margin for the requested amount",
+    "110043": "leverage was already at the requested value",
+    "10016": "Bybit not responding (maintenance or an issue on their side)",
+    "not modified": "setting already at the requested value",
 }
 
 
@@ -43,7 +43,7 @@ class BybitFutures(FuturesAdapter):
     name = "Bybit Perpetual"
     needs_passphrase = False
     max_leverage = 10
-    key_hint = "Chiave API con permesso «Contract — Orders & Positions». Se il conto ha l'IP whitelist, aggiungi l'IP del server."
+    key_hint = "API key with the «Contract — Orders & Positions» permission. If the account uses an IP whitelist, add the server IP."
 
     def _headers(self, creds: FuturesCreds, payload: str) -> dict:
         ts = str(int(time.time() * 1000))
@@ -83,7 +83,7 @@ class BybitFutures(FuturesAdapter):
 
     async def available_margin(self, creds: FuturesCreds) -> float:
         res = await self._get("/v5/account/wallet-balance",
-                              {"accountType": "UNIFIED"}, creds, "saldo")
+                              {"accountType": "UNIFIED"}, creds, "balance")
         for acct in res.get("list", []):
             free = acct.get("totalAvailableBalance")
             if free not in (None, ""):
@@ -99,15 +99,15 @@ class BybitFutures(FuturesAdapter):
         async with httpx.AsyncClient(base_url=BASE, timeout=15.0) as c:
             resp = await c.get("/v5/market/tickers",
                                params={"category": "linear", "symbol": self.symbol_for(symbol)})
-        res = self._unwrap(resp, "prezzo")
+        res = self._unwrap(resp, "price")
         rows = res.get("list") or []
         if not rows:
-            raise explain("bybit", "prezzo", f"symbol {symbol} sconosciuto", _HINTS)
+            raise explain("bybit", "price", f"symbol {symbol} unknown", _HINTS)
         return float(rows[0]["markPrice"])
 
     async def open_positions(self, creds: FuturesCreds) -> list[Position]:
         res = await self._get("/v5/position/list",
-                              {"category": "linear", "settleCoin": "USDT"}, creds, "posizioni")
+                              {"category": "linear", "settleCoin": "USDT"}, creds, "positions")
         out = []
         for p in res.get("list", []):
             size = float(p.get("size") or 0)
@@ -134,12 +134,12 @@ class BybitFutures(FuturesAdapter):
         await self._post("/v5/position/switch-isolated",
                          {"category": "linear", "symbol": symbol, "tradeMode": 1,
                           "buyLeverage": lev, "sellLeverage": lev},
-                         creds, "margine isolato", tolerate=(110026,))
+                         creds, "isolated margin", tolerate=(110026,))
         # 110043 = leva gia' impostata a quel valore, stessa logica.
         await self._post("/v5/position/set-leverage",
                          {"category": "linear", "symbol": symbol,
                           "buyLeverage": lev, "sellLeverage": lev},
-                         creds, "leva", tolerate=(110043,))
+                         creds, "leverage", tolerate=(110043,))
 
     async def place_order(self, symbol, side, size_mode, size_value, leverage, creds, max_usdt=None):
         sym = self.symbol_for(symbol)
@@ -152,7 +152,7 @@ class BybitFutures(FuturesAdapter):
             "category": "linear", "symbol": sym,
             "side": "Buy" if side == "BUY" else "Sell",
             "orderType": "Market", "qty": qty,
-        }, creds, "ordine")
+        }, creds, "order")
 
     async def close_position(self, symbol: str, creds: FuturesCreds) -> dict | None:
         sym = self.symbol_for(symbol)
@@ -166,4 +166,4 @@ class BybitFutures(FuturesAdapter):
             # Solo riduzione: questo ordine non puo' in nessun caso aprire
             # una posizione nuova, nemmeno se la quantita' fosse sbagliata.
             "reduceOnly": True,
-        }, creds, "chiusura")
+        }, creds, "close")

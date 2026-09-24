@@ -291,9 +291,9 @@ def _lorenzo_space(stats: SeriesStats, trendfilter: bool, volatilityfilter: bool
         floor = max(len_lo, 60)
         if floor < len_hi:
             len_lo = floor
-            len_note += (f" · fondo alzato a {len_lo}: efficienza "
-                         f"{stats.efficiency_ratio:.3f}, la serie fa molta strada "
-                         f"senza percorrere distanza")
+            len_note += (f" · floor raised to {len_lo}: efficiency "
+                         f"{stats.efficiency_ratio:.3f}, the series moves a lot "
+                         f"without covering distance")
 
     dims: list[str] = ["average", "len", "slopeFlen", "slope_ratio", "slope_threshold_sigma"]
     if trendfilter:
@@ -385,9 +385,9 @@ def _gabriele_space(stats: SeriesStats, target_entries: int,
     return ConstrainedSpace(
         label="gabriele-constrained", dims=dims, to_params=to_params,
         fixed={"rsi_length": rsi_length, "bb_length": bb_length, "bb_mult": bb_mult},
-        notes=[f"lunghezza RSI={rsi_length}, lunghezza Bollinger={bb_length}, "
-               f"moltiplicatore={bb_mult:.2f}: presi dai campi impostati, non cercati — "
-               "solo RSI ipercomprato e ipervenduto vengono cercati",
+        notes=[f"RSI length={rsi_length}, Bollinger length={bb_length}, "
+               f"multiplier={bb_mult:.2f}: taken from the set fields, not searched — "
+               "only RSI overbought and oversold are searched",
                f"rsi_oversold capped at {rsi_os_hi}"],
     )
 
@@ -467,7 +467,7 @@ def build_spaces(
         return [_gabriele_space(stats, target_entries, locked)]
     if strategy_name == "Accumulo / Distribuzione (long-term)":
         return [_exhaustion_space(stats)]
-    raise ValueError(f"Nessuno spazio vincolato per {strategy_name!r}")
+    raise ValueError(f"No constrained space for {strategy_name!r}")
 
 
 # --- inertness verification --------------------------------------------------

@@ -26,7 +26,7 @@ const NATIVE = {
 };
 
 const STATUS_LABEL = {
-  open: "In attesa", filled: "Eseguito", cancelled: "Annullato", failed: "Falso",
+  open: "Pending", filled: "Filled", cancelled: "Cancelled", failed: "Failed",
 };
 
 let hostEl = null;
@@ -59,25 +59,25 @@ export function mountLimitOrder(container, { onPlaced, onTokenPicked, presetToke
 function paintForm(chain, native) {
   host().innerHTML = `
     <div class="mo-side-tabs" id="limit-direction-tabs">
-      <button type="button" class="mo-side-tab mo-buy-tab mo-tab-active" data-direction="buy_below">Compra se scende</button>
-      <button type="button" class="mo-side-tab mo-sell-tab" data-direction="sell_above">Vendi se sale</button>
+      <button type="button" class="mo-side-tab mo-buy-tab mo-tab-active" data-direction="buy_below">Buy the dip</button>
+      <button type="button" class="mo-side-tab mo-sell-tab" data-direction="sell_above">Sell the pump</button>
     </div>
 
     <form class="form" id="limit-form">
-      <label for="limit-other-token">Contro</label>
+      <label for="limit-other-token">Against</label>
       <button type="button" class="swap-token-pick" id="limit-pick-other">
-        ${otherToken ? otherToken.symbol : "Scegli il token"} ↕
+        ${otherToken ? otherToken.symbol : "Pick token"} ↕
       </button>
 
       <div class="form-pair">
         <span><label for="limit-amount">Size (${native.symbol})</label>
           <input id="limit-amount" name="amount" type="number" min="0" step="any" required /></span>
-        <span><label for="limit-target">Prezzo target (USD)</label>
+        <span><label for="limit-target">Target price (USD)</label>
           <input id="limit-target" name="target" type="number" min="0" step="any" required /></span>
       </div>
 
-      <p class="swap-detail">Controllato ogni 45 secondi, non istantaneo al tocco del prezzo — stessi tetti di rischio di un ordine reale.</p>
-      <button type="submit" class="btn-primary" id="limit-submit">Piazza ordine limite</button>
+      <p class="swap-detail">Checked every 45 seconds, not instantly when price hits — same risk caps as a live order.</p>
+      <button type="submit" class="btn-primary" id="limit-submit">Place limit order</button>
     </form>
     <output class="outcome" id="limit-outcome" hidden></output>
   `;
@@ -91,13 +91,13 @@ function paintForm(chain, native) {
 
   host().querySelector("#limit-pick-other").addEventListener("click", () => {
     sheets.openTokenPicker(chain, {
-      title: "Contro quale token",
+      title: "Against which token",
       onPick: async ({ address }) => {
         const outcome = host().querySelector("#limit-outcome");
         if (address.toLowerCase() === native.address.toLowerCase()) {
           outcome.hidden = false;
           outcome.dataset.tone = "no";
-          outcome.textContent = `${native.symbol} e' gia' un lato dell'ordine — scegli l'altro token.`;
+          outcome.textContent = `${native.symbol} is already one side of the order — pick the other token.`;
           return;
         }
         try {
@@ -108,7 +108,7 @@ function paintForm(chain, native) {
         } catch (error) {
           outcome.hidden = false;
           outcome.dataset.tone = "no";
-          outcome.textContent = error instanceof ApiError ? error.message : "Token non riconosciuto.";
+          outcome.textContent = error instanceof ApiError ? error.message : "Token not recognized.";
         }
       },
     });
@@ -126,7 +126,7 @@ async function submitOrder(chain, native) {
   if (!otherToken) {
     outcome.hidden = false;
     outcome.dataset.tone = "no";
-    outcome.textContent = "Scegli prima il token.";
+    outcome.textContent = "Pick a token first.";
     return;
   }
 
@@ -145,7 +145,7 @@ async function submitOrder(chain, native) {
   submitButton.disabled = true;
   outcome.hidden = false;
   outcome.dataset.tone = "";
-  outcome.textContent = "Piazzo l'ordine…";
+  outcome.textContent = "Placing order…";
 
   try {
     await api.createLimitOrder({
@@ -155,12 +155,12 @@ async function submitOrder(chain, native) {
       amount_in: amount, direction, target_price_usd: target,
     });
     outcome.dataset.tone = "ok";
-    outcome.textContent = "Ordine piazzato — resta in attesa finche' il prezzo non tocca il target.";
+    outcome.textContent = "Order placed — it waits until price hits the target.";
     host().querySelector("#limit-form").reset();
     onPlacedCb?.();
   } catch (error) {
     outcome.dataset.tone = "no";
-    outcome.textContent = error instanceof ApiError ? error.message : "Errore inatteso.";
+    outcome.textContent = error instanceof ApiError ? error.message : "Unexpected error.";
   } finally {
     submitButton.disabled = false;
   }
@@ -170,15 +170,15 @@ async function submitOrder(chain, native) {
 
 export async function mountOpenOrders(container) {
   const chain = state.chain;
-  container.innerHTML = "<p class='sheet-note'>Leggo…</p>";
+  container.innerHTML = "<p class='sheet-note'>Loading…</p>";
   try {
     const orders = (await api.listLimitOrders(chain)).filter((o) => o.status === "open");
-    if (!orders.length) { container.innerHTML = "<p class='sheet-note'>Nessun ordine limite aperto.</p>"; return; }
+    if (!orders.length) { container.innerHTML = "<p class='sheet-note'>No open limit orders.</p>"; return; }
     container.innerHTML = `<ul class="tx-list">${orders.map((o) => `
       <li data-id="${o.id}">
-        <span><span class="status-dot" data-status="${o.status}"></span>${o.direction === "buy_below" ? "Compra se scende a" : "Vendi se sale a"} ${formatUsd(o.target_price_usd)}
+        <span><span class="status-dot" data-status="${o.status}"></span>${o.direction === "buy_below" ? "Buy if it drops to" : "Sell if it rises to"} ${formatUsd(o.target_price_usd)}
           <small>${o.amount_in} ${o.token_in_symbol} → ${o.token_out_symbol}</small></span>
-        <button type="button" class="btn-quiet" data-cancel="${o.id}">Annulla</button>
+        <button type="button" class="btn-quiet" data-cancel="${o.id}">Cancel</button>
       </li>`).join("")}</ul>`;
     container.querySelectorAll("[data-cancel]").forEach((button) => {
       button.addEventListener("click", async () => {
@@ -203,10 +203,10 @@ export async function mountHistory(container) {
   const chain = state.chain;
   container.innerHTML = `
     <div class="mo-side-tabs" id="history-tabs">
-      <button type="button" class="mo-side-tab mo-buy-tab mo-tab-active" data-view="orders">Ordini</button>
-      <button type="button" class="mo-side-tab mo-sell-tab" data-view="raw">Transazioni on-chain</button>
+      <button type="button" class="mo-side-tab mo-buy-tab mo-tab-active" data-view="orders">Orders</button>
+      <button type="button" class="mo-side-tab mo-sell-tab" data-view="raw">On-chain txs</button>
     </div>
-    <div id="history-body"><p class="sheet-note">Leggo…</p></div>
+    <div id="history-body"><p class="sheet-note">Loading…</p></div>
   `;
   container.querySelectorAll("#history-tabs .mo-side-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
@@ -220,21 +220,21 @@ export async function mountHistory(container) {
 async function renderHistoryView(container, chain, view) {
   const body = container.querySelector("#history-body");
   if (!body) return;
-  body.innerHTML = `<p class="sheet-note">Leggo…</p>`;
+  body.innerHTML = `<p class="sheet-note">Loading…</p>`;
 
   if (view === "raw") {
     try {
       const data = await api.getTransactions(chain);
       if (!data.available) {
         body.innerHTML = `<p class="sheet-note">${data.reason}
-          <a href="${encodeURI(data.explorer_url)}" target="_blank" rel="noopener">Apri l'explorer →</a></p>`;
+          <a href="${encodeURI(data.explorer_url)}" target="_blank" rel="noopener">Open explorer →</a></p>`;
         return;
       }
-      if (!data.transactions.length) { body.innerHTML = "<p class='sheet-note'>Nessuna transazione ancora.</p>"; return; }
+      if (!data.transactions.length) { body.innerHTML = "<p class='sheet-note'>No transactions yet.</p>"; return; }
       body.innerHTML = `<ul class="tx-list">${data.transactions.map((tx) => `
         <li>
           <a href="${encodeURI(tx.explorer_url)}" target="_blank" rel="noopener">${tx.signature.slice(0, 12)}…</a>
-          <span>${tx.status}${tx.block_time ? ` · ${new Date(tx.block_time * 1000).toLocaleString("it-IT")}` : ""}</span>
+          <span>${tx.status}${tx.block_time ? ` · ${new Date(tx.block_time * 1000).toLocaleString("en-US")}` : ""}</span>
         </li>`).join("")}</ul>`;
     } catch (error) {
       body.innerHTML = `<p class="sheet-note is-error">${error.message}</p>`;
@@ -249,19 +249,19 @@ async function renderHistoryView(container, chain, view) {
       ...data.limit_orders.map((o) => ({ ...o, at: o.updated_at })),
     ].sort((a, b) => b.at - a.at);
 
-    if (!rows.length) { body.innerHTML = "<p class='sheet-note'>Nessun ordine ancora.</p>"; return; }
+    if (!rows.length) { body.innerHTML = "<p class='sheet-note'>No orders yet.</p>"; return; }
 
     body.innerHTML = `<ul class="tx-list">${rows.map((row) => row.kind === "swap" ? `
       <li>
-        <span><span class="status-dot" data-status="${row.status}"></span><b>${row.side === "buy" ? "Compra" : "Vendi"} ${row.token}</b>
+        <span><span class="status-dot" data-status="${row.status}"></span><b>${row.side === "buy" ? "Buy" : "Sell"} ${row.token}</b>
           <small>${formatUsd(row.size_usd)} · ${STATUS_LABEL[row.status] ?? row.status}${row.reason ? ` — ${row.reason}` : ""}</small></span>
-        <span>${new Date(row.at * 1000).toLocaleString("it-IT")}</span>
+        <span>${new Date(row.at * 1000).toLocaleString("en-US")}</span>
       </li>` : `
       <li>
-        <span><span class="status-dot" data-status="${row.status}"></span><b>Limite ${row.pair}</b>
-          <small>${row.direction === "buy_below" ? "compra se scende a" : "vendi se sale a"} ${formatUsd(row.target_price_usd)}
+        <span><span class="status-dot" data-status="${row.status}"></span><b>Limit ${row.pair}</b>
+          <small>${row.direction === "buy_below" ? "buy if it drops to" : "sell if it rises to"} ${formatUsd(row.target_price_usd)}
           · ${STATUS_LABEL[row.status] ?? row.status}${row.reason ? ` — ${row.reason}` : ""}</small></span>
-        <span>${new Date(row.at * 1000).toLocaleString("it-IT")}</span>
+        <span>${new Date(row.at * 1000).toLocaleString("en-US")}</span>
       </li>`).join("")}</ul>`;
   } catch (error) {
     body.innerHTML = `<p class="sheet-note is-error">${error.message}</p>`;

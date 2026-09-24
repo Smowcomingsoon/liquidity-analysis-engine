@@ -111,7 +111,7 @@ async def call_rpc(chain: str, method: str, params: list, timeout: float = 15.0)
     dell'endpoint) o se tutti gli endpoint disponibili hanno fallito."""
     urls = _ENDPOINTS.get(chain)
     if not urls:
-        raise ValueError(f"Chain non supportata da rpc_client: {chain}")
+        raise ValueError(f"Chain not supported by rpc_client: {chain}")
 
     payload = {"jsonrpc": "2.0", "id": 1, "method": method, "params": params}
     last_transport_error: Exception | None = None
@@ -140,5 +140,5 @@ async def call_rpc(chain: str, method: str, params: list, timeout: float = 15.0)
         return data["result"]
 
     raise RuntimeError(
-        f"Tutti gli endpoint RPC per {chain} hanno fallito (ultimo errore: {last_transport_error})"
+        f"All RPC endpoints for {chain} failed (last error: {last_transport_error})"
     )

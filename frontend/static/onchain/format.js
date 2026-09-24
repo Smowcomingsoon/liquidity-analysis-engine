@@ -9,7 +9,7 @@
 // Intl scrive "8,87 USD", con la sigla in coda, mentre tutto il resto di
 // questa app (i tetti, il ledger, il price feed) parla di "$20" col simbolo
 // davanti. Due forme per la stessa valuta nella stessa schermata sono un
-// inciampo; le quantita' di token e i tempi relativi restano in italiano.
+// inciampo.
 const usd = new Intl.NumberFormat("en-US", {
   style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2,
 });
@@ -17,9 +17,9 @@ const usd = new Intl.NumberFormat("en-US", {
 // I saldi nativi vivono su scale incompatibili fra loro: 0.00337 ETH e
 // 142.6 SOL vogliono un numero di decimali diverso, e arrotondare il primo
 // a due cifre lo azzererebbe.
-const token = new Intl.NumberFormat("it-IT", { maximumSignificantDigits: 6 });
+const token = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 6 });
 
-const relative = new Intl.RelativeTimeFormat("it", { numeric: "auto" });
+const relative = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
 export const formatUsd = (value) => usd.format(value);
 export const formatToken = (value) => token.format(value);
@@ -38,7 +38,7 @@ export function usdParts(value) {
 
 export function freshness(atMs) {
   const seconds = Math.round((Date.now() - atMs) / 1000);
-  if (seconds < 8) return "aggiornato ora";
+  if (seconds < 8) return "updated just now";
   if (seconds < 60) return relative.format(-seconds, "second");
   if (seconds < 3600) return relative.format(-Math.round(seconds / 60), "minute");
   return relative.format(-Math.round(seconds / 3600), "hour");

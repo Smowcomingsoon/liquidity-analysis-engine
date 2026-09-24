@@ -61,7 +61,7 @@ def compute_confluence(timeframes: dict[str, TimeframeAnalysis]) -> list[Conflue
             key = (level.type, level.direction)
             type_counts[key] = type_counts.get(key, 0) + 1
         type_summary = ", ".join(
-            f"{_TYPE_LABEL_IT[t]} {'rialzista' if d == 'bullish' else 'ribassista'}" + (f" x{c}" if c > 1 else "")
+            f"{_TYPE_LABEL_IT[t]} {'bullish' if d == 'bullish' else 'bearish'}" + (f" x{c}" if c > 1 else "")
             for (t, d), c in type_counts.items()
         )
 

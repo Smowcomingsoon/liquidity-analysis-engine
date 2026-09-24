@@ -12,7 +12,7 @@ from app.trading.onchain import ledger, pool_safety
 def check_per_trade_cap(size_usd: float) -> tuple[bool, str]:
     if size_usd > settings.onchain_max_usd_per_trade:
         return False, (
-            f"size {size_usd:.2f} USD sopra il tetto per operazione "
+            f"size {size_usd:.2f} USD above the per-trade cap "
             f"({settings.onchain_max_usd_per_trade:.2f} USD)"
         )
     return True, ""
@@ -22,8 +22,8 @@ def check_daily_cap(owner_id: str, chain: str, size_usd: float) -> tuple[bool, s
     spent = ledger.get_daily_spent(owner_id, chain)
     if spent + size_usd > settings.onchain_max_usd_per_day:
         return False, (
-            f"spenderebbe {spent + size_usd:.2f} USD oggi su {chain}, "
-            f"sopra il tetto giornaliero ({settings.onchain_max_usd_per_day:.2f} USD)"
+            f"would spend {spent + size_usd:.2f} USD today on {chain}, "
+            f"above the daily cap ({settings.onchain_max_usd_per_day:.2f} USD)"
         )
     return True, ""
 
@@ -48,8 +48,8 @@ def check_concentration(owner_id: str, chain: str, token: str, additional_usd: f
     pct = (new_token_cost / new_total) * 100
     if pct > settings.onchain_max_token_concentration_pct:
         return False, (
-            f"{token} sarebbe il {pct:.1f}% del portafoglio on-chain su {chain}, "
-            f"sopra il tetto di concentrazione ({settings.onchain_max_token_concentration_pct:.0f}%)"
+            f"{token} would be {pct:.1f}% of the on-chain portfolio on {chain}, "
+            f"above the concentration cap ({settings.onchain_max_token_concentration_pct:.0f}%)"
         )
     return True, ""
 
@@ -57,7 +57,7 @@ def check_concentration(owner_id: str, chain: str, token: str, additional_usd: f
 def check_circuit_breaker(owner_id: str, chain: str) -> tuple[bool, str]:
     status = ledger.breaker_status(owner_id, chain)
     if status["tripped"]:
-        return False, f"circuit breaker attivo su {chain}: {status['reason']} — riattivazione manuale richiesta"
+        return False, f"circuit breaker active on {chain}: {status['reason']} — manual re-arm required"
     return True, ""
 
 
@@ -67,8 +67,8 @@ def check_discrepancy(owner_id: str, chain: str, token: str) -> tuple[bool, str]
     correzione automatica, serve revisione a mano (ledger.review_discrepancy)."""
     if ledger.has_open_discrepancy(owner_id, chain, token):
         return False, (
-            f"{token} su {chain} ha una discrepanza di saldo aperta e non revisionata — "
-            "nuovi ordini bloccati finche' non viene rivista a mano"
+            f"{token} on {chain} has an open, unreviewed balance discrepancy — "
+            "new orders blocked until it is reviewed manually"
         )
     return True, ""
 
@@ -83,7 +83,7 @@ def check_price_impact(price_impact_pct: float) -> tuple[bool, str]:
     fiatare, fra 1-5% passa ma andrebbe loggato come WARNING da chi chiama,
     sopra il 5% e' un rifiuto secco — nessuna transazione va inviata."""
     if price_impact_pct > PRICE_IMPACT_REJECT_PCT:
-        return False, f"price impact {price_impact_pct:.2f}% sopra il tetto assoluto ({PRICE_IMPACT_REJECT_PCT:.0f}%)"
+        return False, f"price impact {price_impact_pct:.2f}% above the hard cap ({PRICE_IMPACT_REJECT_PCT:.0f}%)"
     return True, ""
 
 

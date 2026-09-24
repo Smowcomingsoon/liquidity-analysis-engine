@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -20,38 +20,38 @@
 
     <form id="search-form" class="search-form">
       <div class="ticker-field">
-        <input id="ticker-input" type="text" form="search-form" placeholder="Cerca ticker — azioni o crypto" autocomplete="off" />
+        <input id="ticker-input" type="text" form="search-form" placeholder="Search ticker — stocks or crypto" autocomplete="off" />
         <ul id="ticker-suggestions" class="suggestions hidden"></ul>
       </div>
     </form>
 
     <div id="chart-settings-group" class="chart-settings-group">
       <div class="toolbar-intervals">
-        <select id="interval-primary" class="interval-select" title="Timeframe del grafico — i timeframe superiori per la confluenza vengono derivati automaticamente"></select>
+        <select id="interval-primary" class="interval-select" title="Chart timeframe — higher timeframes for confluence are derived automatically"></select>
       </div>
 
       <select id="active-strategy-select" class="active-strategy-select toolbar-strategy"></select>
 
-      <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" title="Cambia tema">☾</button>
-      <label class="toolbar-check" title="Scala logaritmica">
+      <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle theme">☾</button>
+      <label class="toolbar-check" title="Log scale">
         <input type="checkbox" id="log-scale-toggle" /> Log
       </label>
     </div>
 
-    <button type="button" id="toolbar-indicators-btn" class="toolbar-indicators-btn" title="Sfoglia i 151 indicatori con la spiegazione di ciascuno">
+    <button type="button" id="toolbar-indicators-btn" class="toolbar-indicators-btn" title="Browse all 151 indicators, each with an explanation">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
-      Indicatori
+      Indicators
     </button>
     <div class="toolbar-spacer"></div>
     <!-- Modalita' Semplice e' pensata per il telefono (grafico+strategia in
          pochi passaggi): su desktop, dove il resto dell'app e' gia'
          raggiungibile per intero, non deve esistere ne' essere visibile —
          resta solo l'ingresso dal menu "Altro" mobile, piu' in basso. -->
-    <button type="submit" form="search-form" id="search-btn">Analizza</button>
+    <button type="submit" form="search-form" id="search-btn">Analyze</button>
     <div class="auth-widget">
       <span id="auth-user-email" class="auth-user-email hidden"></span>
-      <button type="button" id="auth-toggle-btn">Accedi</button>
-      <button type="button" id="auth-logout-btn" class="hidden">Esci</button>
+      <button type="button" id="auth-toggle-btn">Log in</button>
+      <button type="button" id="auth-logout-btn" class="hidden">Log out</button>
     </div>
   </header>
 
@@ -66,14 +66,14 @@
          vicenda. Ogni voce e' un intento, non un oggetto. -->
     <aside class="sidenav" id="sidenav">
       <div class="sidenav-group">
-        <div class="sidenav-label">Lavoro</div>
+        <div class="sidenav-label">Workspace</div>
         <!-- Segnalazione b7419455: la colonna destra restava vuota qui (Analizza
              era l'unica voce senza tabTarget), mentre Watchlist non aveva una
              voce propria raggiungibile da desktop. La stessa lista di ticker
              riempie ora lo spazio che prima non mostrava niente. -->
         <button type="button" class="sidenav-item active" data-area="analizza" data-tab-target="watchlist">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
-          <span>Analizza</span>
+          <span>Analyze</span>
         </button>
         <!-- Livelli e indicatori vivevano solo dietro l'icona del rail, e il
              rail su desktop e' nascosto dal ridisegno: la sezione era diventata
@@ -81,7 +81,7 @@
              altre, e apre il cassetto accanto al grafico dov'e' sempre stato. -->
         <button type="button" class="sidenav-item" data-area="livelli">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 21 8.5 12 14 3 8.5z"/><path d="M3 14.5 12 20l9-5.5"/></svg>
-          <span>Livelli</span>
+          <span>Levels</span>
         </button>
         <button type="button" class="sidenav-item" data-area="lab" data-tab-target="backtest">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v6.5L4.2 18A2 2 0 006 21h12a2 2 0 001.8-3L15 9.5V3"/><path d="M8 3h8"/><path d="M7.5 14h9"/></svg>
@@ -99,7 +99,7 @@
              distinte, ciascuna con un solo intento. -->
         <button type="button" class="sidenav-item" data-area="strategie" data-tab-target="strategie">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
-          <span>Strategie</span>
+          <span>Strategies</span>
         </button>
         <button type="button" class="sidenav-item" data-area="trading" data-tab-target="trading">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-4 4"/></svg>
@@ -107,27 +107,27 @@
         </button>
         <a class="sidenav-item" href="/sniper">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
-          <span>Scopri</span>
+          <span>Discover</span>
         </a>
       </div>
 
       <div class="sidenav-group">
-        <div class="sidenav-label">Riferimento</div>
+        <div class="sidenav-label">Reference</div>
         <button type="button" class="sidenav-item" data-area="analisi" data-tab-target="analisi">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 012-2h11l3 3v13a2 2 0 01-2 2H6a2 2 0 01-2-2z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
-          <span>Struttura</span>
+          <span>Structure</span>
         </button>
         <button type="button" class="sidenav-item sidenav-saldi hidden" id="sidenav-saldi" data-area="saldi" data-tab-target="saldi">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
-          <span>Saldi</span>
+          <span>Balances</span>
         </button>
         <button type="button" class="sidenav-item" id="sidenav-script" data-area="script">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 4 12 9 6"/><polyline points="15 6 20 12 15 18"/></svg>
-          <span>Script Pine</span>
+          <span>Pine script</span>
         </button>
         <button type="button" class="sidenav-item" id="sidenav-issues" data-area="issues">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
-          <span>Bacheca</span>
+          <span>Issue board</span>
           <span id="sidenav-issues-badge" class="sidenav-badge hidden"></span>
         </button>
         <!-- Niente data-area apposta: non fa parte del sistema di tab del
@@ -137,30 +137,30 @@
              dentro quel file soltanto. -->
         <button type="button" class="sidenav-item" id="sidenav-diagnosi">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1.34A5 5 0 0 1 20 12v3a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5v-3a5 5 0 0 1 4-4.9V6a4 4 0 0 1 4-4z"/><path d="M9 12h.01M15 12h.01M9 16h6"/><path d="M4 10h2M18 10h2M4 15h1M19 15h1"/></svg>
-          <span>Diagnosi</span>
+          <span>Diagnostics</span>
         </button>
       </div>
 
       <div class="sidenav-foot">
         <div class="sys-row"><span class="sys-led"></span><span id="sidenav-watch-status">Watcher</span></div>
         <div class="sys-row"><span class="sys-led" id="sidenav-tg-led"></span><span id="sidenav-tg-status">Telegram</span></div>
-        <div class="sys-row sys-deploy" id="sidenav-deploy-info" title="Quando questo server e' partito l'ultima volta">— </div>
+        <div class="sys-row sys-deploy" id="sidenav-deploy-info" title="When this server last started">— </div>
       </div>
     </aside>
     <nav class="rail">
-      <button type="button" class="rail-btn" id="rail-levels-btn" title="Livelli, struttura e indicatori">
+      <button type="button" class="rail-btn" id="rail-levels-btn" title="Levels, structure and indicators">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" width="18" height="18">
           <path d="M12 3 L21 8.5 L12 14 L3 8.5 Z"/>
           <path d="M3 14.5 L12 20 L21 14.5" stroke-linecap="round"/>
         </svg>
       </button>
-      <button type="button" class="rail-btn" id="rail-issues-btn" title="Segnalazioni e bug">
+      <button type="button" class="rail-btn" id="rail-issues-btn" title="Reports and bugs">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
           <path d="M12 9v4"/><path d="M12 17h.01"/>
           <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
         </svg>
       </button>
-      <button type="button" class="rail-btn hidden" id="rail-script-btn" title="Script Pine personalizzato">
+      <button type="button" class="rail-btn hidden" id="rail-script-btn" title="Custom Pine script">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
           <polyline points="9 18 4 12 9 6"/>
           <polyline points="15 6 20 12 15 18"/>
@@ -170,46 +170,46 @@
 
     <div id="levels-panel" class="levels-panel">
       <div class="drawer-header">
-        <span>Livelli</span>
-        <button type="button" class="drawer-close-btn" data-close-drawer>✕ Chiudi</button>
+        <span>Levels</span>
+        <button type="button" class="drawer-close-btn" data-close-drawer>✕ Close</button>
       </div>
       <div class="panel">
-        <h3>Struttura &amp; Liquidità</h3>
-        <p class="panel-hint">Disattivati di default — troppi livelli insieme affollano il grafico. Attiva solo quelli che ti servono.</p>
+        <h3>Structure &amp; Liquidity</h3>
+        <p class="panel-hint">Off by default — too many levels at once clutter the chart. Turn on only the ones you need.</p>
         <label class="layer-toggle"><input type="checkbox" data-layer="order_block" /> Order Blocks</label>
         <label class="layer-toggle"><input type="checkbox" data-layer="fvg" /> Fair Value Gap</label>
         <label class="layer-toggle"><input type="checkbox" data-layer="liquidity" /> Equal Highs/Lows</label>
         <label class="layer-toggle"><input type="checkbox" data-layer="structure" /> BOS / CHoCH</label>
-        <label class="layer-toggle"><input type="checkbox" data-layer="confluence" /> Zone di confluenza</label>
-        <label class="layer-toggle"><input type="checkbox" data-layer="fibonacci" /> Fibonacci automatico</label>
-        <label class="layer-toggle"><input type="checkbox" data-layer="patterns" /> Pattern automatici</label>
-        <label class="layer-toggle"><input type="checkbox" data-layer="hints" /> Segnali contestuali</label>
-        <label class="layer-toggle"><input type="checkbox" data-layer="divergences" /> Divergenze RSI</label>
-        <label class="layer-toggle"><input type="checkbox" data-layer="angleLines" /> Linee di pendenza</label>
+        <label class="layer-toggle"><input type="checkbox" data-layer="confluence" /> Confluence zones</label>
+        <label class="layer-toggle"><input type="checkbox" data-layer="fibonacci" /> Auto Fibonacci</label>
+        <label class="layer-toggle"><input type="checkbox" data-layer="patterns" /> Auto patterns</label>
+        <label class="layer-toggle"><input type="checkbox" data-layer="hints" /> Contextual signals</label>
+        <label class="layer-toggle"><input type="checkbox" data-layer="divergences" /> RSI divergences</label>
+        <label class="layer-toggle"><input type="checkbox" data-layer="angleLines" /> Slope lines</label>
       </div>
       <div class="panel">
-        <h3>Indicatori</h3>
-        <label class="layer-toggle"><input type="checkbox" id="strategy-markers-toggle" checked /> Marker strategia sul grafico</label>
-        <label class="layer-toggle"><input type="checkbox" id="backtest-trades-toggle" /> Trade del backtest sul grafico</label>
-        <label class="layer-toggle"><input type="checkbox" id="executed-orders-toggle" checked /> Ordini realmente eseguiti</label>
-        <p class="panel-hint">Ogni ordine partito davvero &mdash; a mano o dalla strategia &mdash; resta segnato sulla serie con il prezzo di riempimento.</p>
+        <h3>Indicators</h3>
+        <label class="layer-toggle"><input type="checkbox" id="strategy-markers-toggle" checked /> Strategy markers on chart</label>
+        <label class="layer-toggle"><input type="checkbox" id="backtest-trades-toggle" /> Backtest trades on chart</label>
+        <label class="layer-toggle"><input type="checkbox" id="executed-orders-toggle" checked /> Actually executed orders</label>
+        <p class="panel-hint">Every order that actually went out &mdash; manual or from a strategy &mdash; stays marked on the series at its fill price.</p>
         <p id="backtest-trades-note" class="panel-hint hidden"></p>
         <label class="layer-toggle"><input type="checkbox" data-layer="ema" /> EMA 20 / 50</label>
         <label class="layer-toggle"><input type="checkbox" data-layer="bbands" /> Bollinger Bands</label>
         <label class="layer-toggle"><input type="checkbox" data-layer="vwap" /> VWAP</label>
         <label class="layer-toggle"><input type="checkbox" data-layer="rsi" /> RSI (14)</label>
         <label class="layer-toggle"><input type="checkbox" data-layer="macd" /> MACD</label>
-        <label class="layer-toggle"><input type="checkbox" data-layer="stoch" /> Stocastico (14,3)</label>
+        <label class="layer-toggle"><input type="checkbox" data-layer="stoch" /> Stochastic (14,3)</label>
       </div>
       <div class="panel">
-        <h3>Libreria indicatori</h3>
-        <p class="panel-hint">151 indicatori open source (pandas-ta), oltre ai 6 già cablati sopra — ognuno con la spiegazione di cosa misura, così non serve già saperne il nome.</p>
+        <h3>Indicator library</h3>
+        <p class="panel-hint">151 open-source indicators (pandas-ta), on top of the 6 built in above — each with an explanation of what it measures, so you don't need to know its name upfront.</p>
         <div id="active-indicators-chips" class="active-indicators-chips"></div>
-        <button type="button" id="open-indicator-library-btn" class="indicator-library-open-btn">Sfoglia la libreria →</button>
+        <button type="button" id="open-indicator-library-btn" class="indicator-library-open-btn">Browse the library →</button>
       </div>
       <div class="panel">
-        <h3>Disegni sul grafico</h3>
-        <p class="panel-hint">Usa gli strumenti nella colonna a sinistra del grafico (o il pulsante matita sul grafico, su mobile). Persistono per questo ticker anche dopo un ricaricamento della pagina (salvati in questo browser).</p>
+        <h3>Chart drawings</h3>
+        <p class="panel-hint">Use the tools in the column left of the chart (or the pencil button on the chart, on mobile). They persist for this ticker across page reloads (saved in this browser).</p>
         <ul id="draw-list" class="draw-list"></ul>
       </div>
     </div>
@@ -217,33 +217,33 @@
 
     <div id="issues-panel" class="levels-panel">
       <div class="drawer-header">
-        <span>Segnalazioni</span>
-        <button type="button" class="drawer-close-btn" data-close-drawer>✕ Chiudi</button>
+        <span>Reports</span>
+        <button type="button" class="drawer-close-btn" data-close-drawer>✕ Close</button>
       </div>
       <div class="panel">
-        <p class="panel-hint">Scrivi qui i problemi che trovi. Claude li legge e riporta sotto ciascuno la diagnosi e il fix, con il commit che lo contiene.</p>
+        <p class="panel-hint">Report the problems you find here. Claude reads them and posts the diagnosis and fix under each one, with the commit that contains it.</p>
         <div id="issues-counts" class="issues-counts"></div>
         <form id="issue-form" class="issue-form">
-          <input type="text" id="issue-title" placeholder="Cosa non va — in una riga" autocomplete="off" required />
-          <textarea id="issue-detail" rows="3" placeholder="Dettagli: cosa hai fatto, cosa ti aspettavi, cosa è successo (facoltativo)"></textarea>
+          <input type="text" id="issue-title" placeholder="What's wrong — in one line" autocomplete="off" required />
+          <textarea id="issue-detail" rows="3" placeholder="Details: what you did, what you expected, what happened (optional)"></textarea>
           <div class="issue-form-row">
             <select id="issue-priority">
-              <option value="alta">Priorità alta</option>
-              <option value="media" selected>Priorità media</option>
-              <option value="bassa">Priorità bassa</option>
+              <option value="alta">High priority</option>
+              <option value="media" selected>Medium priority</option>
+              <option value="bassa">Low priority</option>
             </select>
-            <button type="submit" id="issue-submit">Segnala</button>
+            <button type="submit" id="issue-submit">Report</button>
           </div>
           <p id="issue-form-status" class="issue-form-status"></p>
         </form>
         <div class="issues-tools">
-          <input type="search" id="issues-search" placeholder="Cerca fra le segnalazioni…" autocomplete="off" />
+          <input type="search" id="issues-search" placeholder="Search reports…" autocomplete="off" />
           <select id="issues-filter">
-            <option value="tutte">Tutte</option>
-            <option value="da-fare">Da fare</option>
-            <option value="aperto">Aperte</option>
-            <option value="riaperto">Riaperte</option>
-            <option value="risolto">Risolte</option>
+            <option value="tutte">All</option>
+            <option value="da-fare">To do</option>
+            <option value="aperto">Open</option>
+            <option value="riaperto">Reopened</option>
+            <option value="risolto">Resolved</option>
           </select>
         </div>
         <p id="issues-found" class="issues-found hidden"></p>
@@ -253,24 +253,24 @@
 
     <div id="script-panel" class="levels-panel">
       <div class="drawer-header">
-        <span>Script Pine</span>
-        <button type="button" class="drawer-close-btn" data-close-drawer>✕ Chiudi</button>
+        <span>Pine script</span>
+        <button type="button" class="drawer-close-btn" data-close-drawer>✕ Close</button>
       </div>
       <div class="panel pine-panel">
-        <h3>Script personalizzato</h3>
-        <p class="panel-hint">Carica o incolla uno script Pine (v4/v5). Supportato un sottoinsieme: variabili, ta.*, condizioni, strategy.entry/close, input.*. Non supportati: array, matrici, security(), librerie, oggetti grafici.</p>
+        <h3>Custom script</h3>
+        <p class="panel-hint">Upload or paste a Pine script (v4/v5). A subset is supported: variables, ta.*, conditions, strategy.entry/close, input.*. Not supported: arrays, matrices, security(), libraries, drawing objects.</p>
 
         <select id="pine-script-select" class="pine-script-select">
-          <option value="">— Nuovo script —</option>
+          <option value="">— New script —</option>
         </select>
 
         <div id="pine-editor-wrap">
-          <input type="text" id="pine-script-name" placeholder="Nome script" autocomplete="off" />
+          <input type="text" id="pine-script-name" placeholder="Script name" autocomplete="off" />
           <input type="file" id="pine-file-input" accept=".pine,.txt" />
           <div id="pine-editor" class="pine-editor"><textarea id="pine-source"></textarea></div>
           <div class="pine-actions">
-            <button type="button" id="pine-analyze-btn">Analizza e salva</button>
-            <button type="button" id="pine-delete-btn" class="pine-danger hidden">Elimina script</button>
+            <button type="button" id="pine-analyze-btn">Analyze and save</button>
+            <button type="button" id="pine-delete-btn" class="pine-danger hidden">Delete script</button>
           </div>
           <p id="pine-parse-status" class="pine-status"></p>
         </div>
@@ -278,15 +278,15 @@
         <form id="pine-params-form" class="pine-params-form hidden">
           <div id="pine-params-fields"></div>
           <div id="pine-signal-mapping" class="pine-signal-mapping hidden">
-            <p class="panel-hint">Questo script non usa strategy.entry/close — assegna le variabili booleane rilevate ai ruoli:</p>
-            <label>Ingresso long <select data-role="entry_long"></select></label>
-            <label>Ingresso short <select data-role="entry_short"></select></label>
-            <label>Uscita long <select data-role="exit_long"></select></label>
-            <label>Uscita short <select data-role="exit_short"></select></label>
+            <p class="panel-hint">This script doesn't use strategy.entry/close — map the detected boolean variables to roles:</p>
+            <label>Long entry <select data-role="entry_long"></select></label>
+            <label>Short entry <select data-role="entry_short"></select></label>
+            <label>Long exit <select data-role="exit_long"></select></label>
+            <label>Short exit <select data-role="exit_short"></select></label>
           </div>
           <div class="pine-actions">
-            <button type="submit" id="pine-apply-btn">Applica al grafico</button>
-            <button type="button" id="pine-clear-btn" class="pine-secondary hidden">Torna alla strategia integrata</button>
+            <button type="submit" id="pine-apply-btn">Apply to chart</button>
+            <button type="button" id="pine-clear-btn" class="pine-secondary hidden">Back to built-in strategy</button>
           </div>
         </form>
         <p id="pine-run-status" class="pine-status"></p>
@@ -294,27 +294,27 @@
     </div>
 
     <div id="indicator-library-modal" class="indicator-modal-overlay hidden">
-      <div class="indicator-modal" role="dialog" aria-modal="true" aria-label="Libreria indicatori">
+      <div class="indicator-modal" role="dialog" aria-modal="true" aria-label="Indicator library">
         <div class="indicator-modal-header">
-          <h3>Indicatori, con spiegazione</h3>
-          <button type="button" id="indicator-modal-close" class="indicator-modal-close" aria-label="Chiudi">✕</button>
+          <h3>Indicators, explained</h3>
+          <button type="button" id="indicator-modal-close" class="indicator-modal-close" aria-label="Close">✕</button>
         </div>
         <div class="indicator-modal-search">
-          <input type="search" id="indicator-library-search" placeholder="Cerca per nome o per cosa vuoi vedere (es. “volatilità”, “volume”, “trend”)…" autocomplete="off" />
+          <input type="search" id="indicator-library-search" placeholder="Search by name or by what you want to see (e.g. “volatility”, “volume”, “trend”)…" autocomplete="off" />
         </div>
         <div class="indicator-modal-body">
           <nav id="indicator-modal-nav" class="indicator-modal-nav"></nav>
           <div id="indicator-library-list" class="indicator-library-list"></div>
         </div>
-        <p class="indicator-modal-hint">151 indicatori open source (pandas-ta). Quelli <b>sul prezzo</b> disegnano una linea sopra le candele; quelli <b>a riquadro</b> aprono un pannello sotto il grafico — nulla si affolla finché non lo scegli.</p>
+        <p class="indicator-modal-hint">151 open-source indicators (pandas-ta). <b>Price</b> overlays draw a line over the candles; <b>pane</b> indicators open a panel below the chart — nothing clutters the chart until you pick it.</p>
       </div>
     </div>
 
     <section class="chart-area">
       <div id="live-badge" class="live-badge hidden"><span class="live-dot"></span>LIVE</div>
-      <div id="polling-badge" class="polling-badge hidden">Agg. ogni 60s</div>
-      <div id="loading" class="loading hidden">Analisi in corso…</div>
-      <div id="empty-state" class="empty-state">Cerca un ticker per iniziare l'analisi multi-timeframe.</div>
+      <div id="polling-badge" class="polling-badge hidden">Updates every 60s</div>
+      <div id="loading" class="loading hidden">Analyzing…</div>
+      <div id="empty-state" class="empty-state">Search a ticker to start the multi-timeframe analysis.</div>
       <!-- Shown only if the very first request (checkAuth, in app.js) is
            still pending after ~1.2s — the free-tier server suspends when
            idle, so the first visit after any quiet period pays a one-time
@@ -323,60 +323,60 @@
       <div id="server-wake-hint" class="server-wake-hint hidden">
         <span class="server-wake-dot"></span>
         <div>
-          <div class="server-wake-title">Il server si sta avviando…</div>
-          <div class="server-wake-sub">Dopo un periodo di inattività la prima apertura richiede qualche secondo in più.</div>
+          <div class="server-wake-title">Server is starting up…</div>
+          <div class="server-wake-sub">After a period of inactivity the first load takes a few extra seconds.</div>
         </div>
       </div>
       <div class="chart-row">
-        <nav class="draw-rail" id="draw-rail" title="Strumenti di disegno">
-          <button type="button" class="draw-tool-btn selected" data-draw-tool="cursor" title="Cursore — clicca un disegno per eliminarlo">
+        <nav class="draw-rail" id="draw-rail" title="Drawing tools">
+          <button type="button" class="draw-tool-btn selected" data-draw-tool="cursor" title="Cursor — click a drawing to delete it">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3 L5 20 L10 15.5 L13.5 21.5 L16 20 L12.5 14 L19 13.5 Z"/></svg>
           </button>
           <div class="draw-rail-divider"></div>
-          <button type="button" class="draw-tool-btn" data-draw-tool="trend_line" title="Linea di tendenza">
+          <button type="button" class="draw-tool-btn" data-draw-tool="trend_line" title="Trend line">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20 L20 4"/></svg>
           </button>
-          <button type="button" class="draw-tool-btn" data-draw-tool="extended_line" title="Linea estesa (si allunga ai bordi)">
+          <button type="button" class="draw-tool-btn" data-draw-tool="extended_line" title="Extended line (runs to the edges)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 21 L22 3"/><circle cx="8" cy="15" r="2" fill="currentColor" stroke="none" opacity=".5"/><circle cx="16" cy="7" r="2" fill="currentColor" stroke="none" opacity=".5"/></svg>
           </button>
-          <button type="button" class="draw-tool-btn" data-draw-tool="hline" title="Linea orizzontale">
+          <button type="button" class="draw-tool-btn" data-draw-tool="hline" title="Horizontal line">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 12 H21"/></svg>
           </button>
-          <button type="button" class="draw-tool-btn" data-draw-tool="hray" title="Raggio orizzontale (da punto verso destra)">
+          <button type="button" class="draw-tool-btn" data-draw-tool="hray" title="Horizontal ray (from point to the right)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 12 H21"/><path d="M18 9 L21 12 L18 15"/></svg>
           </button>
-          <button type="button" class="draw-tool-btn" data-draw-tool="rectangle" title="Rettangolo">
+          <button type="button" class="draw-tool-btn" data-draw-tool="rectangle" title="Rectangle">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="6" width="16" height="12" rx="1"/></svg>
           </button>
-          <button type="button" class="draw-tool-btn" data-draw-tool="range" title="Righello (misura prezzo/tempo fra due punti)">
+          <button type="button" class="draw-tool-btn" data-draw-tool="range" title="Ruler (measures price/time between two points)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 17 L17 4"/><path d="M6.5 14.5 L9.5 17.5 M9.5 11.5 L12.5 14.5 M12.5 8.5 L15.5 11.5"/></svg>
           </button>
-          <button type="button" class="draw-tool-btn" data-draw-tool="ellipse" title="Ellisse">
+          <button type="button" class="draw-tool-btn" data-draw-tool="ellipse" title="Ellipse">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="12" rx="9" ry="6"/></svg>
           </button>
-          <button type="button" class="draw-tool-btn" data-draw-tool="channel" title="Canale parallelo (3 punti)">
+          <button type="button" class="draw-tool-btn" data-draw-tool="channel" title="Parallel channel (3 points)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 7 L21 3"/><path d="M3 17 L21 13" stroke-dasharray="4 3"/></svg>
           </button>
-          <button type="button" class="draw-tool-btn" data-draw-tool="range" title="Misura (prezzo + tempo)">
+          <button type="button" class="draw-tool-btn" data-draw-tool="range" title="Measure (price + time)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 19 L19 5 M5 19 H10 M5 19 V14 M19 5 H14 M19 5 V10"/></svg>
           </button>
-          <button type="button" class="draw-tool-btn" data-draw-tool="fib" title="Ritracciamento Fibonacci">
+          <button type="button" class="draw-tool-btn" data-draw-tool="fib" title="Fibonacci retracement">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 5 H21 M3 9.5 H21 M3 14.5 H21 M3 19 H21"/></svg>
           </button>
-          <button type="button" class="draw-tool-btn" data-draw-tool="text" title="Testo">
+          <button type="button" class="draw-tool-btn" data-draw-tool="text" title="Text">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 H19 M12 5 V19"/></svg>
           </button>
-          <button type="button" class="draw-tool-btn" data-draw-tool="arrow" title="Freccia">
+          <button type="button" class="draw-tool-btn" data-draw-tool="arrow" title="Arrow">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 L20 4 M20 4 H12 M20 4 V12"/></svg>
           </button>
           <div class="draw-rail-divider"></div>
-          <button type="button" id="draw-clear-btn" class="draw-tool-btn" title="Cancella tutti i disegni">
+          <button type="button" id="draw-clear-btn" class="draw-tool-btn" title="Clear all drawings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7 H20 M9 7 V4 H15 V7 M6 7 L7 20 H17 L18 7"/></svg>
           </button>
         </nav>
         <div id="chart-wrap" class="chart-wrap hidden">
           <div id="main-chart" class="main-chart"><canvas id="draw-canvas"></canvas>
-            <button type="button" id="overlay-remove-badge" class="overlay-remove-badge hidden" title="Rimuovi questo indicatore">✕</button>
+            <button type="button" id="overlay-remove-badge" class="overlay-remove-badge hidden" title="Remove this indicator">✕</button>
             <div id="chart-indicator-legend" class="chart-indicator-legend"></div>
           </div>
           <div id="rsi-chart" class="sub-chart hidden"></div>
@@ -386,16 +386,16 @@
       </div>
       <!-- Striscia di lettura sotto il grafico: i numeri che si guardano di
            continuo non devono costringere ad aprire un pannello. -->
-      <button type="button" id="chart-expand-btn" class="chart-expand-btn" title="Allarga il grafico" aria-pressed="false">
+      <button type="button" id="chart-expand-btn" class="chart-expand-btn" title="Expand chart" aria-pressed="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></svg>
       </button>
       <div id="chart-stats" class="chart-stats hidden">
-        <div class="cs-cell"><span class="cs-k">Ultimo</span><span class="cs-v" id="cs-last">—</span></div>
-        <div class="cs-cell"><span class="cs-k">Var. periodo</span><span class="cs-v" id="cs-chg">—</span></div>
-        <div class="cs-cell"><span class="cs-k">Massimo</span><span class="cs-v" id="cs-high">—</span></div>
-        <div class="cs-cell"><span class="cs-k">Minimo</span><span class="cs-v" id="cs-low">—</span></div>
-        <div class="cs-cell"><span class="cs-k">Candele</span><span class="cs-v" id="cs-bars">—</span></div>
-        <div class="cs-cell"><span class="cs-k">Posizione</span><span class="cs-v" id="cs-pos">—</span></div>
+        <div class="cs-cell"><span class="cs-k">Last</span><span class="cs-v" id="cs-last">—</span></div>
+        <div class="cs-cell"><span class="cs-k">Period chg.</span><span class="cs-v" id="cs-chg">—</span></div>
+        <div class="cs-cell"><span class="cs-k">High</span><span class="cs-v" id="cs-high">—</span></div>
+        <div class="cs-cell"><span class="cs-k">Low</span><span class="cs-v" id="cs-low">—</span></div>
+        <div class="cs-cell"><span class="cs-k">Candles</span><span class="cs-v" id="cs-bars">—</span></div>
+        <div class="cs-cell"><span class="cs-k">Position</span><span class="cs-v" id="cs-pos">—</span></div>
       </div>
       <div id="tooltip" class="chart-tooltip hidden"></div>
       <div id="marker-popup" class="marker-popup hidden" role="dialog" aria-modal="true"></div>
@@ -404,17 +404,17 @@
 
     <aside class="right-panel">
       <div class="drawer-header">
-        <span>Pannello</span>
-        <button type="button" class="drawer-close-btn" data-close-drawer>✕ Chiudi</button>
+        <span>Panel</span>
+        <button type="button" class="drawer-close-btn" data-close-drawer>✕ Close</button>
       </div>
 
       <div class="tabs">
         <button type="button" class="tab active" data-tab="backtest">Backtest</button>
         <button type="button" class="tab" data-tab="watchlist">Watchlist</button>
         <button type="button" class="tab" data-tab="alert">Alert</button>
-        <button type="button" class="tab" data-tab="analisi">Analisi</button>
-        <button type="button" class="tab hidden" id="balances-tab-btn" data-tab="saldi">Saldi</button>
-        <a href="/sniper" class="tab tab-link" title="Apre il Token Sniper in una nuova app">Sniper ↗</a>
+        <button type="button" class="tab" data-tab="analisi">Analysis</button>
+        <button type="button" class="tab hidden" id="balances-tab-btn" data-tab="saldi">Balances</button>
+        <a href="/sniper" class="tab tab-link" title="Opens Token Sniper in a separate app">Sniper ↗</a>
       </div>
 
       <!-- Strategia tab removed from UI but DOM elements kept for JS compatibility -->
@@ -439,9 +439,9 @@
               <div class="lab-ticker-dot"></div>
               <div class="lab-ticker-text">
                 <span id="lab-ticker-val" class="lab-ticker-val">—</span>
-                <span class="lab-ticker-sub">Digita per cercare</span>
+                <span class="lab-ticker-sub">Type to search</span>
               </div>
-              <input id="lab-ticker-input" type="text" class="lab-ticker-input" placeholder="es. RPLUSDT" autocomplete="off" />
+              <input id="lab-ticker-input" type="text" class="lab-ticker-input" placeholder="e.g. RPLUSDT" autocomplete="off" />
               <ul id="lab-suggestions" class="suggestions hidden"></ul>
             </div>
             <select id="lab-exchange-select" class="lab-exchange-select">
@@ -457,17 +457,17 @@
                campi data vuoti in bella vista, per chi non li usa quasi mai,
                occupavano spazio senza dire niente. -->
           <details class="lab-daterange-details">
-            <summary>Periodo di riferimento (facoltativo)</summary>
+            <summary>Date range (optional)</summary>
             <div class="lab-daterange-row" id="lab-daterange-row">
               <label class="lab-daterange-field">
-                <span>Dal</span>
+                <span>From</span>
                 <input type="date" id="lab-date-start" class="lab-daterange-input" />
               </label>
               <label class="lab-daterange-field">
-                <span>Al</span>
+                <span>To</span>
                 <input type="date" id="lab-date-end" class="lab-daterange-input" />
               </label>
-              <button type="button" id="lab-daterange-clear" class="lab-daterange-clear" title="Rimuovi il periodo, usa tutta la storia disponibile">✕</button>
+              <button type="button" id="lab-daterange-clear" class="lab-daterange-clear" title="Clear the range, use all available history">✕</button>
             </div>
           </details>
 
@@ -497,48 +497,48 @@
 
           <!-- Strategy selector -->
           <div class="lab-strat-header">
-            <span class="lab-strat-label">Parametri strategia</span>
+            <span class="lab-strat-label">Strategy parameters</span>
             <select id="lab-strategy-select" class="lab-strategy-select"></select>
           </div>
           <div id="lab-params-fields" class="lab-params-grid"></div>
 
           <!-- Backtest params (collapsed) -->
           <details class="lab-bt-details">
-            <summary>Parametri backtest</summary>
+            <summary>Backtest parameters</summary>
             <div class="lab-bt-params">
-              <label>Capitale iniziale <input type="text" inputmode="decimal" id="lab-initial-capital" value="10000" /></label>
+              <label>Initial capital <input type="text" inputmode="decimal" id="lab-initial-capital" value="10000" /></label>
               <label>% equity/trade <input type="text" inputmode="decimal" id="lab-qty-pct" value="100" /></label>
-              <label>Commissione % <input type="text" inputmode="decimal" id="lab-commission" value="0" /></label>
+              <label>Fee % <input type="text" inputmode="decimal" id="lab-commission" value="0" /></label>
               <label>Slippage % <input type="text" inputmode="decimal" id="lab-slippage" value="0" /></label>
-              <label class="lab-fill-at">Esecuzione del segnale
+              <label class="lab-fill-at">Signal execution
                 <select id="lab-fill-at">
-                  <option value="signal_close">Al momento in cui si verifica la condizione</option>
+                  <option value="signal_close">As soon as the condition is met</option>
                 </select>
               </label>
-              <p class="panel-hint lab-fill-hint">L&rsquo;ordine si riempie al prezzo di chiusura della candela che verifica la condizione — lo stesso istante in cui, dal vivo, arriva l&rsquo;alert. E&rsquo; il prezzo che si otterrebbe davvero reagendo subito, su qualunque timeframe.</p>
+              <p class="panel-hint lab-fill-hint">The order fills at the close of the candle that meets the condition — the same moment the live alert fires. It&rsquo;s the price you&rsquo;d actually get by reacting right away, on any timeframe.</p>
             </div>
           </details>
 
           <!-- Action buttons -->
           <div class="lab-action-row">
-            <button type="button" id="lab-optimize-btn" class="lab-btn-opt">⟳ Ottimizza</button>
-            <button type="button" id="lab-run-btn" class="lab-btn-run">▶ Esegui</button>
+            <button type="button" id="lab-optimize-btn" class="lab-btn-opt">⟳ Optimize</button>
+            <button type="button" id="lab-run-btn" class="lab-btn-run">▶ Run</button>
           </div>
           <div class="lab-mode-picker">
             <label class="lab-mode-opt">
               <input type="radio" name="lab-opt-mode" value="random" checked />
-              <span class="lab-mode-name">Rapida</span>
-              <span class="lab-mode-desc">200 tentativi casuali · 10–25s. Il risultato cambia a ogni esecuzione.</span>
+              <span class="lab-mode-name">Quick</span>
+              <span class="lab-mode-desc">200 random trials · 10–25s. The result changes on every run.</span>
             </label>
             <label class="lab-mode-opt" id="lab-mode-grid-wrap">
               <input type="radio" name="lab-opt-mode" value="grid" />
               <span class="lab-mode-name">Grid</span>
-              <span class="lab-mode-desc">Ogni combinazione di una griglia fissa · 30–50s.</span>
+              <span class="lab-mode-desc">Every combination of a fixed grid · 30–50s.</span>
             </label>
             <label class="lab-mode-opt lab-mode-recommended">
               <input type="radio" name="lab-opt-mode" value="plateau" />
-              <span class="lab-mode-name">Stabile <em>consigliata</em></span>
-              <span class="lab-mode-desc">Cerca la configurazione che regge alle variazioni, non il picco fortunato. Più lenta (1–5 min) ma dà <strong>sempre lo stesso risultato</strong>.</span>
+              <span class="lab-mode-name">Stable <em>recommended</em></span>
+              <span class="lab-mode-desc">Finds the configuration that holds up under variation, not the lucky peak. Slower (1–5 min) but <strong>always gives the same result</strong>.</span>
             </label>
           </div>
 
@@ -546,26 +546,26 @@
                rispettano, non le penalizzano. Vuoto = nessun vincolo, che e'
                diverso da 0 (nessun trade in perdita, drawdown nullo). -->
           <details class="lab-filters" id="lab-filters">
-            <summary>Filtri sul risultato <span class="lab-filters-badge hidden" id="lab-filters-badge"></span></summary>
+            <summary>Result filters <span class="lab-filters-badge hidden" id="lab-filters-badge"></span></summary>
             <p class="lab-filters-hint">
-              Lascia vuoto per non porre vincoli. Scrivere <strong>0</strong> e' un vincolo
-              vero e proprio: nessun trade in perdita, oppure drawdown nullo.
+              Leave empty for no constraint. Entering <strong>0</strong> is a real
+              constraint: no losing trades, or zero drawdown.
             </p>
             <div class="lab-filters-grid">
               <label>
-                <span>Trade in perdita: min</span>
+                <span>Losing trades: min</span>
                 <input type="number" id="lab-min-losing" min="0" step="1" placeholder="—" />
               </label>
               <label>
-                <span>Trade in perdita: max</span>
+                <span>Losing trades: max</span>
                 <input type="number" id="lab-max-losing" min="0" step="1" placeholder="—" />
               </label>
               <label>
-                <span>Drawdown massimo (%)</span>
+                <span>Max drawdown (%)</span>
                 <input type="number" id="lab-max-dd" min="0" max="100" step="0.5" placeholder="—" />
               </label>
             </div>
-            <button type="button" class="lab-filters-clear" id="lab-filters-clear">Azzera filtri</button>
+            <button type="button" class="lab-filters-clear" id="lab-filters-clear">Reset filters</button>
           </details>
 
           <div id="lab-plateau-box" class="lab-plateau-box hidden"></div>
@@ -591,9 +591,9 @@
           <div id="lab-apply-strip" class="lab-apply-strip hidden">
             <div id="lab-apply-text" class="lab-apply-text"></div>
             <div class="lab-apply-actions">
-              <button type="button" id="lab-apply-btn" class="lab-apply-btn">Applica ↗</button>
-              <button type="button" id="lab-signal-btn" class="lab-signal-btn" title="Aggiungi alla watchlist alert con questa strategia e questi parametri">📬 Segnali</button>
-              <button type="button" id="lab-archive-btn" class="lab-archive-btn" title="Salva questa configurazione nell'archivio strategie">🗄 Archivia</button>
+              <button type="button" id="lab-apply-btn" class="lab-apply-btn">Apply ↗</button>
+              <button type="button" id="lab-signal-btn" class="lab-signal-btn" title="Add to the alert watchlist with this strategy and these parameters">📬 Signals</button>
+              <button type="button" id="lab-archive-btn" class="lab-archive-btn" title="Save this configuration to the strategy archive">🗄 Archive</button>
             </div>
           </div>
           <div id="lab-signal-status" class="lab-signal-status hidden"></div>
@@ -604,7 +604,7 @@
         <div id="lab-trades-drawer" class="lab-trades-drawer hidden">
           <div class="lab-trades-header">
             <span id="lab-trades-title">Trade</span>
-            <button type="button" id="lab-trades-export" class="lab-trades-export" title="Scarica tutto in Excel: riepilogo, operazioni, curva del capitale e grafici">⤓ Excel</button>
+            <button type="button" id="lab-trades-export" class="lab-trades-export" title="Download everything to Excel: summary, trades, equity curve and charts">⤓ Excel</button>
             <button type="button" id="lab-trades-close" class="lab-trades-close">✕</button>
           </div>
           <div id="lab-trades-body" class="lab-trades-body"></div>
@@ -614,34 +614,34 @@
       <div class="tab-content" data-tab-content="watchlist">
         <div class="panel">
           <div class="section-title-row">
-            <span class="section-eyebrow">I tuoi ticker</span>
+            <span class="section-eyebrow">Your tickers</span>
             <span id="favorites-count" class="section-count"></span>
           </div>
 
           <form id="favorite-form" class="watchlist-quickbar">
             <div class="wl-ticker-field">
-              <input type="text" id="favorite-symbol" placeholder="Aggiungi ticker (es. BTC)" autocomplete="off" />
+              <input type="text" id="favorite-symbol" placeholder="Add ticker (e.g. BTC)" autocomplete="off" />
               <ul id="favorite-suggestions" class="suggestions hidden"></ul>
             </div>
-            <button type="submit" title="Aggiungi alla watchlist">+</button>
+            <button type="submit" title="Add to watchlist">+</button>
           </form>
 
           <!-- Le azioni sono spente (settings.stocks_enabled): un filtro fra
                due categorie quando ne esiste una sola non filtra niente. Gli
                elementi restano nel DOM perche' app.js ci si aggancia. -->
           <div class="asset-toggle small hidden" id="favorite-filter">
-            <button type="button" data-favorite-filter="all" class="wl-asset-btn active">Tutti</button>
-            <button type="button" data-favorite-filter="stock" class="wl-asset-btn">Azioni</button>
+            <button type="button" data-favorite-filter="all" class="wl-asset-btn active">All</button>
+            <button type="button" data-favorite-filter="stock" class="wl-asset-btn">Stocks</button>
             <button type="button" data-favorite-filter="crypto" class="wl-asset-btn">Crypto</button>
           </div>
 
           <ul id="favorite-rows" class="wl-rows"></ul>
           <p id="favorite-empty" class="wl-empty hidden">
             <span class="wl-empty-icon">☆</span><br />
-            Nessun ticker salvato.<br />Aggiungine uno per passare da un grafico all'altro con un clic, e da qui attivi anche alert automatici e ordini automatici sulle strategie.
+            No saved tickers.<br />Add one to switch between charts in one click — from here you can also turn on automatic alerts and automatic orders on strategies.
           </p>
 
-          <p class="wl-hint">Clicca un ticker per caricarlo nel grafico. Il pallino <b>●</b> indica che hai un alert Telegram attivo su quel ticker — gestiscilo dalla tab <b>Alert</b>.</p>
+          <p class="wl-hint">Click a ticker to load it on the chart. The <b>●</b> dot means you have an active Telegram alert on that ticker — manage it from the <b>Alert</b> tab.</p>
         </div>
       </div>
 
@@ -650,92 +650,92 @@
           <h3>Alert (Telegram)</h3>
 
           <div id="alert-login-prompt" class="alert-login-prompt hidden">
-            <p class="panel-hint">Accedi per creare e gestire i tuoi avvisi — ogni utente ha la propria lista e riceve le notifiche sul proprio Telegram.</p>
-            <button type="button" id="alert-login-btn">Accedi o registrati</button>
+            <p class="panel-hint">Log in to create and manage your alerts — each user has their own list and gets notifications on their own Telegram.</p>
+            <button type="button" id="alert-login-btn">Log in or sign up</button>
           </div>
 
           <div id="alert-authenticated" class="hidden">
             <div id="telegram-status-chip" class="telegram-status-chip hidden">
-              <span class="tg-status-label"><span class="tg-status-dot"></span>Telegram collegato</span>
-              <button type="button" id="telegram-edit-btn" class="tg-edit-link">Modifica</button>
+              <span class="tg-status-label"><span class="tg-status-dot"></span>Telegram connected</span>
+              <button type="button" id="telegram-edit-btn" class="tg-edit-link">Edit</button>
             </div>
             <div id="telegram-setup" class="telegram-setup">
-              <label>Il tuo Telegram chat ID
+              <label>Your Telegram chat ID
                 <input type="text" id="telegram-chat-id-input" placeholder="es. 123456789" autocomplete="off" />
               </label>
-              <button type="button" id="telegram-chat-id-save">Salva</button>
-              <p class="panel-hint">Scrivi un messaggio qualsiasi al bot, poi apri <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> per trovare il tuo chat ID — chiedi il link del bot se non lo hai.</p>
+              <button type="button" id="telegram-chat-id-save">Save</button>
+              <p class="panel-hint">Send any message to the bot, then open <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> to find your chat ID — ask for the bot link if you don't have it.</p>
             </div>
 
             <div class="section-title-row">
-              <span class="section-eyebrow">I tuoi alert</span>
+              <span class="section-eyebrow">Your alerts</span>
               <span id="watchlist-count" class="section-count"></span>
             </div>
 
             <form id="watchlist-form" class="watchlist-quickbar">
               <div class="wl-ticker-field">
-                <input type="text" id="watchlist-symbol" placeholder="Aggiungi ticker (es. BTC)" autocomplete="off" required />
+                <input type="text" id="watchlist-symbol" placeholder="Add ticker (e.g. BTC)" autocomplete="off" required />
                 <ul id="watchlist-suggestions" class="suggestions hidden"></ul>
               </div>
-              <button type="submit" title="Aggiungi alla watchlist">+</button>
+              <button type="submit" title="Add to watchlist">+</button>
             </form>
             <p id="watchlist-resolved-pair" class="wl-resolved-pair hidden"></p>
 
             <details class="wl-options-details">
-              <summary>Opzioni — asset, exchange, timeframe, chiusura candela</summary>
+              <summary>Options — asset, exchange, timeframe, candle close</summary>
               <div class="asset-toggle small hidden">
-                <button type="button" data-watchlist-asset="stock" class="wl-asset-btn">Azioni</button>
+                <button type="button" data-watchlist-asset="stock" class="wl-asset-btn">Stocks</button>
                 <button type="button" data-watchlist-asset="crypto" class="wl-asset-btn active">Crypto</button>
               </div>
               <select id="watchlist-exchange" class="hidden">
                 <option value="mexc">MEXC</option>
                 <option value="binance">Binance</option>
-                <option value="kucoin">KuCoin (solo /BTC)</option>
+                <option value="kucoin">KuCoin (/BTC only)</option>
                 <option value="kraken">Kraken</option>
               </select>
-              <select id="watchlist-interval" title="Timeframe su cui valutare le strategie di questo ticker"></select>
-              <label class="toolbar-check wl-onclose-check" title="Se attivo, l'alert scatta solo quando la candela chiude — niente falsi segnali intra-bar">
-                <input type="checkbox" id="watchlist-onclose" checked /> Alla chiusura della candela
+              <select id="watchlist-interval" title="Timeframe on which to evaluate this ticker's strategies"></select>
+              <label class="toolbar-check wl-onclose-check" title="When on, the alert fires only when the candle closes — no false intra-bar signals">
+                <input type="checkbox" id="watchlist-onclose" checked /> On candle close
               </label>
             </details>
 
             <!-- Price alerts -->
             <div class="section-title-row" style="margin-top:16px">
-              <span class="section-eyebrow">Alert su prezzo</span>
+              <span class="section-eyebrow">Price alert</span>
             </div>
             <form id="price-alert-form" class="pa-form">
-              <input type="text" id="pa-symbol" placeholder="Ticker (es. BTC)" autocomplete="off" required />
+              <input type="text" id="pa-symbol" placeholder="Ticker (e.g. BTC)" autocomplete="off" required />
               <select id="pa-condition">
-                <option value="crosses_above">▲ Sopra</option>
-                <option value="crosses_below">▼ Sotto</option>
+                <option value="crosses_above">▲ Above</option>
+                <option value="crosses_below">▼ Below</option>
               </select>
-              <input type="number" id="pa-price" placeholder="Prezzo" step="any" required />
-              <input type="text" id="pa-note" placeholder="Nota (opz.)" />
-              <label class="pa-once-label" title="Si disattiva dopo il primo trigger">
-                <input type="checkbox" id="pa-once" checked /> Una volta
+              <input type="number" id="pa-price" placeholder="Price" step="any" required />
+              <input type="text" id="pa-note" placeholder="Note (opt.)" />
+              <label class="pa-once-label" title="Turns off after the first trigger">
+                <input type="checkbox" id="pa-once" checked /> Once
               </label>
               <button type="submit">+</button>
             </form>
             <ul id="price-alerts-list" class="pa-list"></ul>
 
-            <p class="panel-hint">Ogni ticker qui dentro viene controllato in background ogni minuto, indipendentemente da cosa stai guardando a schermo. Attiva una o più strategie per ticker: arriva una notifica Telegram per ogni segnale confermato.</p>
+            <p class="panel-hint">Every ticker in here is checked in the background every minute, whatever you're looking at on screen. Turn on one or more strategies per ticker: you get a Telegram notification for every confirmed signal.</p>
 
             <ul id="watchlist-list" class="watchlist-cards"></ul>
 
             <!-- Alert log (storico) -->
             <div class="section-title-row" style="margin-top:16px">
-              <span class="section-eyebrow">Storico alert</span>
-              <button type="button" id="alert-log-clear-btn" class="section-action-btn">Svuota</button>
+              <span class="section-eyebrow">Alert history</span>
+              <button type="button" id="alert-log-clear-btn" class="section-action-btn">Clear</button>
             </div>
             <ul id="alert-log-list" class="alert-log-cards"></ul>
 
             <div class="alert-footnote">
-              <label class="layer-toggle"><input type="checkbox" id="strategy-notify-toggle" /> Notifiche browser (strategia integrata)</label>
+              <label class="layer-toggle"><input type="checkbox" id="strategy-notify-toggle" /> Browser notifications (built-in strategy)</label>
               <ul id="strategy-alert-log" class="alert-log"></ul>
               <p class="strategy-disclaimer">
-                Notifiche su una condizione tecnica definita dall'utente. Non sono raccomandazioni di investimento.
+                Notifications on a user-defined technical condition. Not investment advice.
               </p>
-              <button type="button" id="open-script-from-alert" class="pine-secondary-link hidden">Script Pine personalizzato →</button>
+              <button type="button" id="open-script-from-alert" class="pine-secondary-link hidden">Custom Pine script →</button>
             </div>
           </div>
         </div>
@@ -743,28 +743,28 @@
 
       <div class="tab-content" data-tab-content="strategie">
         <div class="panel">
-          <h3>Strategie</h3>
+          <h3>Strategies</h3>
           <!-- Archivio delle strategie attivate -->
           <div class="section-title-row">
-            <span class="section-eyebrow">Archivio strategie</span>
+            <span class="section-eyebrow">Strategy archive</span>
             <span id="archive-count" class="section-count"></span>
-            <button type="button" id="archive-import-btn" class="section-action-btn" title="Carica un file esportato da un altro account">Importa</button>
+            <button type="button" id="archive-import-btn" class="section-action-btn" title="Upload a file exported from another account">Import</button>
             <input type="file" id="archive-import-file" accept="application/json" class="hidden" />
-            <button type="button" id="archive-refresh-btn" class="section-action-btn">Aggiorna</button>
+            <button type="button" id="archive-refresh-btn" class="section-action-btn">Refresh</button>
           </div>
-          <p class="panel-hint">Ogni volta che attivi una strategia su un ticker, la configurazione viene fotografata qui con il backtest del momento. Serve a ritrovare, mesi dopo, con che cosa era partita e che cosa prometteva. Il pulsante "Condividi" su ogni voce scarica un file da importare su un altro account.</p>
+          <p class="panel-hint">Every time you turn on a strategy on a ticker, its configuration is snapshotted here together with the backtest at that moment. So months later you can see what it started with and what it promised. The "Share" button on each entry downloads a file you can import into another account.</p>
           <ul id="archive-list" class="archive-cards"></ul>
         </div>
       </div>
 
       <div class="tab-content" data-tab-content="trading">
         <details class="panel opera-advanced">
-          <summary>Chiavi exchange, posizioni, diario, ordine manuale <span class="risk-badge">denaro reale</span></summary>
-          <p class="panel-hint">Di solito non serve aprire questo pannello: attivando "Trading automatico" su una strategia in Alert, se manca la chiave te la chiede li'. Qui dentro solo per gestire chiavi gia' configurate, vedere le posizioni aperte o piazzare un ordine manuale fuori da una strategia.</p>
+          <summary>Exchange keys, positions, log, manual order <span class="risk-badge">real money</span></summary>
+          <p class="panel-hint">You usually don't need this panel: when you turn on "Auto-trading" for a strategy in Alert, it asks for the key there if one is missing. Come here only to manage keys you've already set up, see open positions, or place a manual order outside a strategy.</p>
 
           <div id="opera-login-prompt" class="alert-login-prompt hidden">
-            <p class="panel-hint">Accedi per operare: ogni utente ha le proprie chiavi, cifrate lato server.</p>
-            <button type="button" id="opera-login-btn">Accedi o registrati</button>
+            <p class="panel-hint">Log in to trade: each user has their own keys, encrypted server-side.</p>
+            <button type="button" id="opera-login-btn">Log in or sign up</button>
           </div>
 
           <div id="opera-authenticated" class="hidden">
@@ -776,12 +776,12 @@
                  piccolo menu di sezioni: si apre solo quella che serve. -->
             <!-- ── Posizioni aperte ── -->
             <details class="opera-sub">
-              <summary>Posizioni aperte <span id="positions-count" class="section-count"></span></summary>
+              <summary>Open positions <span id="positions-count" class="section-count"></span></summary>
               <div class="opera-sub-body">
                 <div class="section-title-row">
-                  <button type="button" id="positions-refresh-btn" class="section-action-btn">Aggiorna</button>
+                  <button type="button" id="positions-refresh-btn" class="section-action-btn">Refresh</button>
                 </div>
-                <p class="panel-hint">Finche' una posizione a leva resta aperta, la distanza dalla liquidazione e' l'unico numero che conta davvero.</p>
+                <p class="panel-hint">While a leveraged position is open, the distance to liquidation is the only number that really matters.</p>
                 <!-- Fuori dalla lista apposta: l'esito di una chiusura deve
                      sopravvivere al ridisegno che la chiusura stessa provoca
                      (la posizione appena chiusa sparisce dalla lista, e con
@@ -793,9 +793,9 @@
 
             <!-- ── Futures ── -->
             <details class="opera-sub">
-              <summary>Ordine futures <span class="trading-auto-badge futures-badge">⚠️ Leva — denaro reale</span></summary>
+              <summary>Futures order <span class="trading-auto-badge futures-badge">⚠️ Leverage — real money</span></summary>
               <div class="trading-auto-section futures-section">
-              <p class="panel-hint">Margine isolato, chiusure sempre <code>reduceOnly</code>. Il server rifiuta l'ordine senza conferma esplicita, ricontrolla il tetto di leva e verifica il margine sul saldo vero: la spunta qui sotto e' il primo di tre cancelli, non l'unico.</p>
+              <p class="panel-hint">Isolated margin, closes always <code>reduceOnly</code>. The server rejects the order without explicit confirmation, re-checks the leverage cap and verifies margin against the real balance: the checkbox below is the first of three gates, not the only one.</p>
 
               <div id="futures-credentials-list" class="trading-cred-list"></div>
 
@@ -812,7 +812,7 @@
                   <div class="mo-field mo-field-grow">
                     <label class="mo-label" for="futures-symbol">Pair</label>
                     <div class="mo-pair-field">
-                      <input type="text" id="futures-symbol" class="mo-input" placeholder="es. BTCUSDT" autocomplete="off" />
+                      <input type="text" id="futures-symbol" class="mo-input" placeholder="e.g. BTCUSDT" autocomplete="off" />
                       <ul id="futures-symbol-suggestions" class="suggestions hidden"></ul>
                     </div>
                   </div>
@@ -827,10 +827,10 @@
                      in un campo lo racconta dopo. -->
                 <div class="lev-block">
                   <div class="lev-head">
-                    <label class="mo-label" for="futures-leverage">Leva</label>
+                    <label class="mo-label" for="futures-leverage">Leverage</label>
                     <span id="futures-lev-val" class="lev-val">3×</span>
                     <span class="lev-spacer"></span>
-                    <span id="futures-lev-cap" class="lev-cap">tetto server 1×</span>
+                    <span id="futures-lev-cap" class="lev-cap">server cap 1×</span>
                   </div>
                   <!-- Valori iniziali coerenti con MAX_FUTURES_LEVERAGE=1 lato server —
                        applyFuturesExchangeLimits() li aggiorna comunque appena arriva
@@ -841,25 +841,25 @@
                   <!-- Kraken non ha isolated margin (vedi registry.py): qui
                        si dice, invece di far credere che il rischio sia
                        sempre confinato al margine della posizione. -->
-                  <div id="futures-margin-mode" class="lev-mode">margine <b>isolato</b> — forzato</div>
+                  <div id="futures-margin-mode" class="lev-mode"><b>isolated</b> margin — enforced</div>
                 </div>
 
                 <!-- Solo per gli exchange con needs_passphrase (OKX, Bitget). -->
                 <div id="futures-passphrase-field" class="mo-field hidden">
                   <label class="mo-label" for="futures-passphrase">Passphrase</label>
-                  <input type="password" id="futures-passphrase" class="mo-input" placeholder="lascia vuoto per non cambiare" autocomplete="off" />
+                  <input type="password" id="futures-passphrase" class="mo-input" placeholder="leave empty to keep unchanged" autocomplete="off" />
                 </div>
 
                 <div class="mo-size-mode-row">
-                  <label class="mo-radio-label"><input type="radio" name="futures-size-mode" value="fixed_usdt" checked /> Margine USDT</label>
-                  <label class="mo-radio-label"><input type="radio" name="futures-size-mode" value="pct_balance" /> % saldo</label>
+                  <label class="mo-radio-label"><input type="radio" name="futures-size-mode" value="fixed_usdt" checked /> USDT margin</label>
+                  <label class="mo-radio-label"><input type="radio" name="futures-size-mode" value="pct_balance" /> % of balance</label>
                   <!-- Quantita' di moneta base (es. 0.05 BTC), non un importo:
                        serve un'unita' propria e nessuno slider percentuale,
                        altrimenti "500" scritto qui potrebbe voler dire 500
                        USDT o 500 BTC a seconda di quale radio e' selezionata
                        — esattamente la confusione che questo terzo modo
                        esiste per evitare, non per introdurre. -->
-                  <label class="mo-radio-label"><input type="radio" name="futures-size-mode" value="base_qty" /> Quantità</label>
+                  <label class="mo-radio-label"><input type="radio" name="futures-size-mode" value="base_qty" /> Quantity</label>
                 </div>
 
                 <div class="mo-slider-row" id="futures-size-slider-row">
@@ -878,14 +878,14 @@
                     <span class="mo-slider-unit" id="futures-qty-unit">token</span>
                   </div>
                 </div>
-                <p class="panel-hint hidden" id="futures-qty-hint">Non un importo in dollari: la quantità della moneta stessa (es. 0,05 = 0,05 BTC). L'anteprima qui sotto mostra sempre l'equivalente reale in USDT prima di confermare.</p>
+                <p class="panel-hint hidden" id="futures-qty-hint">Not a dollar amount: the quantity of the coin itself (e.g. 0.05 = 0.05 BTC). The preview below always shows the real USDT equivalent before you confirm.</p>
 
                 <!-- Anteprima da /api/trading/futures/quote -->
                 <div id="futures-quote" class="futures-quote">
                   <div class="fq-row"><span>Notional</span><span id="fq-notional">—</span></div>
-                  <div class="fq-row"><span>Margine richiesto</span><span id="fq-margin">—</span></div>
-                  <div class="fq-row fq-liq"><span>Liquidazione stimata</span><span id="fq-liq">—</span></div>
-                  <div class="fq-row"><span>Distanza dalla liquidazione</span><span id="fq-dist">—</span></div>
+                  <div class="fq-row"><span>Required margin</span><span id="fq-margin">—</span></div>
+                  <div class="fq-row fq-liq"><span>Estimated liquidation</span><span id="fq-liq">—</span></div>
+                  <div class="fq-row"><span>Distance to liquidation</span><span id="fq-dist">—</span></div>
                   <!-- Compare solo quando l'exchange arrotonda la dimensione
                        (MEXC conta contratti interi): i numeri qui sopra sono
                        gia' quelli veri, questa riga dice perche' non
@@ -895,10 +895,10 @@
 
                 <label class="futures-confirm">
                   <input type="checkbox" id="futures-confirm-box" />
-                  <span>Confermo: denaro reale, leva <b id="futures-confirm-lev">3×</b>, liquidazione stimata a <b id="futures-confirm-liq">—</b></span>
+                  <span>I confirm: real money, leverage <b id="futures-confirm-lev">3×</b>, estimated liquidation at <b id="futures-confirm-liq">—</b></span>
                 </label>
 
-                <button type="button" id="futures-execute-btn" class="mo-execute-btn mo-execute-buy" disabled>APRI LONG</button>
+                <button type="button" id="futures-execute-btn" class="mo-execute-btn mo-execute-buy" disabled>OPEN LONG</button>
                 <div id="futures-order-status" class="manual-order-status hidden"></div>
               </div>
               </div>
@@ -906,17 +906,17 @@
 
             <!-- Trading Automatico -->
             <details class="opera-sub">
-              <summary>Trading automatico <span class="trading-auto-badge">⚠️ Denaro reale</span></summary>
+              <summary>Auto-trading <span class="trading-auto-badge">⚠️ Real money</span></summary>
               <div class="trading-auto-section">
-              <p class="panel-hint trading-auto-hint">Configura qui le API key con permessi di trading (non di prelievo). Quale strategia puo' usarle si decide dalla tab Alert, ticker per ticker: "Solo alert" o "Trading automatico".</p>
+              <p class="panel-hint trading-auto-hint">Set up API keys with trading permissions (not withdrawal) here. Which strategy can use them is decided in the Alert tab, ticker by ticker: "Alerts only" or "Auto-trading".</p>
               <div id="trading-credentials-list" class="trading-cred-list"></div>
 
               <!-- Diario: distinguere "nessun segnale" da "c'era un segnale e
                    l'ordine non e' partito" e' l'intera informazione utile. -->
               <div class="section-title-row" style="margin-top:14px">
-                <span class="section-eyebrow">Diario ordini</span>
+                <span class="section-eyebrow">Order log</span>
                 <span id="journal-count" class="section-count"></span>
-                <button type="button" id="journal-refresh-btn" class="section-action-btn">Aggiorna</button>
+                <button type="button" id="journal-refresh-btn" class="section-action-btn">Refresh</button>
               </div>
               <ul id="journal-list" class="journal-list"></ul>
               </div>
@@ -935,9 +935,9 @@
                  sezione. onchain-app.html resta intatta e raggiungibile
                  (link diretto, QR salvati) per chi ci arriva da fuori. -->
             <details class="opera-sub" id="onchain-embed-details">
-              <summary>Wallet on-chain <span class="trading-auto-badge">⚠️ Denaro reale</span></summary>
+              <summary>On-chain wallet <span class="trading-auto-badge">⚠️ Real money</span></summary>
               <div class="opera-sub-body">
-                <p class="panel-hint">Swap DEX su Solana e Robinhood Chain — chiave generata sul server, mai importata. Stessa logica di "denaro reale" delle sezioni qui sopra. <a href="/onchain-app.html" target="_blank" rel="noopener">Apri come pagina a se'</a> (utile per il QR di rivelazione chiave, che chiede comunque il telefono).</p>
+                <p class="panel-hint">DEX swaps on Solana and Robinhood Chain — key generated on the server, never imported. Same "real money" rules as the sections above. <a href="/onchain-app.html" target="_blank" rel="noopener">Open as a standalone page</a> (handy for the key-reveal QR, which needs your phone anyway).</p>
                 <div id="onchain-embed">
                   <section id="login-screen" hidden>
                     <form class="form" id="login-form">
@@ -945,7 +945,7 @@
                       <input id="login-email" name="email" type="email" autocomplete="username" required />
                       <label for="login-password">Password</label>
                       <input id="login-password" name="password" type="password" autocomplete="current-password" required />
-                      <button type="submit" class="btn-primary">Accedi</button>
+                      <button type="submit" class="btn-primary">Log in</button>
                       <p class="sheet-note is-error" id="login-error" hidden></p>
                     </form>
                   </section>
@@ -958,10 +958,10 @@
                     </div>
 
                     <section>
-                      <p class="label">Saldo · <span id="chain-label">Solana</span></p>
+                      <p class="label">Balance · <span id="chain-label">Solana</span></p>
                       <div class="amount" id="balance">—</div>
                       <div class="meta">
-                        <button type="button" class="addr" id="address" title="Copia l'indirizzo"></button>
+                        <button type="button" class="addr" id="address" title="Copy address"></button>
                         <span class="live"><span class="dot" id="live-dot"></span><span id="fresh"></span></span>
                       </div>
 
@@ -983,7 +983,7 @@
 
                     <p class="status" id="status" data-armed="false" hidden>
                       <span class="dot"></span>
-                      <span id="status-text">Sola lettura — nessuna firma parte da questa pagina.</span>
+                      <span id="status-text">Read-only — no signature ever leaves this page.</span>
                     </p>
 
                     <div class="market-order-row" id="market-order-row" hidden>
@@ -991,7 +991,7 @@
                       <section class="order-panel">
                         <div class="mo-side-tabs" id="order-tabs" role="tablist">
                           <button type="button" class="mo-side-tab mo-tab-active" data-order-tab="swap" role="tab" aria-selected="true">Swap</button>
-                          <button type="button" class="mo-side-tab" data-order-tab="limit" role="tab" aria-selected="false">Limite</button>
+                          <button type="button" class="mo-side-tab" data-order-tab="limit" role="tab" aria-selected="false">Limit</button>
                         </div>
                         <div id="order-panel-body"></div>
                       </section>
@@ -999,10 +999,10 @@
 
                     <section class="bottom-panel" id="bottom-panel" hidden>
                       <div class="mo-side-tabs" id="bottom-tabs" role="tablist">
-                        <button type="button" class="mo-side-tab mo-tab-active" data-bottom-tab="positions" role="tab" aria-selected="true">Posizioni</button>
-                        <button type="button" class="mo-side-tab" data-bottom-tab="orders" role="tab" aria-selected="false">Ordini aperti</button>
-                        <button type="button" class="mo-side-tab" data-bottom-tab="history" role="tab" aria-selected="false">Storico</button>
-                        <button type="button" class="mo-side-tab" data-bottom-tab="strategies" role="tab" aria-selected="false">Strategie</button>
+                        <button type="button" class="mo-side-tab mo-tab-active" data-bottom-tab="positions" role="tab" aria-selected="true">Positions</button>
+                        <button type="button" class="mo-side-tab" data-bottom-tab="orders" role="tab" aria-selected="false">Open orders</button>
+                        <button type="button" class="mo-side-tab" data-bottom-tab="history" role="tab" aria-selected="false">History</button>
+                        <button type="button" class="mo-side-tab" data-bottom-tab="strategies" role="tab" aria-selected="false">Strategies</button>
                       </div>
                       <div class="bottom-panel-body" id="bottom-panel-body"></div>
                     </section>
@@ -1010,31 +1010,31 @@
                     <div class="actions" id="actions" hidden>
                       <button type="button" class="action" data-sheet="receive">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 4v13" /><path d="M6 12l6 6 6-6" /><path d="M4 20h16" /></svg>
-                        Ricevi
+                        Receive
                       </button>
                       <button type="button" class="action" data-sheet="send">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 20V7" /><path d="M6 11l6-6 6 6" /><path d="M4 20h16" /></svg>
-                        Invia
+                        Send
                       </button>
                       <button type="button" class="action" data-sheet="risk">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z" /></svg>
-                        Limiti
+                        Limits
                       </button>
                       <button type="button" class="action" data-sheet="simulate">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 18 L9 11 L13 14 L20 5" /><path d="M15 5h5v5" /></svg>
-                        Simula
+                        Simulate
                       </button>
                     </div>
 
                     <button type="button" class="reveal-row" id="reveal-row" hidden>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="19" height="19"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z" /><circle cx="12" cy="11" r="2" /><path d="M12 13v3" /></svg>
-                      <span class="t"><b>Rivela chiave privata</b><small>serve il tuo telefono, mai solo da qui</small></span>
+                      <span class="t"><b>Reveal private key</b><small>requires your phone, never from here alone</small></span>
                       <span class="chev">›</span>
                     </button>
 
                     <section class="empty" id="onchain-empty-state" hidden>
-                      Nessun wallet <span data-chain-name></span> ancora.
-                      <button type="button" class="btn-primary" data-create>Crea wallet</button>
+                      No <span data-chain-name></span> wallet yet.
+                      <button type="button" class="btn-primary" data-create>Create wallet</button>
                     </section>
                   </div>
 
@@ -1046,7 +1046,7 @@
                   <div class="toast" id="toast" role="status" hidden>
                     <span class="toast-mark" aria-hidden="true">✓</span>
                     <span><span class="toast-title"></span><span class="toast-detail"></span></span>
-                    <button type="button" class="toast-close" aria-label="Chiudi">✕</button>
+                    <button type="button" class="toast-close" aria-label="Close">✕</button>
                   </div>
 
                   <dialog class="sheet" id="sheet">
@@ -1054,7 +1054,7 @@
                     <h2 class="sheet-title"></h2>
                     <p class="sheet-desc"></p>
                     <div class="sheet-body"></div>
-                    <button type="button" class="btn-quiet sheet-close">Chiudi</button>
+                    <button type="button" class="btn-quiet sheet-close">Close</button>
                   </dialog>
 
                   <dialog class="modal" id="reveal">
@@ -1063,9 +1063,9 @@
 
                   <dialog class="sheet" id="picker">
                     <div class="grip" aria-hidden="true"></div>
-                    <h2 class="sheet-title">Cerca token</h2>
+                    <h2 class="sheet-title">Search token</h2>
                     <div class="sheet-body"></div>
-                    <button type="button" class="btn-quiet sheet-close">Chiudi</button>
+                    <button type="button" class="btn-quiet sheet-close">Close</button>
                   </dialog>
                 </div>
               </div>
@@ -1073,7 +1073,7 @@
 
             <!-- Ordine manuale -->
             <details class="opera-sub">
-              <summary>Ordine manuale <span class="trading-auto-badge">⚠️ Denaro reale</span></summary>
+              <summary>Manual order <span class="trading-auto-badge">⚠️ Real money</span></summary>
               <div class="trading-auto-section">
               <div class="manual-order-form">
                 <!-- Exchange + Pair -->
@@ -1092,7 +1092,7 @@
                   <div class="mo-field mo-field-grow">
                     <label class="mo-label" for="manual-symbol">Pair</label>
                     <div class="mo-pair-field">
-                      <input type="text" id="manual-symbol" class="mo-input" placeholder="es. BTCUSDT" autocomplete="off" />
+                      <input type="text" id="manual-symbol" class="mo-input" placeholder="e.g. BTCUSDT" autocomplete="off" />
                       <ul id="manual-symbol-suggestions" class="suggestions hidden"></ul>
                     </div>
                     <p id="manual-pair-hint" class="mo-pair-hint hidden"></p>
@@ -1107,8 +1107,8 @@
 
                 <!-- Size mode radio row -->
                 <div class="mo-size-mode-row">
-                  <label class="mo-radio-label"><input type="radio" name="mo-size-mode" value="fixed_usdt" checked /> USDT fisso</label>
-                  <label class="mo-radio-label"><input type="radio" name="mo-size-mode" value="pct_balance" /> % saldo</label>
+                  <label class="mo-radio-label"><input type="radio" name="mo-size-mode" value="fixed_usdt" checked /> Fixed USDT</label>
+                  <label class="mo-radio-label"><input type="radio" name="mo-size-mode" value="pct_balance" /> % of balance</label>
                 </div>
 
                 <!-- Slider + value input -->
@@ -1124,7 +1124,7 @@
                      e l'ordine reale, a differenza dei futures qui accanto. -->
                 <label class="futures-confirm">
                   <input type="checkbox" id="manual-confirm-box" />
-                  <span>Confermo: denaro reale, <b id="manual-confirm-summary">—</b></span>
+                  <span>I confirm: real money, <b id="manual-confirm-summary">—</b></span>
                 </label>
 
                 <!-- Execute button -->
@@ -1137,8 +1137,8 @@
                      ma era un percorso da ricostruire ogni volta, proprio nel
                      momento in cui si ha fretta di uscire. -->
                 <div class="mo-close-row">
-                  <button type="button" id="spot-close-btn" class="mo-close-btn">Chiudi posizione — vendi tutto</button>
-                  <p class="mo-close-hint">Vende il 100% della moneta base del pair qui sopra, a mercato.</p>
+                  <button type="button" id="spot-close-btn" class="mo-close-btn">Close position — sell all</button>
+                  <p class="mo-close-hint">Sells 100% of the base coin of the pair above, at market.</p>
                 </div>
                 <div id="spot-close-status" class="manual-order-status hidden"></div>
               </div>
@@ -1150,51 +1150,51 @@
 
       <div class="tab-content" data-tab-content="analisi">
         <div class="panel">
-          <h3>Riepilogo struttura</h3>
+          <h3>Structure summary</h3>
           <div id="summary-text" class="summary-text">—</div>
         </div>
         <div class="panel">
-          <h3>Contesto di lungo periodo (HTF)</h3>
+          <h3>Long-term context (HTF)</h3>
           <ul id="long-term-context" class="indicator-readout"></ul>
         </div>
         <div class="panel">
-          <h3>Lettura indicatori (per timeframe)</h3>
+          <h3>Indicator readings (per timeframe)</h3>
           <ul id="indicator-readout" class="indicator-readout"></ul>
         </div>
         <div class="panel">
-          <h3>Zone di confluenza</h3>
-          <p class="panel-hint">Prezzi dove più livelli di struttura (order block, FVG, equal high/low) su timeframe diversi si sovrappongono entro lo 0.15% — più alto il punteggio, più timeframe/livelli coincidono nella stessa zona.</p>
+          <h3>Confluence zones</h3>
+          <p class="panel-hint">Prices where several structure levels (order blocks, FVGs, equal highs/lows) on different timeframes overlap within 0.15% — the higher the score, the more timeframes/levels coincide in the same zone.</p>
           <ul id="confluence-list" class="confluence-list"></ul>
         </div>
       </div>
 
       <div class="tab-content" data-tab-content="saldi">
         <div class="panel">
-          <h3>Saldi <span class="readonly-badge">sola lettura</span></h3>
-          <p class="panel-hint">Saldo reale letto direttamente dagli exchange — questa pagina non può in nessun caso inviare un ordine.</p>
+          <h3>Balances <span class="readonly-badge">read-only</span></h3>
+          <p class="panel-hint">Real balance read directly from the exchanges — this page can never send an order.</p>
           <div id="balances-updated" class="panel-hint"></div>
-          <div id="balances-content"><p class="panel-hint">Caricamento…</p></div>
+          <div id="balances-content"><p class="panel-hint">Loading…</p></div>
         </div>
       </div>
     </aside>
 
     <div id="altro-panel" class="levels-panel altro-panel">
       <div class="drawer-header">
-        <span>Altro</span>
-        <button type="button" class="drawer-close-btn" data-close-drawer>✕ Chiudi</button>
+        <span>More</span>
+        <button type="button" class="drawer-close-btn" data-close-drawer>✕ Close</button>
       </div>
       <div class="panel">
         <div id="altro-account-slot" class="altro-account-slot"></div>
       </div>
       <div class="panel">
-        <h3>Strumenti</h3>
+        <h3>Tools</h3>
         <button type="button" id="altro-issues-item" class="altro-menu-item">
           <span class="altro-menu-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
           </span>
           <span class="altro-menu-text">
-            <span class="altro-menu-title">Segnalazioni</span>
-            <span class="altro-menu-sub">Scrivi un problema, leggi le risposte</span>
+            <span class="altro-menu-title">Reports</span>
+            <span class="altro-menu-sub">Report a problem, read the replies</span>
           </span>
           <span id="altro-issues-badge" class="altro-issues-badge hidden"></span>
           <span class="altro-menu-chev">›</span>
@@ -1204,8 +1204,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 4 12 9 6"/><polyline points="15 6 20 12 15 18"/></svg>
           </span>
           <span class="altro-menu-text">
-            <span class="altro-menu-title">Script Pine personalizzato</span>
-            <span class="altro-menu-sub">Carica o scrivi la tua strategia</span>
+            <span class="altro-menu-title">Custom Pine script</span>
+            <span class="altro-menu-sub">Upload or write your own strategy</span>
           </span>
           <span class="altro-menu-chev">›</span>
         </button>
@@ -1214,8 +1214,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
           </span>
           <span class="altro-menu-text">
-            <span class="altro-menu-title">Libreria indicatori</span>
-            <span class="altro-menu-sub">151 indicatori open source, con spiegazione</span>
+            <span class="altro-menu-title">Indicator library</span>
+            <span class="altro-menu-sub">151 open-source indicators, explained</span>
           </span>
           <span class="altro-menu-chev">›</span>
         </button>
@@ -1224,8 +1224,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
           </span>
           <span class="altro-menu-text">
-            <span class="altro-menu-title">Saldi</span>
-            <span class="altro-menu-sub">Sola lettura — MEXC, KuCoin</span>
+            <span class="altro-menu-title">Balances</span>
+            <span class="altro-menu-sub">Read-only — MEXC, KuCoin</span>
           </span>
           <span class="altro-menu-chev">›</span>
         </button>
@@ -1240,8 +1240,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
           </span>
           <span class="altro-menu-text">
-            <span class="altro-menu-title">Modalità Semplice</span>
-            <span class="altro-menu-sub">Grafico, strategia e attivazione in pochi passaggi</span>
+            <span class="altro-menu-title">Simple Mode</span>
+            <span class="altro-menu-sub">Chart, strategy and activation in a few steps</span>
           </span>
           <span class="altro-menu-chev">›</span>
         </button>
@@ -1251,7 +1251,7 @@
           </span>
           <span class="altro-menu-text">
             <span class="altro-menu-title">Backtest</span>
-            <span class="altro-menu-sub">Testa la strategia su dati storici</span>
+            <span class="altro-menu-sub">Test the strategy on historical data</span>
           </span>
           <span class="altro-menu-chev">›</span>
         </button>
@@ -1261,7 +1261,7 @@
           </span>
           <span class="altro-menu-text">
             <span class="altro-menu-title">Watchlist</span>
-            <span class="altro-menu-sub">I tuoi ticker salvati — un tap per caricarli</span>
+            <span class="altro-menu-sub">Your saved tickers — one tap to load</span>
           </span>
           <span class="altro-menu-chev">›</span>
         </button>
@@ -1270,8 +1270,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
           </span>
           <span class="altro-menu-text">
-            <span class="altro-menu-title">Strategie</span>
-            <span class="altro-menu-sub">Archivio delle strategie attivate</span>
+            <span class="altro-menu-title">Strategies</span>
+            <span class="altro-menu-sub">Archive of activated strategies</span>
           </span>
           <span class="altro-menu-chev">›</span>
         </button>
@@ -1281,7 +1281,7 @@
           </span>
           <span class="altro-menu-text">
             <span class="altro-menu-title">Trading</span>
-            <span class="altro-menu-sub">Chiavi exchange, posizioni, ordine manuale</span>
+            <span class="altro-menu-sub">Exchange keys, positions, manual order</span>
           </span>
           <span class="altro-menu-chev">›</span>
         </button>
@@ -1290,8 +1290,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
           </span>
           <span class="altro-menu-text">
-            <span class="altro-menu-title">Analisi struttura</span>
-            <span class="altro-menu-sub">Riepilogo, contesto HTF, indicatori, confluenze</span>
+            <span class="altro-menu-title">Structure analysis</span>
+            <span class="altro-menu-sub">Summary, HTF context, indicators, confluences</span>
           </span>
           <span class="altro-menu-chev">›</span>
         </button>
@@ -1310,11 +1310,11 @@
     <div class="mts-header">
       <div class="mts-searchrow">
         <div id="mts-field-slot" class="mts-field-slot"></div>
-        <button type="button" id="mts-close-btn" class="mts-close">Chiudi</button>
+        <button type="button" id="mts-close-btn" class="mts-close">Close</button>
       </div>
       <div class="mts-tabs">
-        <button type="button" class="mts-tab active hidden" data-filter="all">Tutti</button>
-        <button type="button" class="mts-tab hidden" data-filter="stock">Azioni</button>
+        <button type="button" class="mts-tab active hidden" data-filter="all">All</button>
+        <button type="button" class="mts-tab hidden" data-filter="stock">Stocks</button>
         <button type="button" class="mts-tab hidden" data-filter="crypto">Crypto</button>
       </div>
     </div>
@@ -1328,13 +1328,13 @@
     <button type="button" id="mobile-chart-symbol" class="mobile-chart-symbol">—</button>
     <!-- Active strategy pill — tapping opens the Livelli panel where the
          strategy selector lives so the user can change it without hunting. -->
-    <button type="button" id="mobile-strategy-pill" class="mobile-strategy-pill" title="Strategia attiva — tocca per cambiare">—</button>
+    <button type="button" id="mobile-strategy-pill" class="mobile-strategy-pill" title="Active strategy — tap to change">—</button>
     <!-- #interval-primary gets relocated here by relocateIntervalSelect()
          (app.js) but stays visually hidden — the wheel below is the real
          UI, driven off this select's options/value/change event so no
          interval logic gets duplicated. -->
     <span id="mobile-chart-interval-slot"></span>
-    <div id="mobile-tf-wheel" class="tf-wheel" title="Scorri per cambiare timeframe">
+    <div id="mobile-tf-wheel" class="tf-wheel" title="Swipe to change timeframe">
       <div class="tf-wheel-band"></div>
       <div class="tf-wheel-track" id="tf-wheel-track"></div>
     </div>
@@ -1344,13 +1344,13 @@
          Grafico (see showMobileScreen/updateMobileChartStrip in app.js). -->
     <div id="mobile-strip-tools" class="strip-tools hidden">
       <div class="strip-divider"></div>
-      <button type="button" id="mobile-strip-predict-btn" class="strip-tool-btn strip-predict-btn" title="Previsione breakout">
+      <button type="button" id="mobile-strip-predict-btn" class="strip-tool-btn strip-predict-btn" title="Breakout forecast">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20 L8 13 L12 17 L18 9 L22 12"/><polyline points="17 9 22 9 22 14"/></svg>
       </button>
-      <button type="button" id="mobile-strip-draw-btn" class="strip-tool-btn" title="Strumenti di disegno">
+      <button type="button" id="mobile-strip-draw-btn" class="strip-tool-btn" title="Drawing tools">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
       </button>
-      <button type="button" id="mobile-strip-clear-btn" class="strip-tool-btn" title="Cancella tutti i disegni">
+      <button type="button" id="mobile-strip-clear-btn" class="strip-tool-btn" title="Clear all drawings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7 H20 M9 7 V4 H15 V7 M6 7 L7 20 H17 L18 7"/></svg>
       </button>
     </div>
@@ -1362,10 +1362,10 @@
     <div class="opt-progress-card">
       <div class="opt-progress-head">
         <span class="opt-spinner" aria-hidden="true"></span>
-        <span id="opt-progress-title">Ottimizzazione in corso</span>
+        <span id="opt-progress-title">Optimizing</span>
         <span id="opt-progress-time" class="opt-progress-time">0s</span>
-        <button type="button" id="opt-progress-stop" class="opt-progress-stop">Ferma</button>
-        <button type="button" id="opt-progress-close" class="opt-progress-close" aria-label="Chiudi">✕</button>
+        <button type="button" id="opt-progress-stop" class="opt-progress-stop">Stop</button>
+        <button type="button" id="opt-progress-close" class="opt-progress-close" aria-label="Close">✕</button>
       </div>
       <div id="opt-progress-sub" class="opt-progress-sub"></div>
       <!-- Solo per la ricerca stabile: le stesse cinque fasi del log, disegnate.
@@ -1373,7 +1373,7 @@
            log non li manda cella per cella), e' la stessa storia a colpo d'occhio
            invece che da leggere riga per riga. -->
       <canvas id="opt-progress-anim" class="opt-progress-anim hidden" width="600" height="220"
-        role="img" aria-label="Le fasi della ricerca stabile: confini degli assi, apertura delle celle, scuotimento dei finalisti, scelta."></canvas>
+        role="img" aria-label="The stages of the stable search: axis bounds, cell expansion, shaking the finalists, selection."></canvas>
       <ol id="opt-progress-log" class="opt-progress-log"></ol>
       <div id="opt-progress-foot" class="opt-progress-foot hidden"></div>
     </div>
@@ -1381,7 +1381,7 @@
 
   <!-- Resta visibile quando la finestra del log è chiusa: senza, l'unico modo
        di sapere a che punto è una ricerca da nove minuti era tenerla aperta. -->
-  <button type="button" id="opt-pill" class="opt-pill hidden" title="Ricerca in corso — tocca per riaprire il log"></button>
+  <button type="button" id="opt-pill" class="opt-pill hidden" title="Search running — tap to reopen the log"></button>
 
   <nav id="mobile-nav" class="mobile-nav">
     <button type="button" class="mobile-nav-btn active" data-mobile-target="chart">
@@ -1389,13 +1389,13 @@
         <line x1="6" y1="4" x2="6" y2="20"/><rect x="4" y="8" width="4" height="7" fill="currentColor" stroke="none"/>
         <line x1="12" y1="2" x2="12" y2="22"/><rect x="10" y="6" width="4" height="10" fill="currentColor" stroke="none"/>
         <line x1="18" y1="6" x2="18" y2="18"/><rect x="16" y="9" width="4" height="5" fill="currentColor" stroke="none"/>
-      </svg>Grafico
+      </svg>Chart
     </button>
     <button type="button" class="mobile-nav-btn" data-mobile-target="levels">
       <svg class="mobile-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
         <path d="M12 3 L21 8.5 L12 14 L3 8.5 Z"/>
         <path d="M3 14.5 L12 20 L21 14.5" stroke-linecap="round"/>
-      </svg>Livelli
+      </svg>Levels
     </button>
     <button type="button" class="mobile-nav-btn" data-mobile-target="alert">
       <svg class="mobile-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1405,7 +1405,7 @@
     <button type="button" class="mobile-nav-btn" data-mobile-target="altro">
       <svg class="mobile-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
         <circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/>
-      </svg>Altro
+      </svg>More
     </button>
     <a href="/sniper" class="mobile-nav-btn mobile-nav-link">
       <svg class="mobile-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1419,17 +1419,17 @@
     <div class="auth-modal-backdrop" data-close-auth></div>
     <div class="auth-modal-box">
       <button type="button" class="auth-modal-close" data-close-auth>✕</button>
-      <h3 id="auth-modal-title">Accedi</h3>
-      <p id="auth-gate-hint" class="panel-hint hidden">Accedi o registrati per usare Liquidity Engine — ogni utente ha la propria watchlist e i propri avvisi Telegram.</p>
+      <h3 id="auth-modal-title">Log in</h3>
+      <p id="auth-gate-hint" class="panel-hint hidden">Log in or sign up to use Liquidity Engine — each user has their own watchlist and Telegram alerts.</p>
       <form id="auth-form" class="auth-form">
         <label>Email <input type="email" id="auth-email" required autocomplete="email" /></label>
         <label>Password <input type="password" id="auth-password" required autocomplete="current-password" minlength="8" /></label>
         <p id="auth-error" class="auth-error hidden"></p>
-        <button type="submit" id="auth-submit-btn">Accedi</button>
+        <button type="submit" id="auth-submit-btn">Log in</button>
       </form>
       <p class="auth-switch">
-        <span id="auth-switch-text">Non hai un account?</span>
-        <button type="button" id="auth-switch-btn">Registrati</button>
+        <span id="auth-switch-text">Don't have an account?</span>
+        <button type="button" id="auth-switch-btn">Sign up</button>
       </p>
     </div>
   </div>

@@ -74,11 +74,11 @@ class Constraints:
     def describe(self) -> str:
         parts = []
         if self.min_losing_trades is not None:
-            parts.append(f"almeno {self.min_losing_trades} trade in perdita")
+            parts.append(f"at least {self.min_losing_trades} losing trades")
         if self.max_losing_trades is not None:
-            parts.append(f"al massimo {self.max_losing_trades} trade in perdita")
+            parts.append(f"at most {self.max_losing_trades} losing trades")
         if self.max_drawdown_pct is not None:
-            parts.append(f"drawdown entro il {self.max_drawdown_pct:g}%")
+            parts.append(f"drawdown within {self.max_drawdown_pct:g}%")
         return ", ".join(parts)
 
 
@@ -99,9 +99,9 @@ class NoCandidateMeetsConstraints(Exception):
         self.evaluated = evaluated
         self.rejected = rejected
         super().__init__(
-            f"Nessuna configurazione rispetta i filtri ({constraints.describe()}): "
-            f"{rejected} configurazioni su {evaluated} escluse. "
-            f"Prova ad allentare i vincoli."
+            f"No configuration meets the filters ({constraints.describe()}): "
+            f"{rejected} of {evaluated} configurations excluded. "
+            f"Try loosening the constraints."
         )
 
 
@@ -331,7 +331,7 @@ def optimize_strategy(
     strategy + interval) so repeated queries return a consistent ranking.
     """
     if strategy_name not in _STRATEGY_SPACES:
-        raise ValueError(f"Nessuno spazio di parametri definito per {strategy_name!r}")
+        raise ValueError(f"No parameter space defined for {strategy_name!r}")
     default_params, random_params_fn = _STRATEGY_SPACES[strategy_name]
     # I valori attualmente nei campi di chi cerca sostituiscono i default per
     # ogni parametro che la ricerca di questa strategia non genera da sola
@@ -393,9 +393,9 @@ def optimize_strategy(
         elif score > heap[0][0]:
             heapq.heapreplace(heap, entry)
 
-    say(f"{len(df_in)} candele in campione, {len(df_out)} fuori campione")
+    say(f"{len(df_in)} in-sample candles, {len(df_out)} out-of-sample")
     if constraints.active:
-        say(f"filtri attivi: {constraints.describe()}")
+        say(f"active filters: {constraints.describe()}")
 
     # Always evaluate defaults first
     default_bt = run_backtest(df_in, default_params, backtest_params, strategy_name=strategy_name)
@@ -405,7 +405,7 @@ def optimize_strategy(
     use_grid = mode == "grid" and strategy_name in _GRID_SPACES
     if use_grid:
         total = grid_size(strategy_name)
-        say(f"griglia completa: {total} combinazioni")
+        say(f"full grid: {total} combinations")
         step = max(1, total // 20)
         for candidate_delta in _grid_candidates(strategy_name):
             stop_if_asked(should_stop)
@@ -414,9 +414,9 @@ def optimize_strategy(
             evaluated += 1
             _consider(candidate, bt)
             if evaluated % step == 0:
-                say(f"{evaluated}/{total} — migliori in classifica: {len(heap)}")
+                say(f"{evaluated}/{total} — best on the board: {len(heap)}")
     else:
-        say(f"ricerca casuale: {trials} tentativi")
+        say(f"random search: {trials} trials")
         step = max(1, trials // 20)
         for _ in range(trials):
             stop_if_asked(should_stop)
@@ -425,10 +425,10 @@ def optimize_strategy(
             evaluated += 1
             _consider(candidate, bt)
             if evaluated % step == 0:
-                say(f"{evaluated}/{trials} — migliori in classifica: {len(heap)}")
+                say(f"{evaluated}/{trials} — best on the board: {len(heap)}")
 
     if rejected_by_constraints:
-        say(f"{rejected_by_constraints} configurazioni escluse dai filtri")
+        say(f"{rejected_by_constraints} configurations excluded by the filters")
 
     if not heap and constraints.active and rejected_by_constraints:
         raise NoCandidateMeetsConstraints(constraints, evaluated, rejected_by_constraints)
@@ -444,7 +444,7 @@ def optimize_strategy(
     # Sort descending by score
     top_candidates = sorted(heap, key=lambda x: x[0], reverse=True)
 
-    say(f"{len(heap)} candidati distinti: verifica fuori campione")
+    say(f"{len(heap)} distinct candidates: out-of-sample check")
 
     # Run OOS for every top candidate
     top_results: list[dict] = []

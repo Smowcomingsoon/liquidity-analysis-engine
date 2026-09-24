@@ -100,29 +100,29 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
     if has_goplus and gp.is_honeypot is not None:  # type: ignore[union-attr]
         not_honeypot = not gp.is_honeypot  # type: ignore[union-attr]
         measured_hp = True
-        note_hp = "GoPlus: non è un honeypot" if not_honeypot else "⚠️ GoPlus: HONEYPOT"
+        note_hp = "GoPlus: not a honeypot" if not_honeypot else "⚠️ GoPlus: HONEYPOT"
         if not_honeypot and has_honeypot_is and hi.is_honeypot is True:  # type: ignore[union-attr]
             not_honeypot = False
-            note_hp = "⚠️ Honeypot.is: simulazione fallita"
+            note_hp = "⚠️ Honeypot.is: simulation failed"
     elif has_honeypot_is and hi.is_honeypot is not None:  # type: ignore[union-attr]
         not_honeypot = not hi.is_honeypot  # type: ignore[union-attr]
         measured_hp = True
-        note_hp = ("Honeypot.is: simulazione OK" if not_honeypot
+        note_hp = ("Honeypot.is: simulation OK" if not_honeypot
                    else "⚠️ Honeypot.is: HONEYPOT")
     elif rc is not None:
         danger = [r for r in (rc.risks or []) if r.get("level") == "danger"]
         not_honeypot = not rc.rugged and len(danger) == 0
         measured_hp = True
         if rc.rugged:
-            note_hp = "Rugcheck: token già ruggato"
+            note_hp = "Rugcheck: token already rugged"
         elif danger:
             note_hp = f"Rugcheck: {', '.join(r.get('name','?') for r in danger[:2])}"
         else:
-            note_hp = f"Rugcheck: nessun flag critico (score {rc.score})"
+            note_hp = f"Rugcheck: no critical flags (score {rc.score})"
     else:
-        note_hp = "Verifica manuale — nessuna API disponibile"
+        note_hp = "Manual check — no API available"
 
-    items.append(ScoreItem("Sicurezza", "Non è un honeypot",
+    items.append(ScoreItem("Security", "Not a honeypot",
                            3 if not_honeypot else 0, max=3,
                            auto=measured_hp, measured=measured_hp,
                            note=note_hp))
@@ -148,11 +148,11 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
         tax_risks = [r for r in (rc.risks or []) if "tax" in r.get("name", "").lower()]
         tax_ok = len(tax_risks) == 0
         measured_tax = True
-        note_tax = "Rugcheck: nessuna tassa anomala" if tax_ok else "Rugcheck: tassa rilevata"
+        note_tax = "Rugcheck: no unusual tax" if tax_ok else "Rugcheck: tax detected"
     else:
-        note_tax = "Verifica manuale"
+        note_tax = "Manual check"
 
-    items.append(ScoreItem("Sicurezza", "Tax ragionevole (buy+sell ≤ 10%)",
+    items.append(ScoreItem("Security", "Reasonable tax (buy+sell ≤ 10%)",
                            2 if tax_ok else 0, max=2,
                            auto=measured_tax, measured=measured_tax,
                            note=note_tax))
@@ -167,27 +167,27 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
         measured_rug = True
         parts = []
         if blacklisted:
-            parts.append("blacklist rilevata")
+            parts.append("blacklist detected")
         if gp.can_take_back_ownership:  # type: ignore[union-attr]
-            parts.append("può riprendere ownership")
+            parts.append("can reclaim ownership")
         if parts:
             note_rug = "GoPlus: " + ", ".join(parts)
         elif renounced:
-            note_rug = "GoPlus: owner rinunciato, no flag"
+            note_rug = "GoPlus: ownership renounced, no flags"
         else:
-            note_rug = "GoPlus: nessun flag critico"
+            note_rug = "GoPlus: no critical flags"
     elif rc is not None:
         rug_risks = [r for r in (rc.risks or [])
                      if any(k in r.get("name", "").lower()
                             for k in ("freeze", "blacklist", "rug", "restriction"))]
         no_rugflags = not rc.rugged and len(rug_risks) == 0
         measured_rug = True
-        note_rug = ("Rugcheck: nessun flag rug" if no_rugflags
-                    else "Rugcheck: flag rug rilevati")
+        note_rug = ("Rugcheck: no rug flags" if no_rugflags
+                    else "Rugcheck: rug flags detected")
     else:
-        note_rug = "Verifica manuale"
+        note_rug = "Manual check"
 
-    items.append(ScoreItem("Sicurezza", "Nessun flag rug/blacklist",
+    items.append(ScoreItem("Security", "No rug/blacklist flags",
                            1 if no_rugflags else 0, max=1,
                            auto=measured_rug, measured=measured_rug,
                            note=note_rug))
@@ -198,12 +198,12 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
     age_h = token.age_hours
     age_ok = 0.5 <= age_h <= 72.0
     if age_h < 0.5:
-        note_age = f"Troppo nuovo ({age_h * 60:.0f} min) — dati inaffidabili"
+        note_age = f"Too new ({age_h * 60:.0f} min) — unreliable data"
     elif age_h > 72.0:
-        note_age = f"Fuori finestra ({age_h:.0f}h) — opportunità precoce passata"
+        note_age = f"Outside window ({age_h:.0f}h) — early opportunity gone"
     else:
-        note_age = f"Età {age_h:.1f}h — nella finestra ottimale"
-    items.append(ScoreItem("Mercato", "Età ottimale (30 min – 72 h)",
+        note_age = f"Age {age_h:.1f}h — in the optimal window"
+    items.append(ScoreItem("Market", "Optimal age (30 min – 72 h)",
                            1 if age_ok else 0, auto=True, measured=True,
                            note=note_age))
 
@@ -214,16 +214,16 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
     vol_m5 = token.volume_m5
     if wash_ratio > 5.0:
         vol_ok = False
-        note_vol = f"Wash trading sospetto (vol/liq {wash_ratio:.0f}x)"
+        note_vol = f"Suspected wash trading (vol/liq {wash_ratio:.0f}x)"
     elif vol_h1 > 0:
         ratio_m5 = vol_m5 / (vol_h1 / 12)
         vol_ok = ratio_m5 <= 10.0
-        note_vol = (f"Volume distribuito ({ratio_m5:.1f}x atteso)" if vol_ok
-                    else f"Spike volume anomalo ({ratio_m5:.1f}x)")
+        note_vol = (f"Spread-out volume ({ratio_m5:.1f}x expected)" if vol_ok
+                    else f"Abnormal volume spike ({ratio_m5:.1f}x)")
     else:
         vol_ok = True
-        note_vol = "Volume h1 assente — non penalizzato"
-    items.append(ScoreItem("Mercato", "Volume autentico (no wash)",
+        note_vol = "No h1 volume — not penalized"
+    items.append(ScoreItem("Market", "Genuine volume (no wash)",
                            1 if vol_ok else 0, auto=True, measured=True,
                            note=note_vol))
 
@@ -231,10 +231,10 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
     bsr = token.buy_sell_ratio
     bsr_ok = bsr >= 1.0
     if bsr >= 1.0:
-        note_bsr = f"B/S h1: {bsr:.2f} — pressione d'acquisto"
+        note_bsr = f"B/S h1: {bsr:.2f} — buy pressure"
     else:
-        note_bsr = f"B/S h1: {bsr:.2f} — più venditori che compratori"
-    items.append(ScoreItem("Mercato", "Buy pressure positiva (B/S ≥ 1.0)",
+        note_bsr = f"B/S h1: {bsr:.2f} — more sellers than buyers"
+    items.append(ScoreItem("Market", "Positive buy pressure (B/S ≥ 1.0)",
                            1 if bsr_ok else 0, auto=True, measured=True,
                            note=note_bsr))
 
@@ -243,13 +243,13 @@ async def score(token, client: httpx.AsyncClient) -> TokenScore:  # token: RawTo
     if mc and mc > 0:
         liq_ratio = liq / mc
         liq_ok = liq_ratio >= 0.03
-        note_liq = (f"Liq/MC {liq_ratio * 100:.1f}% — proporzionata" if liq_ok
-                    else f"Liq/MC {liq_ratio * 100:.1f}% — bassa rispetto al MC")
+        note_liq = (f"Liq/MC {liq_ratio * 100:.1f}% — proportionate" if liq_ok
+                    else f"Liq/MC {liq_ratio * 100:.1f}% — low relative to MC")
     else:
         liq_ok = liq >= 5_000
-        note_liq = (f"Liquidità ${liq:,.0f} — sufficiente" if liq_ok
-                    else f"Liquidità ${liq:,.0f} — troppo bassa")
-    items.append(ScoreItem("Mercato", "Liquidità proporzionata (≥ 3% MC)",
+        note_liq = (f"Liquidity ${liq:,.0f} — sufficient" if liq_ok
+                    else f"Liquidity ${liq:,.0f} — too low")
+    items.append(ScoreItem("Market", "Proportionate liquidity (≥ 3% MC)",
                            1 if liq_ok else 0, auto=True, measured=True,
                            note=note_liq))
 

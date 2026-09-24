@@ -49,7 +49,7 @@ def test_saving_a_credential_above_the_leverage_cap_is_rejected(client):
         "leverage": MAX_FUTURES_LEVERAGE + 1,
     })
     assert resp.status_code == 400
-    assert "Leva" in resp.json()["detail"]
+    assert "Leverage" in resp.json()["detail"]
 
 
 def test_saving_a_credential_at_the_cap_is_accepted(client):
@@ -81,7 +81,7 @@ def test_an_order_without_confirm_never_reaches_the_exchange(client, monkeypatch
     monkeypatch.setattr(main, "place_futures_order_for_signal", lambda *a, **k: called.append(1))
     resp = _order(client, confirm=False)
     assert resp.status_code == 400
-    assert "onferma" in resp.json()["detail"]
+    assert "onfirmation" in resp.json()["detail"]
     assert called == []
 
 
@@ -99,7 +99,7 @@ def test_the_kill_switch_blocks_the_order_even_with_confirm(client, monkeypatch)
     main.app.dependency_overrides[auth.get_current_user] = lambda: user
     resp = _order(client)
     assert resp.status_code == 400
-    assert "disattivat" in resp.json()["detail"]
+    assert "disabled" in resp.json()["detail"]
     assert called == []
 
 
@@ -127,7 +127,7 @@ def test_insufficient_margin_blocks_the_order_before_it_is_sent(client, monkeypa
     monkeypatch.setattr(main, "place_futures_order_for_signal", lambda *a, **k: called.append(1))
     resp = _order(client)
     assert resp.status_code == 400
-    assert "insufficiente" in resp.json()["detail"]
+    assert "Insufficient" in resp.json()["detail"]
     assert called == []
 
 

@@ -167,7 +167,7 @@ def test_reversion_family_faces_a_stricter_threshold():
 def test_blocked_decisions_explain_themselves(persistent):
     d = regime_gate(persistent, REVERSION_STRATEGY)
     assert not d.passed
-    assert "ritorno alla media" in d.reason
+    assert "mean reversion" in d.reason
     assert d.report.variance_ratio is not None
     assert d.as_dict()["regime"]["variance_ratio"] is not None
 

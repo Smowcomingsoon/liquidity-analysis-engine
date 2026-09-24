@@ -173,5 +173,5 @@ def test_zero_mark_price_is_rejected_before_sizing_a_quantity(monkeypatch):
         raise AssertionError("non deve arrivare a piazzare un ordine")
 
     monkeypatch.setattr(bfe.httpx, "AsyncClient", _client_factory(handler))
-    with pytest.raises(bfe.FuturesExecutionError, match="non disponibile"):
+    with pytest.raises(bfe.FuturesExecutionError, match="not available"):
         _run(bfe.place_futures_order("BTCUSDT", "BUY", "fixed_usdt", 100.0, 1, "key", "secret"))

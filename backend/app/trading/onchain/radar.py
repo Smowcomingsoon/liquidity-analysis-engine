@@ -118,7 +118,7 @@ _NOT_A_TOKEN = {
 # riconosce solo `swing_length` barre dopo (seed-0010), quindi il suo backtest
 # gonfia il risultato. Via da qui quando quel fix entra.
 UNRELIABLE = {
-    "Accumulo / Distribuzione (long-term)": "usa dati futuri negli ingressi",
+    "Accumulo / Distribuzione (long-term)": "uses future data in its entries",
 }
 
 
@@ -354,7 +354,7 @@ def strategy_configs(entries: list[dict] | None = None) -> list[dict]:
         configs.append({
             "strategy_name": name,
             "params": dict(e["params"]),
-            "label": f"{_short(name)} · archivio {e.get('symbol', '')} {e.get('interval', '')}".strip(),
+            "label": f"{_short(name)} · archive {e.get('symbol', '')} {e.get('interval', '')}".strip(),
             "source": "archivio",
         })
         if len(configs) >= len(STRATEGY_REGISTRY) + MAX_ARCHIVE_CONFIGS:
@@ -530,7 +530,7 @@ async def vet(client: httpx.AsyncClient, pool: Pool, links: dict) -> dict:
         verdict = await legit.assess(token, links, client)
     except Exception:
         logger.exception("radar: filtro fallito su %s", pool.symbol)
-        return {"status": "wait", "reason": "controllo non riuscito", "checks": []}
+        return {"status": "wait", "reason": "check failed", "checks": []}
     if verdict["status"] != "wait":
         _verdicts[key] = (time.time(), verdict)
     return verdict

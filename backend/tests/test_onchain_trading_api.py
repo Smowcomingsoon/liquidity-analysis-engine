@@ -65,7 +65,7 @@ def test_simulate_rejected_by_cap_reports_reason(client):
     })
     body = resp.json()
     assert body["accepted"] is False
-    assert "tetto" in body["reason"]
+    assert "cap" in body["reason"]
 
 
 def test_circuit_breaker_reset_via_api(client):
@@ -100,7 +100,7 @@ def test_execute_solana_real_quote_signs_but_does_not_send(client, monkeypatch):
     assert resp.status_code == 200
     body = resp.json()
     assert body["accepted"] is False
-    assert "disattivata" in body["reason"]
+    assert "disabled" in body["reason"]
 
 
 def test_execute_solana_without_wallet_is_rejected(client):
@@ -135,7 +135,7 @@ def test_execute_robinhood_real_quote_signs_but_does_not_send(client, monkeypatc
     assert resp.status_code == 200
     body = resp.json()
     assert body["accepted"] is False
-    assert "disattivata" in body["reason"]
+    assert "disabled" in body["reason"]
 
 
 def test_quote_robinhood_real_network_call(client):
@@ -156,7 +156,7 @@ def test_quote_robinhood_without_a_pool_is_rejected(client):
         "fee": 3000, "amount_in": 10**16,
     })
     assert resp.status_code == 400
-    assert "Nessun mercato" in resp.json()["detail"]
+    assert "No market" in resp.json()["detail"]
 
 
 def test_execute_robinhood_without_wallet_is_rejected(client):
@@ -177,7 +177,7 @@ def test_execute_robinhood_unknown_pool_is_rejected(client):
         "amount_in": 10**16, "notional_usd": 15.0, "price_usd": 1.0,
     })
     assert resp.status_code == 400
-    assert "Nessun pool" in resp.json()["detail"]
+    assert "No pool" in resp.json()["detail"]
 
 
 def test_kill_switch_blocks_the_new_endpoints_too(client, monkeypatch):

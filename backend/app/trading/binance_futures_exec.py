@@ -23,16 +23,16 @@ import httpx
 FAPI_BASE = "https://fapi.binance.com"
 
 _HINTS = {
-    "api key required": "la chiave non e' arrivata all'exchange",
-    "signature for this request is not valid": "il secret non corrisponde alla chiave",
-    "invalid api key": "chiave non valida, o non abilitata al trading futures",
-    "api key info invalid": "chiave non valida per questo exchange",
-    "invalid symbol": "questo perpetuo non esiste su Binance Futures",
-    "margin is insufficient": "margine insufficiente per l'importo richiesto",
-    "not authorized": "alla chiave manca il permesso di fare ordini futures",
-    "ip white": "l'indirizzo del server non e' fra quelli ammessi dalla chiave",
-    "ip address": "l'indirizzo del server non e' fra quelli ammessi dalla chiave",
-    "leverage is invalid": "leva non ammessa per questo simbolo",
+    "api key required": "the key never reached the exchange",
+    "signature for this request is not valid": "the secret does not match the key",
+    "invalid api key": "invalid key, or not enabled for futures trading",
+    "api key info invalid": "invalid key for this exchange",
+    "invalid symbol": "this perpetual does not exist on Binance Futures",
+    "margin is insufficient": "insufficient margin for the requested amount",
+    "not authorized": "the key lacks futures order permission",
+    "ip white": "the server IP is not whitelisted for this key",
+    "ip address": "the server IP is not whitelisted for this key",
+    "leverage is invalid": "leverage not allowed for this symbol",
 }
 
 
@@ -164,7 +164,7 @@ async def place_futures_order(
 
         mark = await get_mark_price(client, symbol)
         if mark <= 0:
-            raise FuturesExecutionError("Prezzo di mercato non disponibile per questo simbolo")
+            raise FuturesExecutionError("Market price not available for this symbol")
 
         if size_mode == "fixed_usdt":
             notional = size_value * leverage
@@ -186,7 +186,7 @@ async def place_futures_order(
 
         qty = notional / mark
         if qty <= 0:
-            raise FuturesExecutionError("Quantità calcolata zero o negativa — margine insufficiente")
+            raise FuturesExecutionError("Computed quantity is zero or negative — insufficient margin")
 
         order_params = {"symbol": symbol, "side": side, "type": "MARKET", "quantity": f"{qty:.6f}".rstrip("0").rstrip(".")}
         resp = await client.post(f"/fapi/v1/order?{_sign(api_secret, order_params)}")

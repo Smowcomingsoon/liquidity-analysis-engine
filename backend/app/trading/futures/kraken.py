@@ -38,13 +38,13 @@ BASE = "https://futures.kraken.com"
 PREFIX = "/derivatives/api/v3"
 
 _HINTS = {
-    "apiLimitExceeded": "troppe richieste in poco tempo",
-    "authenticationError": "chiave, secret o firma non validi per Kraken Futures",
-    "insufficientFunds": "margine insufficiente per l'importo richiesto",
-    "invalidSize": "quantita' sotto il minimo accettato da Kraken per questo simbolo",
-    "marketSuspended": "questo mercato e' sospeso in questo momento",
-    "invalidArgument": "parametro rifiutato da Kraken",
-    "nonceBelowThreshold": "orologio del server fuori sincrono con l'exchange",
+    "apiLimitExceeded": "too many requests in a short time",
+    "authenticationError": "invalid key, secret or signature for Kraken Futures",
+    "insufficientFunds": "insufficient margin for the requested amount",
+    "invalidSize": "quantity below Kraken's minimum for this symbol",
+    "marketSuspended": "this market is currently suspended",
+    "invalidArgument": "parameter rejected by Kraken",
+    "nonceBelowThreshold": "server clock out of sync with the exchange",
 }
 
 _BASE_ALIASES = {"BTC": "XBT"}
@@ -56,7 +56,7 @@ class KrakenFutures(FuturesAdapter):
     needs_passphrase = False
     max_leverage = 10
     isolated_margin = False
-    key_hint = "Chiave creata su futures.kraken.com (non quella dello spot), con permesso «Full access» o «Place orders»."
+    key_hint = "Key created on futures.kraken.com (not the spot one), with «Full access» or «Place orders» permission."
 
     def symbol_for(self, symbol: str) -> str:
         s = symbol.strip().upper()
@@ -104,7 +104,7 @@ class KrakenFutures(FuturesAdapter):
         return data
 
     async def available_margin(self, creds: FuturesCreds) -> float:
-        data = await self._call("GET", f"{PREFIX}/accounts", creds, "saldo")
+        data = await self._call("GET", f"{PREFIX}/accounts", creds, "balance")
         accounts = data.get("accounts", {})
         flex = accounts.get("flex") or {}
         if flex:
@@ -124,10 +124,10 @@ class KrakenFutures(FuturesAdapter):
         for t in await self._tickers():
             if (t.get("symbol") or "").upper() == sym:
                 return float(t.get("markPrice") or t.get("last") or 0)
-        raise explain("kraken", "prezzo", f"symbol {sym} sconosciuto", _HINTS)
+        raise explain("kraken", "price", f"symbol {sym} unknown", _HINTS)
 
     async def open_positions(self, creds: FuturesCreds) -> list[Position]:
-        data = await self._call("GET", f"{PREFIX}/openpositions", creds, "posizioni")
+        data = await self._call("GET", f"{PREFIX}/openpositions", creds, "positions")
         rows = data.get("openPositions") or []
         if not rows:
             return []
@@ -160,13 +160,13 @@ class KrakenFutures(FuturesAdapter):
         sym = self.symbol_for(symbol)
         # Kraken non ha isolated: la leva massima per simbolo e' l'unico
         # argine che si puo' imporre prima dell'ordine, e lo imponiamo.
-        await self._call("PUT", f"{PREFIX}/leveragepreferences", creds, "leva",
+        await self._call("PUT", f"{PREFIX}/leveragepreferences", creds, "leverage",
                          {"symbol": sym, "maxLeverage": str(leverage)})
         available = await self.available_margin(creds)
         mark = await self.mark_price(sym, creds)
         notional = self._capped(self._notional(size_mode, size_value, leverage, available, mark), max_usdt)
         qty = self._qty(notional, mark, step=4)
-        return await self._call("POST", f"{PREFIX}/sendorder", creds, "ordine", {
+        return await self._call("POST", f"{PREFIX}/sendorder", creds, "order", {
             "orderType": "mkt", "symbol": sym,
             "side": "buy" if side == "BUY" else "sell", "size": qty,
         })
@@ -176,7 +176,7 @@ class KrakenFutures(FuturesAdapter):
         pos = next((p for p in await self.open_positions(creds) if p.symbol == sym), None)
         if pos is None:
             return None
-        return await self._call("POST", f"{PREFIX}/sendorder", creds, "chiusura", {
+        return await self._call("POST", f"{PREFIX}/sendorder", creds, "close", {
             "orderType": "mkt", "symbol": sym,
             "side": "sell" if pos.side == "long" else "buy",
             "size": f"{pos.quantity:.4f}".rstrip("0").rstrip("."),

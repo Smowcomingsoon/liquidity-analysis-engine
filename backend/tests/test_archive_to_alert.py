@@ -96,4 +96,4 @@ def test_an_unknown_strategy_is_refused(client):
     entry = _archived(strategy_name="Strategia che non esiste")
     resp = client.post(f"/api/archive/{entry['id']}/apply-to-alert")
     assert resp.status_code == 400
-    assert "sconosciuta" in resp.json()["detail"]
+    assert "Unknown" in resp.json()["detail"]

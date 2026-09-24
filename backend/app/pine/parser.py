@@ -27,7 +27,7 @@ class _ExprParser:
     def expect(self, value: str) -> Token:
         t = self.peek()
         if t.value != value:
-            raise PineParseError(f"atteso '{value}', trovato '{t.value}'", t.line_no)
+            raise PineParseError(f"expected '{value}', found '{t.value}'", t.line_no)
         return self.advance()
 
     def at_end(self) -> bool:
@@ -102,7 +102,7 @@ class _ExprParser:
             t = self.peek()
             if t.value == "(":
                 if not isinstance(expr, ast.Identifier):
-                    raise PineUnsupportedError("chiamata su espressione non identificatore", t.line_no)
+                    raise PineUnsupportedError("call on a non-identifier expression", t.line_no)
                 args, kwargs = self._parse_args()
                 expr = ast.Call(expr.name, args, kwargs, t.line_no)
             elif t.value == "[":
@@ -180,7 +180,7 @@ def _parse_statement_line(text: str, line_no: int) -> ast.Stmt:
         if tokens[i].kind == "IDENT" and tokens[i].value in _TYPE_KEYWORDS and tokens[i + 1].kind == "IDENT":
             i += 1
         if tokens[i].kind != "IDENT" or tokens[i + 1].value != "=":
-            raise PineParseError("dichiarazione 'var' non valida", line_no)
+            raise PineParseError("invalid 'var' declaration", line_no)
         name = tokens[i].value
         expr = parse_expr_tokens(tokens[i + 2 :] + [Token("EOF", "", line_no)])
         return ast.Assign(name, expr, is_var=True, line_no=line_no)
@@ -195,10 +195,10 @@ def _parse_statement_line(text: str, line_no: int) -> ast.Stmt:
                 if tokens[i].value == ",":
                     i += 1
             else:
-                raise PineParseError("assegnazione multipla non valida", line_no)
+                raise PineParseError("invalid multiple assignment", line_no)
         i += 1  # skip ']'
         if tokens[i].value != "=":
-            raise PineParseError("atteso '=' dopo assegnazione multipla", line_no)
+            raise PineParseError("expected '=' after multiple assignment", line_no)
         expr = parse_expr_tokens(tokens[i + 1 :] + [Token("EOF", "", line_no)])
         return ast.TupleAssign(names, expr, line_no=line_no)
 
@@ -241,7 +241,7 @@ def _parse_block(lines: list[tuple[int, str, int]], start: int, indent: int) -> 
             cond = parse_expr_tokens(cond_tokens)
             i += 1
             if i >= len(lines) or lines[i][0] <= indent:
-                raise PineParseError("blocco 'if' vuoto", line_no)
+                raise PineParseError("empty 'if' block", line_no)
             body_indent = lines[i][0]
             body, i = _parse_block(lines, i, body_indent)
             elifs: list[tuple[ast.Expr, list[ast.Stmt]]] = []
@@ -254,14 +254,14 @@ def _parse_block(lines: list[tuple[int, str, int]], start: int, indent: int) -> 
                     econd = parse_expr_tokens(econd_tokens)
                     i += 1
                     if i >= len(lines) or lines[i][0] <= indent:
-                        raise PineParseError("blocco 'else if' vuoto", eline_no)
+                        raise PineParseError("empty 'else if' block", eline_no)
                     ebody_indent = lines[i][0]
                     ebody, i = _parse_block(lines, i, ebody_indent)
                     elifs.append((econd, ebody))
                 else:
                     i += 1
                     if i >= len(lines) or lines[i][0] <= indent:
-                        raise PineParseError("blocco 'else' vuoto", eline_no)
+                        raise PineParseError("empty 'else' block", eline_no)
                     ebody_indent = lines[i][0]
                     else_body, i = _parse_block(lines, i, ebody_indent)
                     break
@@ -280,9 +280,9 @@ def parse_program(source: str) -> list[ast.Stmt]:
         if not (text.startswith("strategy(") or text.startswith("indicator(") or text.startswith("study("))
     ]
     if not filtered:
-        raise PineParseError("script vuoto dopo la rimozione delle dichiarazioni di intestazione")
+        raise PineParseError("script is empty after removing the header declarations")
     base_indent = filtered[0][0]
     stmts, i = _parse_block(filtered, 0, base_indent)
     if i < len(filtered):
-        raise PineParseError("indentazione non consistente", filtered[i][2])
+        raise PineParseError("inconsistent indentation", filtered[i][2])
     return stmts

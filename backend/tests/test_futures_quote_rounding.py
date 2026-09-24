@@ -45,7 +45,7 @@ def test_the_preview_reports_what_the_order_will_really_use(adapter):
     """40 USDT chiesti su KAS diventano un contratto solo: ~34,40."""
     real, note = _run(adapter.effective_notional("KASUSDT", 40.0, KAS_MARK, FuturesCreds("k", "s")))
     assert real == pytest.approx(34.4, abs=0.01)
-    assert "1 contratti" in note
+    assert "1 contracts" in note
     assert "34.40" in note
 
 

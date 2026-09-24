@@ -92,7 +92,7 @@ def test_end_date_is_inclusive_of_the_whole_day(client):
 def test_a_range_outside_the_data_is_a_clear_400_not_an_empty_result(client):
     resp = _deep(client, start_date="2030-01-01", end_date="2030-01-31")
     assert resp.status_code == 400
-    assert "periodo" in resp.json()["detail"].lower()
+    assert "period" in resp.json()["detail"].lower()
 
 
 def test_only_start_date_keeps_everything_after_it(client):

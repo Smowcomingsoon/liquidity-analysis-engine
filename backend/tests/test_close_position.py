@@ -97,7 +97,7 @@ def test_nothing_to_close_is_said_plainly_not_reported_as_closed(user_and_client
     assert resp.status_code == 200
     body = resp.json()
     assert body["closed"] is False
-    assert "nessuna posizione" in body["detail"].lower()
+    assert "no open position" in body["detail"].lower()
 
 
 def test_the_kill_switch_never_traps_an_open_position(user_and_client, monkeypatch):

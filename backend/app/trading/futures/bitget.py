@@ -29,13 +29,13 @@ PRODUCT = "USDT-FUTURES"
 MARGIN_COIN = "USDT"
 
 _HINTS = {
-    "40009": "il secret non corrisponde alla chiave",
-    "40012": "chiave API non valida per Bitget",
-    "40014": "alla chiave manca il permesso di fare ordini futures",
-    "40018": "l'indirizzo del server non e' fra quelli ammessi dalla chiave",
-    "40037": "chiave API inesistente",
-    "22002": "nessuna posizione aperta da chiudere",
-    "45110": "importo sotto il minimo accettato da Bitget per questo simbolo",
+    "40009": "the secret does not match the key",
+    "40012": "invalid API key for Bitget",
+    "40014": "the key lacks futures order permission",
+    "40018": "the server IP is not whitelisted for this key",
+    "40037": "API key does not exist",
+    "22002": "no open position to close",
+    "45110": "amount below Bitget's minimum for this symbol",
 }
 
 
@@ -44,7 +44,7 @@ class BitgetFutures(FuturesAdapter):
     name = "Bitget Futures"
     needs_passphrase = True
     max_leverage = 10
-    key_hint = "Chiave API con permesso «Futures Trading» e la passphrase scelta al momento della creazione."
+    key_hint = "API key with the «Futures Trading» permission and the passphrase you chose when creating it."
 
     def _headers(self, creds: FuturesCreds, method: str, path: str, body: str) -> dict:
         ts = str(int(time.time() * 1000))
@@ -81,7 +81,7 @@ class BitgetFutures(FuturesAdapter):
         return data.get("data")
 
     async def available_margin(self, creds: FuturesCreds) -> float:
-        data = await self._call("GET", "/api/v2/mix/account/accounts", creds, "saldo",
+        data = await self._call("GET", "/api/v2/mix/account/accounts", creds, "balance",
                                 params={"productType": PRODUCT})
         for acct in data or []:
             if acct.get("marginCoin") == MARGIN_COIN:
@@ -95,12 +95,12 @@ class BitgetFutures(FuturesAdapter):
                                params={"symbol": sym, "productType": PRODUCT})
         rows = (resp.json() or {}).get("data") or []
         if not rows:
-            raise explain("bitget", "prezzo", f"symbol {sym} sconosciuto", _HINTS)
+            raise explain("bitget", "price", f"symbol {sym} unknown", _HINTS)
         row = rows[0]
         return float(row.get("markPrice") or row.get("indexPrice") or row.get("lastPr") or 0)
 
     async def open_positions(self, creds: FuturesCreds) -> list[Position]:
-        data = await self._call("GET", "/api/v2/mix/position/all-position", creds, "posizioni",
+        data = await self._call("GET", "/api/v2/mix/position/all-position", creds, "positions",
                                 params={"productType": PRODUCT, "marginCoin": MARGIN_COIN})
         out = []
         for p in data or []:
@@ -125,15 +125,15 @@ class BitgetFutures(FuturesAdapter):
         common = {"symbol": sym, "productType": PRODUCT, "marginCoin": MARGIN_COIN}
         # 40808/22002 qui significano "era gia' cosi'": lo stato voluto e'
         # raggiunto, non c'e' niente da correggere.
-        await self._call("POST", "/api/v2/mix/account/set-margin-mode", creds, "margine isolato",
+        await self._call("POST", "/api/v2/mix/account/set-margin-mode", creds, "isolated margin",
                          body={**common, "marginMode": "isolated"}, tolerate=("40808", "22002"))
-        await self._call("POST", "/api/v2/mix/account/set-leverage", creds, "leva",
+        await self._call("POST", "/api/v2/mix/account/set-leverage", creds, "leverage",
                          body={**common, "leverage": str(leverage)}, tolerate=("40808",))
         available = await self.available_margin(creds)
         mark = await self.mark_price(sym, creds)
         notional = self._capped(self._notional(size_mode, size_value, leverage, available, mark), max_usdt)
         qty = self._qty(notional, mark, step=4)
-        return {"data": await self._call("POST", "/api/v2/mix/order/place-order", creds, "ordine",
+        return {"data": await self._call("POST", "/api/v2/mix/order/place-order", creds, "order",
                                          body={**common, "marginMode": "isolated",
                                                "size": qty, "side": side.lower(),
                                                "orderType": "market"})}
@@ -145,6 +145,6 @@ class BitgetFutures(FuturesAdapter):
         # Endpoint di chiusura dedicato: non accetta una quantita', quindi
         # non puo' aprire niente per sbaglio.
         return {"data": await self._call("POST", "/api/v2/mix/order/close-positions", creds,
-                                         "chiusura",
+                                         "close",
                                          body={"symbol": sym, "productType": PRODUCT},
                                          tolerate=("22002",))}

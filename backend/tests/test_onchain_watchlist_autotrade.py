@@ -59,7 +59,7 @@ def test_skipped_without_base_token_address():
     _run(main._run_onchain_auto_trade(owner, entry, "lorenzo", [_signal("entry_long")]))
     logged = trading_log.list_for("u1")
     assert logged[0]["outcome"] == "saltato"
-    assert "manca l'indirizzo del token" in logged[0]["detail"]
+    assert "token address is missing" in logged[0]["detail"]
 
 
 def test_skipped_without_wallet_for_chain():
@@ -68,7 +68,7 @@ def test_skipped_without_wallet_for_chain():
     _run(main._run_onchain_auto_trade(owner, entry, "lorenzo", [_signal("entry_long")]))
     logged = trading_log.list_for("u1")
     assert logged[0]["outcome"] == "saltato"
-    assert "wallet on-chain" in logged[0]["detail"]
+    assert "on-chain wallet" in logged[0]["detail"]
 
 
 def test_sell_signal_skipped_for_missing_decimals(monkeypatch):
@@ -77,7 +77,7 @@ def test_sell_signal_skipped_for_missing_decimals(monkeypatch):
     _run(main._run_onchain_auto_trade(owner, entry, "lorenzo", [_signal("exit_long")]))
     logged = trading_log.list_for("u1")
     assert logged[0]["outcome"] == "saltato"
-    assert "decimali" in logged[0]["detail"]
+    assert "decimals" in logged[0]["detail"]
 
 
 def test_buy_signal_executes_real_order_when_address_and_wallet_present(monkeypatch):
@@ -117,7 +117,7 @@ def test_sell_signal_skipped_without_position_even_with_decimals(monkeypatch):
     _run(main._run_onchain_auto_trade(owner, entry, "lorenzo", [_signal("exit_long")]))
     logged = trading_log.list_for("u1")
     assert logged[0]["outcome"] == "saltato"
-    assert "nessuna posizione" in logged[0]["detail"]
+    assert "no recorded position" in logged[0]["detail"]
 
 
 def test_sell_signal_executes_real_order_when_decimals_and_position_present(monkeypatch):
@@ -172,6 +172,6 @@ def test_pilot_off_skips_buys_but_keeps_sells(monkeypatch):
     logged = trading_log.list_for("u1")
     by_type = {e["signal_type"]: e for e in logged}
     assert by_type["entry_long"]["outcome"] == "saltato"
-    assert "pilota spento" in by_type["entry_long"]["detail"]
+    assert "pilot off" in by_type["entry_long"]["detail"]
     # La vendita prosegue per la sua strada (qui si ferma sui decimali, non sul pilota).
     assert "pilota spento" not in by_type["exit_long"]["detail"]

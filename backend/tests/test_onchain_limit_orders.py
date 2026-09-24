@@ -44,7 +44,7 @@ def test_limit_order_requires_a_native_leg(client):
         "amount_in": 10.0, "direction": "buy_below", "target_price_usd": 1.0,
     })
     assert resp.status_code == 400
-    assert "nativo" in resp.json()["detail"]
+    assert "native" in resp.json()["detail"]
 
 
 def test_create_list_and_cancel_limit_order(client):

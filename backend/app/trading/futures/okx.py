@@ -29,12 +29,12 @@ from app.trading.futures.base import FuturesAdapter, FuturesCreds, Position, exp
 BASE = "https://www.okx.com"
 
 _HINTS = {
-    "50113": "passphrase sbagliata o mancante",
-    "50111": "chiave API non valida per OKX",
-    "51008": "margine insufficiente per l'importo richiesto",
-    "51000": "parametro rifiutato da OKX",
-    "51004": "la dimensione supera il limite del conto per questa leva",
-    "59000": "chiudi le posizioni aperte prima di cambiare modalita' di margine",
+    "50113": "wrong or missing passphrase",
+    "50111": "invalid API key for OKX",
+    "51008": "insufficient margin for the requested amount",
+    "51000": "parameter rejected by OKX",
+    "51004": "size exceeds the account limit for this leverage",
+    "59000": "close open positions before changing margin mode",
 }
 
 
@@ -43,7 +43,7 @@ class OkxFutures(FuturesAdapter):
     name = "OKX Perpetual"
     needs_passphrase = True
     max_leverage = 10
-    key_hint = "Chiave API con permesso «Trade» e la passphrase scelta al momento della creazione (non la password del conto)."
+    key_hint = "API key with the «Trade» permission and the passphrase you chose when creating it (not the account password)."
 
     def symbol_for(self, symbol: str) -> str:
         """BTCUSDT → BTC-USDT-SWAP. OKX e' l'unico dei cinque a non usare la
@@ -94,7 +94,7 @@ class OkxFutures(FuturesAdapter):
         return data.get("data") or []
 
     async def available_margin(self, creds: FuturesCreds) -> float:
-        rows = await self._call("GET", "/api/v5/account/balance?ccy=USDT", creds, "saldo")
+        rows = await self._call("GET", "/api/v5/account/balance?ccy=USDT", creds, "balance")
         for row in rows:
             for d in row.get("details", []):
                 if d.get("ccy") == "USDT":
@@ -108,7 +108,7 @@ class OkxFutures(FuturesAdapter):
                                params={"instType": "SWAP", "instId": inst})
         rows = resp.json().get("data") or []
         if not rows:
-            raise explain("okx", "prezzo", f"instId {inst} sconosciuto", _HINTS)
+            raise explain("okx", "price", f"instId {inst} unknown", _HINTS)
         return float(rows[0]["markPx"])
 
     async def _contract_value(self, inst_id: str) -> float:
@@ -119,14 +119,14 @@ class OkxFutures(FuturesAdapter):
                                params={"instType": "SWAP", "instId": inst_id})
         rows = resp.json().get("data") or []
         if not rows:
-            raise explain("okx", "strumento", f"instId {inst_id} sconosciuto", _HINTS)
+            raise explain("okx", "instrument", f"instId {inst_id} unknown", _HINTS)
         ct_val = float(rows[0].get("ctVal") or 0)
         if ct_val <= 0:
-            raise explain("okx", "strumento", f"ctVal non dichiarato per {inst_id}", _HINTS)
+            raise explain("okx", "instrument", f"ctVal not declared for {inst_id}", _HINTS)
         return ct_val
 
     async def open_positions(self, creds: FuturesCreds) -> list[Position]:
-        rows = await self._call("GET", "/api/v5/account/positions?instType=SWAP", creds, "posizioni")
+        rows = await self._call("GET", "/api/v5/account/positions?instType=SWAP", creds, "positions")
         out = []
         for p in rows:
             pos = float(p.get("pos") or 0)
@@ -152,7 +152,7 @@ class OkxFutures(FuturesAdapter):
         # 59000 = ci sono posizioni aperte e la modalita' non si puo'
         # cambiare: la leva richiesta non viene applicata, quindi e' un
         # errore vero e non lo tolleriamo.
-        await self._call("POST", "/api/v5/account/set-leverage", creds, "leva",
+        await self._call("POST", "/api/v5/account/set-leverage", creds, "leverage",
                          {"instId": inst, "lever": str(leverage), "mgnMode": "isolated"})
         available = await self.available_margin(creds)
         mark = await self.mark_price(inst, creds)
@@ -162,10 +162,10 @@ class OkxFutures(FuturesAdapter):
         contracts = coins / ct_val
         if contracts < 1:
             raise explain(
-                "okx", "ordine",
-                f"la posizione richiesta vale meno di un contratto ({ct_val} unità)", _HINTS,
+                "okx", "order",
+                f"the requested position is worth less than one contract ({ct_val} units)", _HINTS,
             )
-        return {"data": await self._call("POST", "/api/v5/trade/order", creds, "ordine", {
+        return {"data": await self._call("POST", "/api/v5/trade/order", creds, "order", {
             "instId": inst, "tdMode": "isolated",
             "side": "buy" if side == "BUY" else "sell",
             "ordType": "market", "sz": str(int(contracts)),
@@ -177,5 +177,5 @@ class OkxFutures(FuturesAdapter):
             return None
         # Endpoint dedicato alla chiusura: OKX chiude quello che c'e',
         # quindi non esiste una quantita' da sbagliare in questa direzione.
-        return {"data": await self._call("POST", "/api/v5/trade/close-position", creds, "chiusura",
+        return {"data": await self._call("POST", "/api/v5/trade/close-position", creds, "close",
                                          {"instId": inst, "mgnMode": "isolated"})}

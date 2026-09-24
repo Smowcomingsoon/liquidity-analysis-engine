@@ -68,7 +68,7 @@ def test_an_unknown_pair_never_reaches_the_exchange(client, monkeypatch):
     monkeypatch.setattr(main, "place_order_for_signal", _never)
     resp = _order(client, symbol="NONESISTE")
     assert resp.status_code == 400
-    assert "non trovato" in resp.json()["detail"]
+    assert "not found" in resp.json()["detail"]
     assert sent == [], "nessun ordine deve partire per un pair che non esiste"
 
 
@@ -77,7 +77,7 @@ def test_an_empty_result_counts_as_not_found(client, monkeypatch):
     monkeypatch.setattr(main, "place_order_for_signal", None)
     resp = _order(client, symbol="VUOTO")
     assert resp.status_code == 400
-    assert "non trovato" in resp.json()["detail"]
+    assert "not found" in resp.json()["detail"]
 
 
 def test_a_good_order_goes_through_and_is_journalled(client, monkeypatch):

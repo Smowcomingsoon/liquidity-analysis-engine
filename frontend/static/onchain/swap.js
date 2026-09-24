@@ -73,7 +73,7 @@ let pendingFrom = null;  // moneta toccata sotto il saldo prima che lo swap foss
 const HOLDINGS_TTL_MS = 20_000;  // lo swap si rimonta a ogni token scelto sul grafico
 
 const sameAddress = (a, b) => Boolean(a && b) && a.toLowerCase() === b.toLowerCase();
-const fmtAmount = (n) => n.toLocaleString("it-IT", { maximumFractionDigits: n >= 1 ? 4 : 6 });
+const fmtAmount = (n) => n.toLocaleString("en-US", { maximumFractionDigits: n >= 1 ? 4 : 6 });
 
 async function loadHoldings(chain, force = false) {
   if (!force && holdingsKey.chain === chain && Date.now() - holdingsKey.at < HOLDINGS_TTL_MS) return;
@@ -183,14 +183,14 @@ export async function mountSwap(container, { onExecuted, onTokenPicked, presetTo
 
 function availableLabel(chain) {
   const available = availableFor(chain, leg.in);
-  if (available == null) return { text: `Nel wallet: 0 ${leg.in.symbol}`, empty: true };
-  return { text: `Disponibile ${fmtAmount(available)} ${leg.in.symbol}`, empty: available <= 0 };
+  if (available == null) return { text: `In wallet: 0 ${leg.in.symbol}`, empty: true };
+  return { text: `Available ${fmtAmount(available)} ${leg.in.symbol}`, empty: available <= 0 };
 }
 
 // "Nel wallet": cosa c'e', sempre in vista sopra lo swap. Un tocco su una
 // voce la mette in vendita.
 function walletStrip() {
-  if (!holdings.length) return `<p class="swap-wallet-empty">Nessun saldo su questa rete</p>`;
+  if (!holdings.length) return `<p class="swap-wallet-empty">No balance on this network</p>`;
   return holdings.map((h) => `
     <button type="button" class="wallet-chip${sameAddress(h.address, leg.in.address) ? " is-current" : ""}" data-hold="${h.address}">
       <b>${fmtAmount(h.amount)} ${h.symbol}</b>${h.valueUsd != null ? `<small>${formatUsd(h.valueUsd)}</small>` : ""}
@@ -205,7 +205,7 @@ function paintForm(armed) {
   // pillola del token sulla stessa riga, didascalia e disponibile sotto,
   // dentro lo stesso riquadro. La pillola E' il selettore del token.
   host().innerHTML = `
-    <div class="swap-wallet" id="swap-wallet" aria-label="Nel wallet">${walletStrip()}</div>
+    <div class="swap-wallet" id="swap-wallet" aria-label="In wallet">${walletStrip()}</div>
     <form class="form swap-form" id="swap-form">
       <div class="swap-field">
         <div class="swap-field-top">
@@ -214,12 +214,12 @@ function paintForm(armed) {
           <button type="button" class="token-pill" id="swap-pick-in"><span class="token-ic" aria-hidden="true"></span><span id="swap-in-symbol">${leg.in.symbol}</span> ▾</button>
         </div>
         <div class="swap-field-bottom">
-          <label for="swap-amount">Vendi <span id="swap-in-usd"></span></label>
+          <label for="swap-amount">Sell <span id="swap-in-usd"></span></label>
           <span id="swap-available" class="${availableInfo.empty ? "is-warn" : ""}">${availableInfo.text}</span>
         </div>
       </div>
 
-      <button type="button" class="swap-arrow" id="swap-flip" aria-label="Inverti vendi e ricevi">↓</button>
+      <button type="button" class="swap-arrow" id="swap-flip" aria-label="Flip sell and receive">↓</button>
 
       <div class="swap-field is-readonly">
         <div class="swap-field-top">
@@ -227,22 +227,22 @@ function paintForm(armed) {
           <button type="button" class="token-pill" id="swap-pick-out"><span class="token-ic is-out" aria-hidden="true"></span><span id="swap-out-symbol">${leg.out.symbol}</span> ▾</button>
         </div>
         <div class="swap-field-bottom">
-          <label for="swap-out">Ricevi (stimato)</label>
+          <label for="swap-out">Receive (est.)</label>
           <span id="swap-out-usd"></span>
         </div>
       </div>
 
       <dl class="route-info">
-        <div><dt>Impatto sul prezzo</dt><dd id="swap-detail">—</dd></div>
-        <div><dt>Percorso</dt><dd id="swap-route">${chain === "solana" ? "Jupiter" : "Uniswap v3"}</dd></div>
+        <div><dt>Price impact</dt><dd id="swap-detail">—</dd></div>
+        <div><dt>Route</dt><dd id="swap-route">${chain === "solana" ? "Jupiter" : "Uniswap v3"}</dd></div>
       </dl>
 
       <label class="swap-confirm">
         <input type="checkbox" id="swap-confirm-box" />
-        <span>Confermo: denaro reale, <b id="swap-confirm-summary">—</b></span>
+        <span>I confirm: real money, <b id="swap-confirm-summary">—</b></span>
       </label>
 
-      <button type="submit" class="btn-primary cta-btn" id="swap-submit" disabled>Inserisci una size</button>
+      <button type="submit" class="btn-primary cta-btn" id="swap-submit" disabled>Enter a size</button>
     </form>
     <output class="outcome" id="swap-outcome" hidden></output>
   `;
@@ -294,10 +294,10 @@ function paintForm(armed) {
 function pickToken(side, armed) {
   const chain = state.chain;
   sheets.openTokenPicker(chain, {
-    title: side === "in" ? "Cosa vendi" : "Cosa ricevi",
+    title: side === "in" ? "You sell" : "You receive",
     onPick: async ({ address }) => {
       const submitButton = host().querySelector("#swap-submit");
-      if (submitButton) { submitButton.disabled = true; submitButton.textContent = "Verifico il token…"; }
+      if (submitButton) { submitButton.disabled = true; submitButton.textContent = "Checking token…"; }
       try {
         // Il nativo (proposto nel picker fra "i tuoi token") non passa da
         // resolveToken(): i suoi decimali sono gia' noti, e chiederli al
@@ -315,10 +315,10 @@ function pickToken(side, armed) {
         }
         await setLeg(side, picked, armed);
       } catch (error) {
-        if (submitButton) submitButton.textContent = "Riprova";
+        if (submitButton) submitButton.textContent = "Retry";
         const detailEl = host().querySelector("#swap-detail");
         if (detailEl) {
-          detailEl.textContent = error instanceof ApiError ? error.message : "Token non riconosciuto.";
+          detailEl.textContent = error instanceof ApiError ? error.message : "Token not recognized.";
           detailEl.classList.add("is-warn");
         }
       }
@@ -385,12 +385,12 @@ async function requestQuote(rawAmount, armed) {
     inUsdEl.textContent = "";
     outUsdEl.textContent = "";
     submitButton.disabled = true;
-    submitButton.textContent = "Inserisci una size";
+    submitButton.textContent = "Enter a size";
     return;
   }
 
   submitButton.disabled = true;
-  submitButton.textContent = "Aggiorno il preventivo…";
+  submitButton.textContent = "Refreshing quote…";
   detailEl.textContent = "";
   inUsdEl.textContent = leg.in.priceUsd != null ? `≈ ${formatUsd(amount * leg.in.priceUsd)}` : "";
 
@@ -402,16 +402,16 @@ async function requestQuote(rawAmount, armed) {
 
     latestQuote = { ...quote, amountIn, sourceAmount: amount };
     const outAmount = fromBaseUnits(quote.out_amount, leg.out.decimals);
-    outEl.textContent = outAmount.toLocaleString("it-IT", { maximumFractionDigits: 6 });
+    outEl.textContent = outAmount.toLocaleString("en-US", { maximumFractionDigits: 6 });
     outUsdEl.textContent = leg.out.priceUsd != null
       ? `≈ ${formatUsd(outAmount * leg.out.priceUsd)}`
-      : (isStable(leg.out) ? `≈ ${formatUsd(outAmount)} (stablecoin, ancorata a 1 USD)` : "");
+      : (isStable(leg.out) ? `≈ ${formatUsd(outAmount)} (stablecoin, pegged to 1 USD)` : "");
     detailEl.textContent = `${quote.price_impact_pct.toFixed(2)}%`;
     detailEl.classList.toggle("is-warn", quote.price_impact_pct > 1);
 
     if (confirmSummary) {
       confirmSummary.textContent =
-        `${amount} ${leg.in.symbol} → circa ${outAmount.toFixed(6)} ${leg.out.symbol}, `
+        `${amount} ${leg.in.symbol} → ~${outAmount.toFixed(6)} ${leg.out.symbol}, `
         + `price impact ${quote.price_impact_pct.toFixed(2)}%`;
     }
     // Fuori da Uniswap v3 il prezzo arriva da un aggregatore (KyberSwap,
@@ -421,8 +421,8 @@ async function requestQuote(rawAmount, armed) {
     const routeEl = host().querySelector("#swap-route");
     if (routeEl && chain === "robinhood") routeEl.textContent = viaAggregator ? quote.source : "Uniswap v3";
     submitButton.disabled = !armed || viaAggregator || !confirmBox?.checked;
-    submitButton.textContent = !armed ? "Esecuzione spenta sul server"
-      : viaAggregator ? `Prezzo da ${quote.source}: swap in arrivo` : "Firma e invia";
+    submitButton.textContent = !armed ? "Execution off on server"
+      : viaAggregator ? `Price from ${quote.source}: swap coming soon` : "Sign & send";
   } catch (error) {
     latestQuote = null;
     outEl.textContent = "—";
@@ -430,7 +430,7 @@ async function requestQuote(rawAmount, armed) {
     detailEl.textContent = error.message;
     detailEl.classList.add("is-warn");
     submitButton.disabled = true;
-    submitButton.textContent = "Preventivo non disponibile";
+    submitButton.textContent = "Quote unavailable";
   }
 }
 
@@ -447,10 +447,10 @@ async function confirmAndExecute(armed) {
   const submitButton = host().querySelector("#swap-submit");
 
   submitButton.disabled = true;
-  submitButton.textContent = "Invio…";
+  submitButton.textContent = "Sending…";
   outcome.hidden = false;
   outcome.dataset.tone = "";
-  outcome.textContent = "Firmo e invio…";
+  outcome.textContent = "Signing and sending…";
 
   // I tetti di rischio sono in USD: notional_usd deve essere il controvalore
   // vero, non l'importo nel token venduto — se non conosciamo il prezzo
@@ -478,7 +478,7 @@ async function confirmAndExecute(armed) {
 
     outcome.dataset.tone = result.accepted ? "ok" : "no";
     outcome.textContent = result.accepted
-      ? `Inviato. Firma: ${result.tx_signature}`
+      ? `Sent. Signature: ${result.tx_signature}`
       : result.reason;
     if (result.accepted) {
       onExecutedCb?.();
@@ -493,9 +493,9 @@ async function confirmAndExecute(armed) {
     }
   } catch (error) {
     outcome.dataset.tone = "no";
-    outcome.textContent = error instanceof ApiError ? error.message : "Errore inatteso.";
+    outcome.textContent = error instanceof ApiError ? error.message : "Unexpected error.";
   } finally {
     submitButton.disabled = false;
-    submitButton.textContent = "Firma e invia";
+    submitButton.textContent = "Sign & send";
   }
 }

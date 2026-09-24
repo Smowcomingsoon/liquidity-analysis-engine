@@ -22,7 +22,7 @@ def test_un_progetto_con_i_fondamentali_passa():
 def test_il_lancio_di_ieri_non_passa():
     ok, why = is_serious(**{**SERIOUS, "age_hours": 20.0, "cex_listed": None})
     assert not ok
-    assert "giovane" in why
+    assert "young" in why
 
 
 def test_una_meme_coin_ricca_resta_fuori():
@@ -49,7 +49,7 @@ def test_la_quotazione_sostituisce_i_fondamentali():
 def test_senza_sito_e_senza_quotazione_non_passa():
     ok, why = is_serious(**{**SERIOUS, "website": None})
     assert not ok
-    assert "sito" in why
+    assert "website" in why
 
 
 def test_dogwifhat_non_sfugge_attaccato():

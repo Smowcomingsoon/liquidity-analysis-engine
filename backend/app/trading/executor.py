@@ -68,7 +68,7 @@ async def place_futures_order_for_signal(
     t = signal.type
     if t in ("exit_long", "exit_short"):
         result = await _with_retry(lambda: adapter.close_position(symbol, creds), exchange)
-        result = result or {"skipped": True, "reason": "nessuna posizione aperta da chiudere"}
+        result = result or {"skipped": True, "reason": "no open position to close"}
         log_order("submit", exchange, symbol, t, result, is_futures=True)
         return result
     if t in ("flip_to_long", "flip_to_short"):
@@ -170,7 +170,7 @@ async def _with_retry(coro_fn, exchange: str, max_attempts: int = 3):
             raise
     tripped = record_exchange_failure(exchange)
     raise OSError(f"network error after {max_attempts} attempts on {exchange}: {last_exc}"
-                  + (" — circuit breaker aperto" if tripped else ""))
+                  + (" — circuit breaker open" if tripped else ""))
 
 
 def _signal_to_side(signal_type: str) -> str | None:

@@ -195,7 +195,7 @@ async def _run_slices(
         if i > start_index:
             job = get_job(job_id)
             if job is not None and job["status"] == "cancel_requested":
-                _set_status(job_id, "cancelled", f"fermato dopo {i} fette su {len(slices)} (segnale opposto)")
+                _set_status(job_id, "cancelled", f"stopped after {i} of {len(slices)} slices (opposite signal)")
                 return {
                     "job_id": job_id, "status": "cancelled",
                     "slices_done": i, "slices_total": len(slices),
@@ -205,11 +205,11 @@ async def _run_slices(
         try:
             price_impact_pct, quote = await quote_for_slice(slice_usd)
         except Exception as exc:  # noqa: BLE001 - un quote fallito ferma il job, non e' silenzioso
-            _set_status(job_id, "failed", f"quote fallito sulla fetta {i + 1}/{len(slices)}: {exc}")
+            _set_status(job_id, "failed", f"quote failed on slice {i + 1}/{len(slices)}: {exc}")
             return {
                 "job_id": job_id, "status": "failed",
                 "slices_done": i, "slices_total": len(slices),
-                "reason": f"quote fallito sulla fetta {i + 1}/{len(slices)}: {exc}",
+                "reason": f"quote failed on slice {i + 1}/{len(slices)}: {exc}",
             }
 
         result = await execute.execute_order(
@@ -344,14 +344,14 @@ async def resume_running_twap_jobs() -> list[dict]:
 
         user = auth.get_user(job["owner_id"])
         if user is None:
-            _set_status(job_id, "failed", "owner non trovato alla ripresa dopo il riavvio")
-            results.append({"job_id": job_id, "status": "failed", "reason": "owner non trovato"})
+            _set_status(job_id, "failed", "owner not found when resuming after restart")
+            results.append({"job_id": job_id, "status": "failed", "reason": "owner not found"})
             continue
 
         try:
             private_key_hex = auth.get_decrypted_onchain_private_key(user, job["chain"])
         except Exception as exc:  # noqa: BLE001 - un job non ripristinabile va a failed, non muto
-            _set_status(job_id, "failed", f"chiave onchain non decifrabile alla ripresa: {exc}")
+            _set_status(job_id, "failed", f"on-chain key could not be decrypted on resume: {exc}")
             results.append({"job_id": job_id, "status": "failed", "reason": str(exc)})
             continue
 

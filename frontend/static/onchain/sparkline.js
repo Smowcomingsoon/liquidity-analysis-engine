@@ -48,7 +48,7 @@ export function drawSparkline(root, history, formatValue) {
   // Ogni estremo della scala ha la sua etichetta: senza, la linea non dice
   // di quanto si e' mossa.
   root.querySelector(".spark-lo").textContent = formatValue(min);
-  root.querySelector(".spark-span").textContent = `${values.length} letture`;
+  root.querySelector(".spark-span").textContent = `${values.length} readings`;
   root.querySelector(".spark-hi").textContent = formatValue(max);
   return true;
 }

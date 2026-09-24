@@ -33,12 +33,12 @@ def test_base_qty_is_quantity_times_mark_ignoring_leverage():
 def test_base_qty_without_mark_price_fails_loudly():
     """Un nozionale calcolato senza prezzo sarebbe silenziosamente zero — un
     ordine 'gratis' non e' un errore piu' innocuo, e' peggio: parte."""
-    with pytest.raises(FuturesExecutionError, match="Prezzo di mercato non disponibile"):
+    with pytest.raises(FuturesExecutionError, match="Market price not available"):
         adapter._notional("base_qty", 0.05, 10, available=0.0, mark=None)
 
 
 def test_base_qty_with_zero_mark_price_fails_loudly():
-    with pytest.raises(FuturesExecutionError, match="Prezzo di mercato non disponibile"):
+    with pytest.raises(FuturesExecutionError, match="Market price not available"):
         adapter._notional("base_qty", 0.05, 10, available=0.0, mark=0.0)
 
 
@@ -75,4 +75,4 @@ def test_a_cdn_block_page_is_not_read_as_a_key_permission_error():
 
 def test_a_real_api_permission_error_still_gets_the_key_hint():
     err = explain("mexc", "ordine", '{"code": 2001, "msg": "no permission"}')
-    assert "chiave" in str(err).lower()
+    assert "key" in str(err).lower()

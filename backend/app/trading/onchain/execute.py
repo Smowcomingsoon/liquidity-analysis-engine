@@ -108,14 +108,14 @@ async def execute_order(
                 "correlation_id": correlation_id}
 
     if chain not in ("solana", "robinhood"):
-        return {"accepted": False, "reason": f"chain non supportata: {chain}",
+        return {"accepted": False, "reason": f"unsupported chain: {chain}",
                 "idempotency_key": None, "tx_signature": None, "correlation_id": correlation_id}
 
     idempotency_key = f"live-{uuid.uuid4().hex}"
     if not ledger.reserve(idempotency_key, owner_id, chain, token, strategy_name, side, "live", notional_usd):
         logger.warning("[%s] idempotency_key duplicata: %s", correlation_id, idempotency_key,
                         extra={"correlation_id": correlation_id})
-        return {"accepted": False, "reason": "ordine gia' in corso (chiave idempotente duplicata)",
+        return {"accepted": False, "reason": "order already in progress (duplicate idempotency key)",
                 "idempotency_key": None, "tx_signature": None, "correlation_id": correlation_id}
 
     try:
@@ -128,15 +128,15 @@ async def execute_order(
             )
     except Exception as exc:
         logger.error("[%s] firma fallita: %s", correlation_id, exc, extra={"correlation_id": correlation_id})
-        ledger.mark_failed(idempotency_key, f"firma fallita: {exc}")
-        return {"accepted": False, "reason": f"firma fallita: {exc}",
+        ledger.mark_failed(idempotency_key, f"signing failed: {exc}")
+        return {"accepted": False, "reason": f"signing failed: {exc}",
                 "idempotency_key": idempotency_key, "tx_signature": None, "correlation_id": correlation_id}
 
     if not settings.onchain_execution_enabled:
         logger.info("[%s] esecuzione reale disattivata, ordine non inviato", correlation_id,
                      extra={"correlation_id": correlation_id})
         ledger.mark_failed(idempotency_key, "esecuzione reale disattivata (onchain_execution_enabled=False)")
-        return {"accepted": False, "reason": "esecuzione reale disattivata su questo server",
+        return {"accepted": False, "reason": "live execution disabled on this server",
                 "idempotency_key": idempotency_key, "tx_signature": None, "correlation_id": correlation_id}
 
     try:
@@ -146,8 +146,8 @@ async def execute_order(
             signature = await execution.send_signed_evm_tx(signed)
     except Exception as exc:
         logger.error("[%s] invio fallito: %s", correlation_id, exc, extra={"correlation_id": correlation_id})
-        ledger.mark_failed(idempotency_key, f"invio fallito: {exc}")
-        return {"accepted": False, "reason": f"invio fallito: {exc}",
+        ledger.mark_failed(idempotency_key, f"send failed: {exc}")
+        return {"accepted": False, "reason": f"send failed: {exc}",
                 "idempotency_key": idempotency_key, "tx_signature": None, "correlation_id": correlation_id}
 
     ledger.mark_submitted(idempotency_key, signature)

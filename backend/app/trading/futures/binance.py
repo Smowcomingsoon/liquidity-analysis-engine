@@ -19,7 +19,7 @@ class BinanceFutures(FuturesAdapter):
     name = "Binance Futures"
     needs_passphrase = False
     max_leverage = 10
-    key_hint = "Chiave API con permesso «Futures» attivo (non basta quella spot)."
+    key_hint = "API key with the «Futures» permission enabled (a spot key is not enough)."
 
     def _client(self, creds: FuturesCreds) -> httpx.AsyncClient:
         return httpx.AsyncClient(

@@ -170,7 +170,7 @@ def test_large_mismatch_opens_discrepancy_and_blocks_new_orders(tmp_path, monkey
 
     ok, reason = risk.run_all_checks("u1", "solana", "TOKEN", 5.0, 0.5)
     assert ok is False
-    assert "discrepanza" in reason
+    assert "discrepancy" in reason
 
     ledger.review_discrepancy(result["discrepancy_id"])
     assert ledger.has_open_discrepancy("u1", "solana", "TOKEN") is False

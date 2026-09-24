@@ -28,7 +28,7 @@ async def native_balance(chain: OnchainChain, address: str) -> float:
         return await _solana_balance(address)
     if chain == "robinhood":
         return await _robinhood_balance(address)
-    raise ValueError(f"Chain non supportata: {chain}")
+    raise ValueError(f"Unsupported chain: {chain}")
 
 
 async def _solana_balance(address: str) -> float:
@@ -63,7 +63,7 @@ async def all_token_balances(chain: OnchainChain, address: str, known_evm_tokens
         return await _solana_token_balances(address)
     if chain == "robinhood":
         return await _robinhood_known_token_balances(address, known_evm_tokens or [])
-    raise ValueError(f"Chain non supportata: {chain}")
+    raise ValueError(f"Unsupported chain: {chain}")
 
 
 async def _solana_token_balances(address: str) -> list[dict]:
@@ -113,10 +113,10 @@ async def recent_transactions(chain: OnchainChain, address: str) -> dict:
             "available": False,
             "transactions": [],
             "explorer_url": f"{ROBINHOOD_EXPLORER}/address/{address}",
-            "reason": "L'explorer di Robinhood Chain e' protetto da una verifica anti-bot che una "
-                      "richiesta dal server non supera — apri il link per vedere lo storico vero.",
+            "reason": "The Robinhood Chain explorer sits behind an anti-bot check that server requests "
+                      "can't pass — open the link to see the real history.",
         }
-    raise ValueError(f"Chain non supportata: {chain}")
+    raise ValueError(f"Unsupported chain: {chain}")
 
 
 async def _solana_transactions(address: str) -> list[dict]:

@@ -28,17 +28,17 @@
   // /api/auth/futures.
   const TRADING_EXCHANGES = [
     { id: "binance", name: "Binance", color: "#f0b90b", letter: "B",
-      steps: ["Accedi a Binance → Gestione API nel tuo profilo.", "Crea una nuova chiave, attiva solo “Lettura” e “Trading Spot”.", "Copia chiave e chiave segreta qui sotto — non condividerle altrove."] },
+      steps: ["Log in to Binance → API Management in your profile.", "Create a new key and enable only “Reading” and “Spot Trading”.", "Copy the key and secret key below — don't share them anywhere else."] },
     { id: "mexc", name: "MEXC", color: "#1b73e8", letter: "M",
-      steps: ["Accedi a MEXC → Gestione API dal tuo profilo.", "Crea una chiave con permessi di lettura e trading spot, mai prelievo.", "Copia chiave e chiave segreta qui sotto."] },
+      steps: ["Log in to MEXC → API Management from your profile.", "Create a key with read and spot trading permissions, never withdrawal.", "Copy the key and secret key below."] },
     { id: "kucoin", name: "KuCoin", color: "#24ae8f", letter: "K",
-      steps: ["Vai su KuCoin → API Management dal tuo profilo.", "Crea una chiave con permessi “General” e “Trade”, mai “Withdraw”.", "Incolla chiave e segreto qui: restano cifrati sul nostro sistema."] },
+      steps: ["Go to KuCoin → API Management from your profile.", "Create a key with “General” and “Trade” permissions, never “Withdraw”.", "Paste the key and secret here: they stay encrypted on our system."] },
     { id: "kraken", name: "Kraken", color: "#5741d9", letter: "K",
-      steps: ["Su Kraken vai in Impostazioni → Sicurezza → Chiavi API.", "Crea una chiave con “Query Funds” e “Create & Modify Orders” attivi.", "Inserisci i due valori qui sotto per completare il collegamento."] },
+      steps: ["On Kraken go to Settings → Security → API Keys.", "Create a key with “Query Funds” and “Create & Modify Orders” enabled.", "Enter both values below to complete the connection."] },
     { id: "coinbase", name: "Coinbase", color: "#0052ff", letter: "C",
-      steps: ["Su Coinbase Advanced Trade vai in Impostazioni → API.", "Crea una chiave con permessi “View” e “Trade”, mai “Transfer”.", "Incolla chiave e segreto qui sotto."] },
+      steps: ["On Coinbase Advanced Trade go to Settings → API.", "Create a key with “View” and “Trade” permissions, never “Transfer”.", "Paste the key and secret below."] },
     { id: "bitstamp", name: "Bitstamp", color: "#2e3a59", letter: "B",
-      steps: ["Su Bitstamp vai in Account → Sicurezza → API Access.", "Crea una chiave con permessi di lettura saldo e piazzamento ordini.", "Incolla chiave e segreto qui sotto."] },
+      steps: ["On Bitstamp go to Account → Security → API Access.", "Create a key with balance-read and order-placement permissions.", "Paste the key and secret below."] },
   ];
 
   // Timeframe scelto una volta sola allo step Strategia e riusato ovunque
@@ -52,8 +52,8 @@
     { id: "15m", label: "15m" },
     { id: "1h", label: "1h" },
     { id: "4h", label: "4h" },
-    { id: "1d", label: "1g" },
-    { id: "1w", label: "1sett" },
+    { id: "1d", label: "1d" },
+    { id: "1w", label: "1w" },
   ];
   function tfLabel(id) {
     return (SIMPLE_INTERVALS.find((t) => t.id === id) || {}).label || id;
@@ -98,6 +98,7 @@
     else if (/^Lorenzo\b/.test(head)) label = "Trend EMA";
     else if (/^Gabriele 2\b/.test(head)) label = "RSI+BB Long/Short";
     else if (/^Gabriele\b/.test(head)) label = "RSI+BB Reversal";
+    else if (/^Accumulo\b/.test(head)) label = "Accumulation / Distribution";
     return label + tail;
   }
   function fmtPct(v, digits) {
@@ -107,7 +108,7 @@
   }
   function fmtNum(v) {
     if (v == null) return "—";
-    return Number(v).toLocaleString("it-IT", { maximumFractionDigits: v >= 1000 ? 0 : 2 });
+    return Number(v).toLocaleString("en-US", { maximumFractionDigits: v >= 1000 ? 0 : 2 });
   }
 
   async function api(path, opts) {
@@ -120,7 +121,7 @@
     let body = null;
     try { body = await resp.json(); } catch (_e) { /* no body */ }
     if (!resp.ok) {
-      const detail = (body && body.detail) ? body.detail : `Errore ${resp.status}`;
+      const detail = (body && body.detail) ? body.detail : `Error ${resp.status}`;
       throw new Error(detail);
     }
     return body;
@@ -256,7 +257,7 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
     <div class="sm-brand"><span class="dot"></span>Liquidity Engine</div>
     <div class="sm-progress-track"><div class="sm-progress-fill" id="sm-progfill"></div></div>
     <div class="sm-stepcount" id="sm-stepcount">1/6</div>
-    <button type="button" class="sm-exit" id="sm-exit-btn">Esci</button>
+    <button type="button" class="sm-exit" id="sm-exit-btn">Exit</button>
   </div>
   <div id="sm-steps"></div>
   <div class="sm-deploy-info" id="sm-deploy-info"></div>
@@ -276,10 +277,10 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
       if (!resp.ok) return;
       const { deployed_at } = await resp.json();
       if (!deployed_at) return;
-      const stamp = new Date(deployed_at * 1000).toLocaleString("it-IT", {
+      const stamp = new Date(deployed_at * 1000).toLocaleString("en-US", {
         day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit",
       });
-      el2.textContent = `Aggiornato ${stamp}`;
+      el2.textContent = `Updated ${stamp}`;
     } catch (_e) { /* offline: non mostrare nulla piuttosto che un dato falso */ }
   }
 
@@ -301,16 +302,16 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
     document.getElementById("sm-steps").innerHTML = `
 <main class="sm-step active">
   <div class="sm-welcome">
-    <div class="kicker">Modalità Semplice</div>
-    <h1>Trova un ticker,<br>scegli una strategia,<br>lascia lavorare l'algoritmo.</h1>
-    <p>Lo stesso motore di Liquidity Engine, senza pannelli tecnici. Ogni passo di questa guida chiama le stesse API reali della modalità normale.</p>
-    <div class="sm-feat"><b>1.</b> Cerca il ticker e guarda il grafico live.</div>
-    <div class="sm-feat"><b>2.</b> Scegli una strategia tra quelle disponibili.</div>
-    <div class="sm-feat"><b>3.</b> Verifica ingressi e uscite sul backtest reale.</div>
-    <div class="sm-feat"><b>4.</b> Ottimizza — Rapida o Stabile.</div>
-    <div class="sm-feat"><b>5.</b> Collega l'exchange e attiva con un tocco.</div>
+    <div class="kicker">Simple Mode</div>
+    <h1>Find a ticker,<br>pick a strategy,<br>let the algorithm work.</h1>
+    <p>The same Liquidity Engine, without the technical panels. Every step of this guide calls the same real APIs as the regular mode.</p>
+    <div class="sm-feat"><b>1.</b> Search the ticker and watch the live chart.</div>
+    <div class="sm-feat"><b>2.</b> Pick one of the available strategies.</div>
+    <div class="sm-feat"><b>3.</b> Check entries and exits on the real backtest.</div>
+    <div class="sm-feat"><b>4.</b> Optimize — Quick or Stable.</div>
+    <div class="sm-feat"><b>5.</b> Connect the exchange and activate with one tap.</div>
   </div>
-  <div class="sm-ctabar"><div class="sm-ctabar-inner"><button class="sm-btn primary" id="sm-start-btn">Inizia</button></div></div>
+  <div class="sm-ctabar"><div class="sm-ctabar-inner"><button class="sm-btn primary" id="sm-start-btn">Get started</button></div></div>
 </main>`;
     document.getElementById("sm-start-btn").addEventListener("click", () => go(1));
   }
@@ -323,16 +324,16 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
     setTopbar("1/" + TOTAL_STEPS, 1 / TOTAL_STEPS);
     document.getElementById("sm-steps").innerHTML = `
 <main class="sm-step active">
-  <div class="sm-eyebrow">Passo 1 di ${TOTAL_STEPS}</div>
-  <h1 class="sm-title">Cosa vuoi seguire?</h1>
-  <p class="sm-sub">Cerca un ticker — azioni o crypto. Stessa ricerca della modalità normale.</p>
+  <div class="sm-eyebrow">Step 1 of ${TOTAL_STEPS}</div>
+  <h1 class="sm-title">What do you want to track?</h1>
+  <p class="sm-sub">Search a ticker — stocks or crypto. Same search as the regular mode.</p>
   <div class="sm-search-box"><input id="sm-ticker-input" placeholder="BTC, ETH, AAPL…" autocomplete="off"></div>
   <div id="sm-ticker-error"></div>
   <div class="sm-list" id="sm-ticker-list"></div>
   <div id="sm-chart-card"></div>
   <div class="sm-ctabar"><div class="sm-ctabar-inner">
-    <button class="sm-btn ghost" id="sm-back-btn">Indietro</button>
-    <button class="sm-btn primary" id="sm-continue-btn" disabled>Continua</button>
+    <button class="sm-btn ghost" id="sm-back-btn">Back</button>
+    <button class="sm-btn primary" id="sm-continue-btn" disabled>Continue</button>
   </div></div>
 </main>`;
     document.getElementById("sm-back-btn").addEventListener("click", () => go(0));
@@ -373,7 +374,7 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
         });
         list.appendChild(row);
       });
-      if (!items || !items.length) list.innerHTML = `<div class="sm-muted">Nessun risultato.</div>`;
+      if (!items || !items.length) list.innerHTML = `<div class="sm-muted">No results.</div>`;
     } catch (e) {
       list.innerHTML = `<div class="sm-error">${esc(e.message)}</div>`;
     }
@@ -402,7 +403,7 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
     };
     state.archiveEntry = null;
     document.getElementById("sm-continue-btn").disabled = true;
-    document.getElementById("sm-chart-card").innerHTML = `<div class="sm-card sm-muted">Carico il grafico…</div>`;
+    document.getElementById("sm-chart-card").innerHTML = `<div class="sm-card sm-muted">Loading chart…</div>`;
     try {
       const strategies = await ensureStrategies();
       const defaultStrategy = strategies[0];
@@ -468,15 +469,15 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
   // STEP 1.5 — archive (already-vetted strategies for this ticker)
   // ------------------------------------------------------------------
   function stepArchive() {
-    setTopbar("Archivio", 1.2 / TOTAL_STEPS);
+    setTopbar("Archive", 1.2 / TOTAL_STEPS);
     document.getElementById("sm-steps").innerHTML = `
 <main class="sm-step active">
-  <div class="sm-eyebrow">Già nel tuo archivio</div>
-  <h1 class="sm-title">Hai già lavorato su ${esc(state.ticker.symbol)}</h1>
-  <p class="sm-sub">Queste configurazioni sono già state ottimizzate e misurate su questo ticker (dati reali da /api/archive). Riprendine una così com'è, o impostane una nuova da zero.</p>
+  <div class="sm-eyebrow">Already in your archive</div>
+  <h1 class="sm-title">You've already worked on ${esc(state.ticker.symbol)}</h1>
+  <p class="sm-sub">These configurations have already been optimized and measured on this ticker (real data from /api/archive). Pick one up as-is, or set up a new one from scratch.</p>
   <div class="sm-archive-grid" id="sm-archive-grid"></div>
-  <button class="sm-btn ghost" style="margin-bottom:90px;" id="sm-archive-fresh">Testa una strategia nuova invece</button>
-  <div class="sm-ctabar"><div class="sm-ctabar-inner"><button class="sm-btn ghost" id="sm-back-btn">Indietro</button></div></div>
+  <button class="sm-btn ghost" style="margin-bottom:90px;" id="sm-archive-fresh">Test a new strategy instead</button>
+  <div class="sm-ctabar"><div class="sm-ctabar-inner"><button class="sm-btn ghost" id="sm-back-btn">Back</button></div></div>
 </main>`;
     document.getElementById("sm-back-btn").addEventListener("click", () => go(1));
     document.getElementById("sm-archive-fresh").addEventListener("click", () => { state.archiveEntry = null; go(2); });
@@ -487,21 +488,21 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
       // created_at e' epoca in secondi (vedi archive.py), non una stringa
       // ISO: uno .slice() qui interrompeva silenziosamente il rendering
       // dell'intera lista al primo elemento con voci in archivio.
-      const when = entry.created_at ? new Date(entry.created_at * 1000).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "2-digit" }) : "—";
+      const when = entry.created_at ? new Date(entry.created_at * 1000).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "2-digit" }) : "—";
       const params = Object.entries(entry.params || {}).map(([k, v]) => `${esc(k)}=${esc(String(v))}`).join(" · ");
       const card = document.createElement("div");
       card.className = "sm-archive-card";
       card.innerHTML = `
         <div style="display:flex;justify-content:space-between;"><b>${esc(stratLabel(entry.strategy_name))}</b><span class="sm-muted">${esc(when)}</span></div>
         <div class="sm-summary" style="margin-top:10px;">
-          <div class="sm-stat"><div class="lbl">Rendimento</div><div class="val ${retUp ? "up" : "down"}">${fmtPct(m.total_return_pct)}</div></div>
+          <div class="sm-stat"><div class="lbl">Return</div><div class="val ${retUp ? "up" : "down"}">${fmtPct(m.total_return_pct)}</div></div>
           <div class="sm-stat"><div class="lbl">Drawdown</div><div class="val down">${fmtPct(m.max_drawdown_pct)}</div></div>
-          <div class="sm-stat"><div class="lbl">Operazioni</div><div class="val">${m.num_trades != null ? m.num_trades : "—"}</div></div>
+          <div class="sm-stat"><div class="lbl">Trades</div><div class="val">${m.num_trades != null ? m.num_trades : "—"}</div></div>
         </div>
-        <div class="sm-muted" style="margin-top:6px;">Profit factor ${fmtNum(m.profit_factor)} · ${m.candles != null ? m.candles + " candele · " : ""}${esc(entry.interval || "")}</div>
+        <div class="sm-muted" style="margin-top:6px;">Profit factor ${fmtNum(m.profit_factor)} · ${m.candles != null ? m.candles + " candles · " : ""}${esc(entry.interval || "")}</div>
         ${params ? `<div class="sm-muted" style="margin-top:4px;">${params}</div>` : ""}
         <div style="display:flex;gap:8px;margin-top:10px;">
-          <button class="sm-btn primary" data-act="use" style="flex:1;">Usa questa</button>
+          <button class="sm-btn primary" data-act="use" style="flex:1;">Use this</button>
           <button class="sm-btn ghost" data-act="export" style="flex:0 0 auto;">⤓ Excel</button>
         </div>`;
       card.querySelector('[data-act="use"]').addEventListener("click", () => {
@@ -538,13 +539,13 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
   // STEP 2 — strategy (real /api/strategies)
   // ------------------------------------------------------------------
   const STRAT_DESC = [
-    { match: /lorenzo/i, tag: "Trend", desc: "Incrocio EMA sulla derivata di una media — segue la continuazione del trend dominante." },
-    { match: /gabriele/i, tag: "Mean-reversion", desc: "RSI + banda di Bollinger — cerca eccessi di prezzo e ne sfrutta il rientro." },
-    { match: /accumulo|distribuzione/i, tag: "Contro-trend", desc: "Divergenze RSI sugli swing — entra contro il movimento agli estremi." },
+    { match: /lorenzo/i, tag: "Trend", desc: "EMA crossover on the derivative of a moving average — rides the continuation of the dominant trend." },
+    { match: /gabriele/i, tag: "Mean-reversion", desc: "RSI + Bollinger Band — looks for price extremes and trades the snap-back." },
+    { match: /accumulo|distribuzione/i, tag: "Counter-trend", desc: "RSI divergences on swings — enters against the move at the extremes." },
   ];
   function describeStrategy(name) {
     const hit = STRAT_DESC.find((d) => d.match.test(name));
-    return hit || { tag: "Strategia", desc: "Logica proprietaria del motore di analisi." };
+    return hit || { tag: "Strategy", desc: "Proprietary logic of the analysis engine." };
   }
 
   let strategiesCache = null;
@@ -558,15 +559,15 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
     setTopbar("2/" + TOTAL_STEPS, 2 / TOTAL_STEPS);
     document.getElementById("sm-steps").innerHTML = `
 <main class="sm-step active">
-  <div class="sm-eyebrow">Passo 2 di ${TOTAL_STEPS}</div>
-  <h1 class="sm-title">Scegli la strategia</h1>
-  <p class="sm-sub">Ogni strategia ragiona in modo diverso su <b>${esc(state.ticker.symbol)}</b>. La vedrai al lavoro sul grafico reale al passo successivo.</p>
-  <div class="sm-eyebrow" style="margin-top:4px;">Su quale timeframe deve lavorare?</div>
+  <div class="sm-eyebrow">Step 2 of ${TOTAL_STEPS}</div>
+  <h1 class="sm-title">Pick the strategy</h1>
+  <p class="sm-sub">Each strategy reads <b>${esc(state.ticker.symbol)}</b> differently. You'll see it at work on the real chart in the next step.</p>
+  <div class="sm-eyebrow" style="margin-top:4px;">Which timeframe should it trade?</div>
   <div class="sm-tf-row" id="sm-tf-row"></div>
-  <div class="sm-strat-grid" id="sm-strat-grid" style="margin-top:14px;"><div class="sm-muted">Carico le strategie…</div></div>
+  <div class="sm-strat-grid" id="sm-strat-grid" style="margin-top:14px;"><div class="sm-muted">Loading strategies…</div></div>
   <div class="sm-ctabar"><div class="sm-ctabar-inner">
-    <button class="sm-btn ghost" id="sm-back-btn">Indietro</button>
-    <button class="sm-btn primary" id="sm-to-backtest-btn" disabled>Vedi il backtest</button>
+    <button class="sm-btn ghost" id="sm-back-btn">Back</button>
+    <button class="sm-btn primary" id="sm-to-backtest-btn" disabled>See the backtest</button>
   </div></div>
 </main>`;
     document.getElementById("sm-back-btn").addEventListener("click", () => go(1));
@@ -618,14 +619,14 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
     if (fromArchive) state.interval = state.archiveEntry.interval || state.interval;
     document.getElementById("sm-steps").innerHTML = `
 <main class="sm-step active">
-  <div class="sm-eyebrow">Passo 3 di ${TOTAL_STEPS}</div>
-  ${fromArchive ? '<span class="sm-badge">◆ Dall\'archivio</span>' : ""}
+  <div class="sm-eyebrow">Step 3 of ${TOTAL_STEPS}</div>
+  ${fromArchive ? '<span class="sm-badge">◆ From archive</span>' : ""}
   <h1 class="sm-title">Backtest — ${esc(stratLabel(state.strategy))}</h1>
-  <p class="sm-sub">Su <b>${esc(state.ticker.symbol)}</b> · timeframe <b>${esc(tfLabel(state.interval))}</b>. Ogni ingresso e uscita generato dalla strategia è segnato sul grafico reale.</p>
-  <div id="sm-bt-body"><div class="sm-muted">Eseguo il backtest…</div></div>
+  <p class="sm-sub">On <b>${esc(state.ticker.symbol)}</b> · timeframe <b>${esc(tfLabel(state.interval))}</b>. Every entry and exit generated by the strategy is marked on the real chart.</p>
+  <div id="sm-bt-body"><div class="sm-muted">Running backtest…</div></div>
   <div class="sm-ctabar"><div class="sm-ctabar-inner">
-    <button class="sm-btn ghost" id="sm-back-btn">Indietro</button>
-    <button class="sm-btn primary" id="sm-bt-continue" disabled>${fromArchive ? "Continua" : "Ottimizza la strategia"}</button>
+    <button class="sm-btn ghost" id="sm-back-btn">Back</button>
+    <button class="sm-btn primary" id="sm-bt-continue" disabled>${fromArchive ? "Continue" : "Optimize the strategy"}</button>
   </div></div>
 </main>`;
     document.getElementById("sm-back-btn").addEventListener("click", () => go(fromArchive ? 1.5 : 2));
@@ -648,15 +649,15 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
       };
       body.innerHTML = `
         <div class="sm-summary">
-          <div class="sm-stat"><div class="lbl">Rendimento</div><div class="val ${(m.total_return_pct || 0) >= 0 ? "up" : "down"}">${fmtPct(m.total_return_pct)}</div></div>
+          <div class="sm-stat"><div class="lbl">Return</div><div class="val ${(m.total_return_pct || 0) >= 0 ? "up" : "down"}">${fmtPct(m.total_return_pct)}</div></div>
           <div class="sm-stat"><div class="lbl">Max drawdown</div><div class="val down">${fmtPct(m.max_drawdown_pct)}</div></div>
-          <div class="sm-stat"><div class="lbl">Operazioni</div><div class="val">${m.num_trades != null ? m.num_trades : "—"}</div></div>
+          <div class="sm-stat"><div class="lbl">Trades</div><div class="val">${m.num_trades != null ? m.num_trades : "—"}</div></div>
         </div>
-        <div class="sm-real-chart-mount" id="sm-real-chart-mount"><div class="sm-muted">Carico il grafico reale…</div></div>
-        <p class="sm-muted" style="margin:4px 0 10px;">Tocca un punto del grafico per aprire l'operazione più vicina qui sotto.</p>
-        <button type="button" class="sm-btn ghost" id="sm-trades-toggle" style="width:100%;margin-bottom:8px;">▸ ${m.num_trades != null ? m.num_trades : (bt.trades || []).length} operazioni</button>
+        <div class="sm-real-chart-mount" id="sm-real-chart-mount"><div class="sm-muted">Loading real chart…</div></div>
+        <p class="sm-muted" style="margin:4px 0 10px;">Tap a point on the chart to open the nearest trade below.</p>
+        <button type="button" class="sm-btn ghost" id="sm-trades-toggle" style="width:100%;margin-bottom:8px;">▸ ${m.num_trades != null ? m.num_trades : (bt.trades || []).length} trades</button>
         <div id="sm-trades-panel" class="sm-trades-panel" hidden></div>
-        <button class="sm-btn ghost" id="sm-bt-export" style="width:100%;margin:10px 0;">⤓ Esporta i trade in Excel</button>`;
+        <button class="sm-btn ghost" id="sm-bt-export" style="width:100%;margin:10px 0;">⤓ Export trades to Excel</button>`;
       document.getElementById("sm-bt-export").addEventListener("click", () => exportBacktestToExcel(params));
       renderTradesPanel(bt);
       // Grafico reale: il VERO .chart-area del sito (LightweightCharts,
@@ -690,12 +691,12 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
           window.LiquidityChartBridge.onChartClick((time) => selectTradeNear(bt, time));
         }
       } else {
-        document.getElementById("sm-real-chart-mount").innerHTML = `<div class="sm-muted">Grafico non disponibile in questo momento.</div>`;
+        document.getElementById("sm-real-chart-mount").innerHTML = `<div class="sm-muted">Chart not available right now.</div>`;
       }
       document.getElementById("sm-bt-continue").disabled = false;
     } catch (e) {
       document.getElementById("sm-bt-body").innerHTML = e.needsAuth
-        ? `<div class="sm-error">Devi accedere per usare questa funzione.</div>`
+        ? `<div class="sm-error">Log in to use this feature.</div>`
         : `<div class="sm-error">${esc(e.message)}</div>`;
       if (e.needsAuth) requireLogin();
     }
@@ -710,18 +711,18 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
     const panel = document.getElementById("sm-trades-panel");
     if (!toggle || !panel) return;
     const trades = (bt.trades || []).concat(bt.oos_trades || []);
-    const fmtTs = (s) => new Date(s * 1000).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "2-digit" });
+    const fmtTs = (s) => new Date(s * 1000).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "2-digit" });
     panel.innerHTML = trades.length
       ? `<div class="sm-trades-list">${trades.map((t, i) => {
           const isWin = t.pnl_abs > 0;
           const dir = t.direction === "long" ? "▲ Long" : "▼ Short";
           return `<div class="sm-trade-row" id="sm-trade-${i}">
             <span class="dir ${t.direction === "long" ? "up" : "down"}">${dir}</span>
-            <span class="dates">${fmtTs(t.entry_time)} → ${t.exit_time ? fmtTs(t.exit_time) : "aperta"}</span>
+            <span class="dates">${fmtTs(t.entry_time)} → ${t.exit_time ? fmtTs(t.exit_time) : "open"}</span>
             <span class="pnl ${isWin ? "up" : "down"}">${t.pnl_pct >= 0 ? "+" : ""}${t.pnl_pct.toFixed(2)}%</span>
           </div>`;
         }).join("")}</div>`
-      : `<p class="sm-muted">Nessuna operazione in questo periodo.</p>`;
+      : `<p class="sm-muted">No trades in this period.</p>`;
     toggle.addEventListener("click", () => {
       const hidden = panel.hidden;
       panel.hidden = !hidden;
@@ -806,13 +807,13 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
     setTopbar("4/" + TOTAL_STEPS, 4 / TOTAL_STEPS);
     document.getElementById("sm-steps").innerHTML = `
 <main class="sm-step active">
-  <div class="sm-eyebrow">Passo 4 di ${TOTAL_STEPS}</div>
-  <h1 class="sm-title">Ottimizza i parametri</h1>
-  <p class="sm-sub">Cerca la combinazione di parametri migliore per <b>${esc(stratLabel(state.strategy))}</b> su <b>${esc(state.ticker.symbol)}</b> · timeframe <b>${esc(tfLabel(state.interval))}</b>.</p>
+  <div class="sm-eyebrow">Step 4 of ${TOTAL_STEPS}</div>
+  <h1 class="sm-title">Optimize the parameters</h1>
+  <p class="sm-sub">Find the best parameter combination for <b>${esc(stratLabel(state.strategy))}</b> on <b>${esc(state.ticker.symbol)}</b> · timeframe <b>${esc(tfLabel(state.interval))}</b>.</p>
   <div id="sm-opt-body"></div>
   <div id="sm-opt-cta" class="sm-ctabar"><div class="sm-ctabar-inner">
-    <button class="sm-btn ghost" id="sm-back-btn">Indietro</button>
-    <button class="sm-btn primary" id="sm-opt-start">Avvia ottimizzazione</button>
+    <button class="sm-btn ghost" id="sm-back-btn">Back</button>
+    <button class="sm-btn primary" id="sm-opt-start">Start optimization</button>
   </div></div>
 </main>`;
     document.getElementById("sm-back-btn").addEventListener("click", () => go(3));
@@ -824,12 +825,12 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
     document.getElementById("sm-opt-body").innerHTML = `
 <div class="sm-opt-grid">
   <div class="sm-opt-card${state.optMode === "fast" ? " active" : ""}" data-mode="fast">
-    <b>Rapida</b> <span class="sm-muted">· 200 tentativi casuali · 10–25s (stima)</span>
-    <div class="sm-strat-desc">Esplora in fretta lo spazio dei parametri. Il risultato può variare a ogni esecuzione.</div>
+    <b>Quick</b> <span class="sm-muted">· 200 random trials · 10–25s (est.)</span>
+    <div class="sm-strat-desc">Quickly explores the parameter space. The result may vary on every run.</div>
   </div>
   <div class="sm-opt-card${state.optMode === "stable" ? " active" : ""}" data-mode="stable">
-    <b>Stabile</b> <span class="sm-muted">· ricerca guidata esaustiva · 1–5 min (stima)</span>
-    <div class="sm-strat-desc">Cerca la configurazione che regge alle variazioni di mercato, non il picco fortunato. Deterministica: stesso risultato a ogni esecuzione.</div>
+    <b>Stable</b> <span class="sm-muted">· exhaustive guided search · 1–5 min (est.)</span>
+    <div class="sm-strat-desc">Finds the configuration that holds up under changing markets, not the lucky peak. Deterministic: same result on every run.</div>
   </div>
 </div>`;
     document.querySelectorAll("#simple-mode-root .sm-opt-card").forEach((card) => {
@@ -846,7 +847,7 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
       mode: state.optMode === "fast" ? "random" : "plateau",
       ltf_interval: state.interval,
     });
-    document.getElementById("sm-opt-body").innerHTML = `<p class="sm-muted">Avvio…</p>`;
+    document.getElementById("sm-opt-body").innerHTML = `<p class="sm-muted">Starting…</p>`;
     try {
       const resp = await api(`/api/optimize/start?${backtestParams.toString()}`, { method: "POST" });
       state.optJobId = resp.job_id;
@@ -859,10 +860,10 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
           strategy: state.strategy,
           mode: state.optMode === "fast" ? "random" : "plateau",
         });
-        document.getElementById("sm-opt-body").innerHTML = `<p class="sm-muted">La ricerca gira nella finestra qui sopra. Puoi fermarla in qualsiasi momento da li'.</p>`;
+        document.getElementById("sm-opt-body").innerHTML = `<p class="sm-muted">The search runs in the window above. You can stop it from there at any time.</p>`;
         watchOptBridge();
       } else {
-        document.getElementById("sm-opt-body").innerHTML = `<div class="sm-error">Finestra di avanzamento non disponibile in questo momento — riprova.</div>`;
+        document.getElementById("sm-opt-body").innerHTML = `<div class="sm-error">Progress window not available right now — try again.</div>`;
         document.getElementById("sm-opt-cta").style.display = "flex";
       }
     } catch (e) {
@@ -885,8 +886,8 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
       if (!document.getElementById("sm-opt-body")) return;
       const st = window.LiquidityOptBridge.getState(state.optJobId);
       if (st && st.state === "finito") { window.LiquidityOptBridge.close(); onOptDone({ result: st.result }); return; }
-      if (st && st.state === "fallito") { window.LiquidityOptBridge.close(); onOptFailed(st.error || "Ottimizzazione fallita"); return; }
-      if (st && st.state === "annullato") { window.LiquidityOptBridge.close(); onOptFailed("Ottimizzazione annullata."); return; }
+      if (st && st.state === "fallito") { window.LiquidityOptBridge.close(); onOptFailed(st.error || "Optimization failed"); return; }
+      if (st && st.state === "annullato") { window.LiquidityOptBridge.close(); onOptFailed("Optimization cancelled."); return; }
       state.optPollTimer = setTimeout(tick, 800);
     };
     tick();
@@ -903,14 +904,14 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
     const bt = result.backtest || {};
     document.getElementById("sm-opt-body").innerHTML = `
 <div class="sm-summary">
-  <div class="sm-stat"><div class="lbl">Rendimento ott.</div><div class="val ${(bt.total_return_pct || 0) >= 0 ? "up" : "down"}">${fmtPct(bt.total_return_pct)}</div></div>
+  <div class="sm-stat"><div class="lbl">Optimized return</div><div class="val ${(bt.total_return_pct || 0) >= 0 ? "up" : "down"}">${fmtPct(bt.total_return_pct)}</div></div>
   <div class="sm-stat"><div class="lbl">Max drawdown</div><div class="val down">${fmtPct(bt.max_drawdown_pct)}</div></div>
-  <div class="sm-stat"><div class="lbl">Fuori campione</div><div class="val ${result.overfitted ? "down" : "up"}">${result.overfitted ? "overfit" : "regge"}</div></div>
+  <div class="sm-stat"><div class="lbl">Out-of-sample</div><div class="val ${result.overfitted ? "down" : "up"}">${result.overfitted ? "overfit" : "holds"}</div></div>
 </div>
-<div class="sm-explain">Parametri trovati: <code>${esc(JSON.stringify(result.params))}</code>. Verranno applicati alla strategia quando la attivi. ${result.overfitted ? "Attenzione: il test fuori campione suggerisce che questi parametri potrebbero non reggere su dati futuri." : "Il test fuori campione conferma che regge oltre i dati usati per trovarli."}</div>
+<div class="sm-explain">Parameters found: <code>${esc(JSON.stringify(result.params))}</code>. They'll be applied to the strategy when you activate it. ${result.overfitted ? "Warning: the out-of-sample test suggests these parameters may not hold on future data." : "The out-of-sample test confirms it holds beyond the data used to find them."}</div>
 <div class="sm-ctabar"><div class="sm-ctabar-inner">
-  <button class="sm-btn ghost" id="sm-opt-review">Rivedi grafico</button>
-  <button class="sm-btn primary" id="sm-opt-next">${state.ticker.asset_type === "crypto" ? "Collega exchange" : "Continua"}</button>
+  <button class="sm-btn ghost" id="sm-opt-review">Review chart</button>
+  <button class="sm-btn primary" id="sm-opt-next">${state.ticker.asset_type === "crypto" ? "Connect exchange" : "Continue"}</button>
 </div></div>`;
     document.getElementById("sm-opt-review").addEventListener("click", () => go(3));
     document.getElementById("sm-opt-next").addEventListener("click", () => go(state.ticker.asset_type === "crypto" ? 5 : 6));
@@ -932,15 +933,15 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
     setTopbar("5/" + TOTAL_STEPS, 5 / TOTAL_STEPS);
     document.getElementById("sm-steps").innerHTML = `
 <main class="sm-step active">
-  <div class="sm-eyebrow">Passo 5 di ${TOTAL_STEPS}</div>
-  <h1 class="sm-title">Collega il tuo exchange</h1>
-  <p class="sm-sub">Serve solo una chiave API spot con permessi di trading — mai un accesso ai prelievi. Solo spot: la leva è limitata a 1x su tutta l'app. Le chiavi sono cifrate e non vengono mai ripresentate una volta salvate.</p>
+  <div class="sm-eyebrow">Step 5 of ${TOTAL_STEPS}</div>
+  <h1 class="sm-title">Connect your exchange</h1>
+  <p class="sm-sub">All you need is a spot API key with trading permissions — never withdrawal access. Spot only: leverage is capped at 1x across the app. Keys are encrypted and never shown again once saved.</p>
   <div class="sm-exch-grid" id="sm-exch-grid"></div>
   <div id="sm-exch-body"></div>
   <div id="sm-exch-error"></div>
   <div class="sm-ctabar"><div class="sm-ctabar-inner">
-    <button class="sm-btn ghost" id="sm-back-btn">Indietro</button>
-    <button class="sm-btn primary" id="sm-exch-continue">Continua</button>
+    <button class="sm-btn ghost" id="sm-back-btn">Back</button>
+    <button class="sm-btn primary" id="sm-exch-continue">Continue</button>
   </div></div>
 </main>`;
     document.getElementById("sm-back-btn").addEventListener("click", () => go(4));
@@ -951,7 +952,7 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
       const opt = document.createElement("div");
       const isSaved = saved.some((c) => c.exchange === ex.id && c.api_key_set);
       opt.className = "sm-exch-opt" + (state.tradingExchange === ex.id ? " active" : "");
-      opt.innerHTML = `<div class="sm-exch-badge" style="background:${ex.color}">${ex.letter}</div><div style="font-size:12px;font-weight:600;">${ex.name}</div>${isSaved ? '<div class="sm-muted" style="margin-top:2px;">🔒 salvata</div>' : ""}`;
+      opt.innerHTML = `<div class="sm-exch-badge" style="background:${ex.color}">${ex.letter}</div><div style="font-size:12px;font-weight:600;">${ex.name}</div>${isSaved ? '<div class="sm-muted" style="margin-top:2px;">🔒 saved</div>' : ""}`;
       opt.addEventListener("click", () => { state.tradingExchange = ex.id; state.connTested = false; renderExchGrid(); });
       grid.appendChild(opt);
     });
@@ -963,19 +964,19 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
     const saved = (savedCredsCache || []).find((c) => c.exchange === ex.id);
     const body = document.getElementById("sm-exch-body");
     if (saved && saved.api_key_set) {
-      const when = saved.created_at ? new Date(saved.created_at * 1000).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" }) : null;
+      const when = saved.created_at ? new Date(saved.created_at * 1000).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" }) : null;
       body.innerHTML = `
 <div class="sm-card">
   <div style="display:flex;justify-content:space-between;align-items:center;">
-    <span>🔒 Chiave ${esc(ex.name)} già salvata${when ? " — registrata il " + esc(when) : ""}</span>
+    <span>🔒 ${esc(ex.name)} key already saved${when ? " — added on " + esc(when) : ""}</span>
   </div>
-  <p class="sm-sub" style="margin:8px 0 0;">Nessun bisogno di reinserirla: prosegui e verrà usata quella già collegata. Serve cambiarla? Vai in Trading da desktop.</p>
+  <p class="sm-sub" style="margin:8px 0 0;">No need to re-enter it: continue and the connected one will be used. Need to change it? Go to Trading on desktop.</p>
 </div>`;
     } else {
       body.innerHTML = `
 <div class="sm-exch-steps"><ol>${ex.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol></div>
-<div class="sm-field"><label>Chiave API</label><input id="sm-api-key" placeholder="••••••••••••••••"></div>
-<div class="sm-field"><label>Chiave segreta</label><input id="sm-api-secret" type="password" placeholder="••••••••••••••••"></div>
+<div class="sm-field"><label>API key</label><input id="sm-api-key" placeholder="••••••••••••••••"></div>
+<div class="sm-field"><label>Secret key</label><input id="sm-api-secret" type="password" placeholder="••••••••••••••••"></div>
 ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id="sm-api-passphrase" type="password" placeholder="••••••••••••••••"></div>' : ""}`;
     }
   }
@@ -986,7 +987,7 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
     const apiSecret = document.getElementById("sm-api-secret").value.trim();
     const passphrase = document.getElementById("sm-api-passphrase")?.value.trim() || "";
     if (!apiKey || !apiSecret) {
-      document.getElementById("sm-exch-error").innerHTML = `<div class="sm-error">Inserisci chiave e secret, oppure torna indietro se vuoi solo l'avviso Telegram senza esecuzione automatica.</div>`;
+      document.getElementById("sm-exch-error").innerHTML = `<div class="sm-error">Enter key and secret, or go back if you only want the Telegram alert without automatic execution.</div>`;
       return;
     }
     try {
@@ -1021,13 +1022,13 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
     const ex = TRADING_EXCHANGES.find((e) => e.id === state.tradingExchange);
     document.getElementById("sm-steps").innerHTML = `
 <main class="sm-step active">
-  <div class="sm-eyebrow">Prima di attivare</div>
-  <h1 class="sm-title">Vuoi testare subito ${esc(ex.name)}?</h1>
-  <p class="sm-sub">Un tentativo di connessione con la chiave appena salvata: vedi il saldo vero, e se vuoi puoi provare anche un ordine manuale — cosi' sai che funziona prima di lasciare che sia la strategia a operare da sola.</p>
+  <div class="sm-eyebrow">Before activating</div>
+  <h1 class="sm-title">Test ${esc(ex.name)} now?</h1>
+  <p class="sm-sub">A connection attempt with the key you just saved: you see the real balance, and if you want you can also try a manual order — so you know it works before letting the strategy trade on its own.</p>
   <div id="sm-conn-body"></div>
   <div class="sm-ctabar"><div class="sm-ctabar-inner">
-    <button class="sm-btn ghost" id="sm-back-btn">Indietro</button>
-    <button class="sm-btn primary" id="sm-conn-continue">Continua</button>
+    <button class="sm-btn ghost" id="sm-back-btn">Back</button>
+    <button class="sm-btn primary" id="sm-conn-continue">Continue</button>
   </div></div>
 </main>`;
     document.getElementById("sm-back-btn").addEventListener("click", () => go(5));
@@ -1039,10 +1040,10 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
     const ex = TRADING_EXCHANGES.find((e) => e.id === state.tradingExchange);
     document.getElementById("sm-conn-body").innerHTML = `
 <div class="sm-card" style="text-align:center;">
-  <p style="margin:0 0 12px;">Vuoi testare subito la connessione con <b>${esc(ex.name)}</b>?</p>
+  <p style="margin:0 0 12px;">Test the connection to <b>${esc(ex.name)}</b> now?</p>
   <div style="display:flex;gap:10px;justify-content:center;">
-    <button class="sm-btn primary" id="sm-conn-yes">Sì, testala ora</button>
-    <button class="sm-btn ghost" id="sm-conn-no">Salta il test</button>
+    <button class="sm-btn primary" id="sm-conn-yes">Yes, test it now</button>
+    <button class="sm-btn ghost" id="sm-conn-no">Skip the test</button>
   </div>
 </div>`;
     document.getElementById("sm-conn-yes").addEventListener("click", runConnectionTest);
@@ -1055,7 +1056,7 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
     body.innerHTML = `
 <div class="sm-pulse-wrap" style="padding:20px 10px 6px;">
   <div class="sm-pulse"><div class="core"></div></div>
-  <p class="sm-muted">Provo la connessione con ${esc(ex.name)}…</p>
+  <p class="sm-muted">Testing connection to ${esc(ex.name)}…</p>
 </div>`;
     try {
       // api_key/api_secret vuoti = il server usa la chiave appena salvata,
@@ -1070,8 +1071,8 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
 <div class="sm-card">
   <p class="sm-error" style="margin:0;">✕ ${esc(res.error)}</p>
   <div style="display:flex;gap:10px;margin-top:10px;">
-    <button class="sm-btn primary" id="sm-conn-retry">Riprova</button>
-    <button class="sm-btn ghost" id="sm-conn-skip">Continua comunque</button>
+    <button class="sm-btn primary" id="sm-conn-retry">Retry</button>
+    <button class="sm-btn ghost" id="sm-conn-skip">Continue anyway</button>
   </div>
 </div>`;
         document.getElementById("sm-conn-retry").addEventListener("click", runConnectionTest);
@@ -1082,14 +1083,14 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
       const rows = res.balances || [];
       body.innerHTML = `
 <div class="sm-card">
-  <p class="sm-ok" style="margin:0 0 10px;color:var(--sm-bull);">✓ Connesso a ${esc(ex.name)} — saldo reale:</p>
+  <p class="sm-ok" style="margin:0 0 10px;color:var(--sm-bull);">✓ Connected to ${esc(ex.name)} — real balance:</p>
   ${rows.length
       ? `<div class="sm-summary" style="grid-template-columns:repeat(${Math.min(3, rows.length)},1fr);">${rows.slice(0, 6).map((b) => `<div class="sm-stat"><div class="lbl">${esc(b.asset)}</div><div class="val">${fmtNum(b.free)}</div></div>`).join("")}</div>`
-      : `<p class="sm-muted" style="margin:0;">Nessun saldo positivo su questo account.</p>`}
+      : `<p class="sm-muted" style="margin:0;">No positive balance on this account.</p>`}
 </div>
 <div class="sm-card" id="sm-order-prompt">
-  <p style="margin:0 0 10px;">Vuoi provare anche un ordine manuale di prova? <span class="sm-muted">(denaro reale, richiede conferma esplicita)</span></p>
-  <button class="sm-btn ghost" id="sm-conn-order-btn">Prova un ordine manuale</button>
+  <p style="margin:0 0 10px;">Want to try a manual test order too? <span class="sm-muted">(real money, requires explicit confirmation)</span></p>
+  <button class="sm-btn ghost" id="sm-conn-order-btn">Try a manual order</button>
 </div>`;
       document.getElementById("sm-conn-order-btn").addEventListener("click", renderTestOrderForm);
     } catch (e) {
@@ -1103,8 +1104,8 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
   function renderTestOrderForm() {
     const box = document.getElementById("sm-order-prompt");
     box.innerHTML = `
-  <p style="margin:0 0 10px;">Ordine manuale di prova — <b>${esc(state.ticker.asset_type === "crypto" ? state.ticker.symbol : "")}</b></p>
-  <div class="sm-field"><label>Pair</label><input id="sm-test-order-symbol" placeholder="es. BTCUSDT" value="${esc(state.ticker.asset_type === "crypto" ? state.ticker.symbol : "")}"></div>
+  <p style="margin:0 0 10px;">Manual test order — <b>${esc(state.ticker.asset_type === "crypto" ? state.ticker.symbol : "")}</b></p>
+  <div class="sm-field"><label>Pair</label><input id="sm-test-order-symbol" placeholder="e.g. BTCUSDT" value="${esc(state.ticker.asset_type === "crypto" ? state.ticker.symbol : "")}"></div>
   <div style="display:flex;gap:8px;margin-bottom:10px;">
     <button type="button" class="sm-tf-btn active" id="sm-test-side-buy" style="flex:1;">BUY</button>
     <button type="button" class="sm-tf-btn" id="sm-test-side-sell" style="flex:1;">SELL</button>
@@ -1112,24 +1113,24 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
   <div class="sm-field"><label>USDT</label><input id="sm-test-order-usdt" type="number" value="10" min="1" step="1"></div>
   <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--sm-ink-dim);margin-bottom:10px;">
     <input type="checkbox" id="sm-test-order-confirm" style="margin-top:3px;">
-    <span>Confermo: e' denaro reale, un ordine di prova su ${esc(TRADING_EXCHANGES.find((e) => e.id === state.tradingExchange).name)}.</span>
+    <span>I confirm: this is real money, a test order on ${esc(TRADING_EXCHANGES.find((e) => e.id === state.tradingExchange).name)}.</span>
   </label>
-  <button class="sm-btn primary" id="sm-test-order-exec" disabled style="width:100%;">Esegui ordine di prova</button>
+  <button class="sm-btn primary" id="sm-test-order-exec" disabled style="width:100%;">Execute test order</button>
   <div id="sm-test-order-result" style="margin-top:8px;"></div>`;
     testOrderSide = "BUY";
     const buyBtn = document.getElementById("sm-test-side-buy");
     const sellBtn = document.getElementById("sm-test-side-sell");
     const execBtn = document.getElementById("sm-test-order-exec");
     const confirmBox = document.getElementById("sm-test-order-confirm");
-    buyBtn.addEventListener("click", () => { testOrderSide = "BUY"; buyBtn.classList.add("active"); sellBtn.classList.remove("active"); execBtn.textContent = "Esegui ordine di prova (BUY)"; });
-    sellBtn.addEventListener("click", () => { testOrderSide = "SELL"; sellBtn.classList.add("active"); buyBtn.classList.remove("active"); execBtn.textContent = "Esegui ordine di prova (SELL)"; });
+    buyBtn.addEventListener("click", () => { testOrderSide = "BUY"; buyBtn.classList.add("active"); sellBtn.classList.remove("active"); execBtn.textContent = "Execute test order (BUY)"; });
+    sellBtn.addEventListener("click", () => { testOrderSide = "SELL"; sellBtn.classList.add("active"); buyBtn.classList.remove("active"); execBtn.textContent = "Execute test order (SELL)"; });
     confirmBox.addEventListener("change", () => { execBtn.disabled = !confirmBox.checked; });
     execBtn.addEventListener("click", async () => {
       const symbol = document.getElementById("sm-test-order-symbol").value.trim().toUpperCase();
       const out = document.getElementById("sm-test-order-result");
-      if (!symbol) { out.innerHTML = `<div class="sm-error">Pair mancante</div>`; return; }
+      if (!symbol) { out.innerHTML = `<div class="sm-error">Missing pair</div>`; return; }
       execBtn.disabled = true;
-      out.innerHTML = `<p class="sm-muted">Invio…</p>`;
+      out.innerHTML = `<p class="sm-muted">Sending…</p>`;
       try {
         await api("/api/trading/order", {
           method: "POST",
@@ -1138,7 +1139,7 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
             size_mode: "fixed_usdt", size_value: parseFloat(document.getElementById("sm-test-order-usdt").value) || 0,
           }),
         });
-        out.innerHTML = `<p style="color:var(--sm-bull);">✓ Ordine inviato — vedi il diario ordini in Trading (desktop) per il dettaglio.</p>`;
+        out.innerHTML = `<p style="color:var(--sm-bull);">✓ Order sent — see the order log in Trading (desktop) for details.</p>`;
         confirmBox.checked = false;
       } catch (e) {
         out.innerHTML = `<div class="sm-error">${esc(e.message)}</div>`;
@@ -1157,23 +1158,23 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
     const isCrypto = state.ticker.asset_type === "crypto";
     document.getElementById("sm-steps").innerHTML = `
 <main class="sm-step active">
-  <div class="sm-eyebrow">Passo 6 di ${TOTAL_STEPS}</div>
-  <h1 class="sm-title">Pronto ad attivare</h1>
-  <p class="sm-sub">Controlla il riepilogo, poi premi Attiva.</p>
+  <div class="sm-eyebrow">Step 6 of ${TOTAL_STEPS}</div>
+  <h1 class="sm-title">Ready to activate</h1>
+  <p class="sm-sub">Review the summary, then press Activate.</p>
   <div class="sm-review-card">
     <div class="sm-review-row"><span class="k">Ticker</span><span class="v">${esc(state.ticker.symbol)}</span></div>
     <div class="sm-review-row"><span class="k">Timeframe</span><span class="v">${esc(tfLabel(state.interval))}</span></div>
-    <div class="sm-review-row"><span class="k">Strategia</span><span class="v">${esc(stratLabel(state.strategy))}</span></div>
-    <div class="sm-review-row"><span class="k">Ottimizzazione</span><span class="v">${state.archiveEntry ? "dall'archivio" : (state.optResult ? (state.optMode === "fast" ? "Rapida" : "Stabile") : "parametri di default")}</span></div>
-    <div class="sm-review-row"><span class="k">Esecuzione</span><span class="v">${isCrypto ? esc(TRADING_EXCHANGES.find((e) => e.id === state.tradingExchange).name) + (state.connTested ? " — connessione testata ✓" : "") : "solo avviso (nessun exchange)"}</span></div>
+    <div class="sm-review-row"><span class="k">Strategy</span><span class="v">${esc(stratLabel(state.strategy))}</span></div>
+    <div class="sm-review-row"><span class="k">Optimization</span><span class="v">${state.archiveEntry ? "from archive" : (state.optResult ? (state.optMode === "fast" ? "Quick" : "Stable") : "default parameters")}</span></div>
+    <div class="sm-review-row"><span class="k">Execution</span><span class="v">${isCrypto ? esc(TRADING_EXCHANGES.find((e) => e.id === state.tradingExchange).name) + (state.connTested ? " — connection tested ✓" : "") : "alert only (no exchange)"}</span></div>
   </div>
   <div class="sm-explain">${isCrypto
-      ? `Quando la strategia rileva un segnale su <b>${esc(state.ticker.symbol)}</b>, ricevi un avviso Telegram e, se hai collegato le chiavi exchange, l'app esegue automaticamente l'ordine spot secondo i parametri scelti qui. Puoi disattivare in qualsiasi momento dalla watchlist.`
-      : `${esc(state.ticker.symbol)} è un titolo azionario: l'esecuzione automatica è disponibile solo per crypto spot. Attivando riceverai solo l'avviso Telegram quando la strategia genera un segnale.`}</div>
+      ? `When the strategy detects a signal on <b>${esc(state.ticker.symbol)}</b>, you get a Telegram alert and, if you've connected exchange keys, the app automatically executes the spot order with the parameters chosen here. You can turn it off anytime from the watchlist.`
+      : `${esc(state.ticker.symbol)} is a stock: automatic execution is available for spot crypto only. Once activated you'll only get the Telegram alert when the strategy generates a signal.`}</div>
   <div id="sm-activate-error"></div>
   <div class="sm-ctabar"><div class="sm-ctabar-inner">
-    <button class="sm-btn ghost" id="sm-back-btn">Indietro</button>
-    <button class="sm-btn primary" id="sm-activate-btn">Attiva strategia</button>
+    <button class="sm-btn ghost" id="sm-back-btn">Back</button>
+    <button class="sm-btn primary" id="sm-activate-btn">Activate strategy</button>
   </div></div>
 </main>`;
     document.getElementById("sm-back-btn").addEventListener("click", () => go(isCrypto ? 5.5 : 4));
@@ -1183,7 +1184,7 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
   async function onActivate() {
     const btn = document.getElementById("sm-activate-btn");
     btn.disabled = true;
-    btn.textContent = "Attivo…";
+    btn.textContent = "Activating…";
     try {
       const isCrypto = state.ticker.asset_type === "crypto";
       const wantsAutoTrade = isCrypto && !!state.tradingExchange;
@@ -1233,7 +1234,7 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
     } catch (e) {
       document.getElementById("sm-activate-error").innerHTML = `<div class="sm-error">${esc(e.message)}</div>`;
       btn.disabled = false;
-      btn.textContent = "Attiva strategia";
+      btn.textContent = "Activate strategy";
       if (e.needsAuth) requireLogin();
     }
   }
@@ -1249,15 +1250,15 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
 <main class="sm-step active">
   <div class="sm-pulse-wrap">
     <div class="sm-pulse"><div class="core"></div></div>
-    <h1 style="font-size:20px;margin:0;">${isListening ? "Strategia in ascolto" : "Attivazione registrata"}</h1>
-    <p class="sm-muted" style="max-width:38ch;margin-top:8px;"><b>${esc(stratLabel(state.strategy))}</b> è ${isListening ? "attiva" : "in fase di attivazione"} su <b>${esc(state.ticker.symbol)}</b>. Riceverai un avviso Telegram al prossimo segnale${state.ticker.asset_type === "crypto" ? ", e l'ordine partirà da solo se le chiavi exchange sono collegate." : "."}</p>
+    <h1 style="font-size:20px;margin:0;">${isListening ? "Strategy listening" : "Activation recorded"}</h1>
+    <p class="sm-muted" style="max-width:38ch;margin-top:8px;"><b>${esc(stratLabel(state.strategy))}</b> is ${isListening ? "active" : "being activated"} on <b>${esc(state.ticker.symbol)}</b>. You'll get a Telegram alert on the next signal${state.ticker.asset_type === "crypto" ? ", and the order will go out on its own if exchange keys are connected." : "."}</p>
     <div class="sm-status-card">
-      <div class="sm-status-row"><span class="k">Stato</span><span class="v"><span class="sm-live-dot"></span>${isListening ? "In ascolto" : "Da verificare"}</span></div>
-      <div class="sm-status-row"><span class="k">Voce watchlist</span><span class="v">${esc(entry.id || "—")}</span></div>
+      <div class="sm-status-row"><span class="k">Status</span><span class="v"><span class="sm-live-dot"></span>${isListening ? "Listening" : "To be verified"}</span></div>
+      <div class="sm-status-row"><span class="k">Watchlist entry</span><span class="v">${esc(entry.id || "—")}</span></div>
       <div class="sm-status-row"><span class="k">Timeframe</span><span class="v">${esc(entry.interval || "—")}</span></div>
     </div>
   </div>
-  <div class="sm-ctabar"><div class="sm-ctabar-inner"><button class="sm-btn primary" id="sm-restart-btn">Nuova strategia</button></div></div>
+  <div class="sm-ctabar"><div class="sm-ctabar-inner"><button class="sm-btn primary" id="sm-restart-btn">New strategy</button></div></div>
 </main>`;
     document.getElementById("sm-restart-btn").addEventListener("click", () => {
       Object.assign(state, { step: 0, ticker: null, archiveEntry: null, strategy: null, interval: "1d", analysis: null, optResult: null, optJobId: null, connTested: false, watchlistEntry: null, query: "" });

@@ -306,7 +306,7 @@ def partition_axes(
                     # mappatura, e' solo il segno che si sta ancora cercando.
                     local = counter["n"] - before
                     if local % _PROGRESS_STEP == 0:
-                        say(f"asse {name}: ancora al lavoro — {local} backtest finora")
+                        say(f"axis {name}: still working — {local} backtests so far")
                 return _fingerprint(bt)
 
             found.extend(locate_boundaries(probe, coarse=coarse, tol=tol))
@@ -325,9 +325,9 @@ def partition_axes(
         # cambia davvero. Un asse con un solo intervallo e' un parametro che su
         # questa serie non sposta nulla — informazione, non rumore.
         used = (counter or {}).get("n", 0) - before
-        say(f"asse {name}: {len(merged)} confin{'e' if len(merged) == 1 else 'i'} → "
-            f"{part.n_cells} {'intervallo' if part.n_cells == 1 else 'intervalli'} "
-            f"({used} backtest)")
+        say(f"axis {name}: {len(merged)} boundar{'y' if len(merged) == 1 else 'ies'} → "
+            f"{part.n_cells} {'interval' if part.n_cells == 1 else 'intervals'} "
+            f"({used} backtests)")
     return parts
 
 
@@ -472,9 +472,9 @@ def _guided_cells(
                 break
 
     stopped_early = patience is not None and len(exhausted) >= len(starts) and used < budget
-    say(f"espansione guidata: {used} celle valutate aprendo le {opened} piu' promettenti "
-        f"da {n_starts} partenze — nessun sorteggio, stessa serie stesso risultato"
-        + (f" (tutte le partenze esaurite dopo {patience} celle senza miglioramenti locali)"
+    say(f"guided expansion: {used} cells evaluated by opening the {opened} most promising "
+        f"from {n_starts} starts — no random draws, same series same result"
+        + (f" (all starts exhausted after {patience} cells without local improvement)"
            if stopped_early else ""))
     return used
 
@@ -508,7 +508,7 @@ def plateau_search(
     """
     if space is None:
         if strategy_name not in PARAM_SPACES:
-            raise ValueError(f"Nessuno spazio parametri per {strategy_name!r}")
+            raise ValueError(f"No parameter space for {strategy_name!r}")
         space = PARAM_SPACES[strategy_name]
     bp = backtest_params or {}
     say = progress or (lambda _m: None)
@@ -526,7 +526,7 @@ def plateau_search(
         return bt, objective(bt)
 
     # --- S3: partition every axis
-    say(f"cerco i confini su {space.d} assi: dove il risultato cambia, non dove cambia il parametro")
+    say(f"mapping boundaries on {space.d} axes: where the result changes, not where the parameter changes")
     bases = np.vstack([np.full(space.d, 0.5), rng.random((max(base_points - 1, 0), space.d))])
     parts = partition_axes(df, strategy_name, space, bp, bases,
                            coarse=coarse, tol=tol, counter=counter, progress=say,
@@ -537,8 +537,8 @@ def plateau_search(
         grid_cells *= p.n_cells
 
     inerti = [p.name for p in parts if p.n_cells == 1]
-    say("griglia: " + " × ".join(f"{p.n_cells}" for p in parts) + f" = {grid_cells} celle"
-        + (f" · inerti su questa serie: {', '.join(inerti)}" if inerti else ""))
+    say("grid: " + " × ".join(f"{p.n_cells}" for p in parts) + f" = {grid_cells} cells"
+        + (f" · inert on this series: {', '.join(inerti)}" if inerti else ""))
 
     # --- S4a: evaluate cell centres, exhaustively when that fits the budget
     centers = [p.centers() for p in parts]
@@ -555,8 +555,8 @@ def plateau_search(
                     break
                 idx[d] = 0
     else:
-        say(f"{grid_cells} celle oltre il budget di {max_grid_evals}: invece di "
-            f"sorteggiarne {max_grid_evals} le apro per ordine di promessa")
+        say(f"{grid_cells} cells over the budget of {max_grid_evals}: instead of "
+            f"sampling {max_grid_evals} I open them in order of promise")
         notes.append(
             f"grid of {grid_cells} cells exceeds budget {max_grid_evals}; "
             f"expanded best-first from the most promising cells instead of "
@@ -578,7 +578,7 @@ def plateau_search(
         bt, sc = evaluate(u)
         tried["n"] += 1
         if tried["n"] % step_report == 0:
-            say(f"celle {tried['n']} — {len(cands)} configurazioni distinte finora")
+            say(f"cells {tried['n']} — {len(cands)} distinct configurations so far")
         if not math.isfinite(sc):
             return sc
         fp = _fingerprint(bt)
@@ -606,7 +606,7 @@ def plateau_search(
         return sc
 
     if enumerated:
-        say(f"provo il centro di {len(points)} celle (enumerate tutte)")
+        say(f"trying the center of {len(points)} cells (all enumerated)")
         for u in points:
             consider_point(u)
     else:
@@ -618,8 +618,8 @@ def plateau_search(
                              grid_cells, enumerated, None,
                              notes + ["no finite-score candidate found"])
 
-    say(f"{len(cands)} configurazioni distinte su {tried['n']} celle provate: le altre "
-        f"producono esattamente gli stessi trade")
+    say(f"{len(cands)} distinct configurations over {tried['n']} cells tried: the others "
+        f"produce exactly the same trades")
 
     _naive_pool = [c for c in cands if c.backtest.num_trades >= min_trades] or cands
     naive_best = max(_naive_pool, key=lambda c: c.score)
@@ -650,9 +650,9 @@ def plateau_search(
 
     by_promise = sorted(eligible, key=lambda c: (c.score, c.log_volume), reverse=True)
     shortlist = by_promise[:finalists]
-    say(f"{len(eligible)} candidat{'o' if len(eligible) == 1 else 'i'} con almeno "
-        f"{min_trades} trade; ne scuoto {len(shortlist)} con {probe_samples} "
-        f"spostamenti casuali di ±{probe_radius:.0%}")
+    say(f"{len(eligible)} candidate{'' if len(eligible) == 1 else 's'} with at least "
+        f"{min_trades} trades; shaking {len(shortlist)} with {probe_samples} "
+        f"random shifts of ±{probe_radius:.0%}")
     for rank, c in enumerate(shortlist, start=1):
         # Estimate J = (f * K)(theta) by sampling JOINT perturbations, not one
         # parameter at a time. One-at-a-time probing measures the wrong thing
@@ -680,9 +680,9 @@ def plateau_search(
             if _robustly_close(bt, c.backtest):
                 unchanged += 1
 
-        say(f"finalista {rank}/{len(shortlist)}: regge {unchanged} "
-            f"{'volta' if unchanged == 1 else 'volte'} su {len(drift_set)} "
-            f"— {c.backtest.total_return_pct:+.1f}% su {c.backtest.num_trades} trade")
+        say(f"finalist {rank}/{len(shortlist)}: holds {unchanged} "
+            f"{'time' if unchanged == 1 else 'times'} out of {len(drift_set)} "
+            f"— {c.backtest.total_return_pct:+.1f}% over {c.backtest.num_trades} trades")
 
         if probes:
             arr = np.array(probes + [c.score])
@@ -715,11 +715,11 @@ def plateau_search(
 
     if verified:
         w = verified[0]
-        say(f"scelto: {w.backtest.total_return_pct:+.1f}% su {w.backtest.num_trades} trade, "
-            f"stabile {w.neighbourhood_agreement:.0%} delle volte"
+        say(f"picked: {w.backtest.total_return_pct:+.1f}% over {w.backtest.num_trades} trades, "
+            f"stable {w.neighbourhood_agreement:.0%} of the time"
             + ("" if naive_best is w else
-               f" (il massimo secco faceva {naive_best.backtest.total_return_pct:+.1f}% "
-               f"ma regge meno)"))
+               f" (the raw maximum did {naive_best.backtest.total_return_pct:+.1f}% "
+               f"but holds up less)"))
 
     errs = [c.axis_approximation_error for c in verified if c.axis_approximation_error is not None]
     if errs:

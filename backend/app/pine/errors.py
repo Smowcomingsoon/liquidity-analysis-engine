@@ -6,7 +6,7 @@ class PineError(Exception):
 class PineParseError(PineError):
     def __init__(self, message: str, line_no: int | None = None):
         self.line_no = line_no
-        prefix = f"Riga {line_no}: " if line_no else ""
+        prefix = f"Line {line_no}: " if line_no else ""
         super().__init__(f"{prefix}{message}")
 
 
@@ -17,5 +17,5 @@ class PineUnsupportedError(PineError):
     def __init__(self, feature: str, line_no: int | None = None):
         self.line_no = line_no
         self.feature = feature
-        prefix = f"Riga {line_no}: " if line_no else ""
-        super().__init__(f"{prefix}Costrutto non supportato: {feature}")
+        prefix = f"Line {line_no}: " if line_no else ""
+        super().__init__(f"{prefix}Unsupported construct: {feature}")

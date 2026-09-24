@@ -41,16 +41,16 @@ const usd = (v) => {
   if (v >= 1e3) return `$${Math.round(v / 1e3)}k`;
   return `$${Math.round(v)}`;
 };
-const age = (h) => (h < 1 ? ageShort(h * 3600) : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} g`);
+const age = (h) => (h < 1 ? ageShort(h * 3600) : h < 48 ? `${Math.round(h)}h` : `${Math.round(h / 24)}d`);
 const ago = (ts) => {
   const s = Math.max(0, Math.round(Date.now() / 1000 - ts));
-  return s < 90 ? "ora" : s < 3600 ? `${Math.round(s / 60)} min fa` : s < 172_800 ? `${Math.round(s / 3600)} h fa`
-    : `${Math.round(s / 86_400)} g fa`;
+  return s < 90 ? "just now" : s < 3600 ? `${Math.round(s / 60)} min ago` : s < 172_800 ? `${Math.round(s / 3600)}h ago`
+    : `${Math.round(s / 86_400)}d ago`;
 };
 const key = (p) => `${p.chain}:${p.token_address}`;
 const lkey = (l) => `${l.chain}:${l.pair_address}`;
 const rkey = (r) => `${r.chain}:${r.token_address || r.pair_address}`;
-const ageShort = (s) => (s < 90 ? `${Math.max(1, Math.round(s))} s` : s < 5400 ? `${Math.round(s / 60)} min` : `${Math.round(s / 3600)} h`);
+const ageShort = (s) => (s < 90 ? `${Math.max(1, Math.round(s))}s` : s < 5400 ? `${Math.round(s / 60)} min` : `${Math.round(s / 3600)}h`);
 // Il timeframe piu' largo che da' ancora 150 candele: come radar.auto_interval.
 const INTERVAL_S = [["4h", 14_400], ["1h", 3_600], ["15m", 900], ["5m", 300], ["1m", 60]];
 const autoInterval = (ageS) => (INTERVAL_S.find(([, s]) => ageS / s >= 150) ?? ["1m"])[0];
@@ -101,7 +101,7 @@ function listen() {
     if (!data) return;
     data.rejected = [item, ...(data.rejected ?? []).filter((x) => rkey(x) !== rkey(item))];
     paintRejected(rkey(item));
-    flashPulse(`✕ ${item.symbol} scartato · ${item.reason}`);
+    flashPulse(`✕ ${item.symbol} binned · ${item.reason}`);
   });
   stream.addEventListener("update", (event) => {
     let item;
@@ -128,8 +128,8 @@ function drain() {
   draining = true;
   data.listings = [item, ...(data.listings ?? []).filter((x) => lkey(x) !== lkey(item))];
   paintListings(true);
-  const born = item.created_at ? ` · nato ${ageShort(Date.now() / 1000 - item.created_at)} fa` : "";
-  toast?.(`Nuovo: ${item.symbol}`, `${CHAINS[item.chain] ?? item.chain} · cap ${usd(item.market_cap)} · liq. ${usd(item.liquidity_usd)}${born}`);
+  const born = item.created_at ? ` · born ${ageShort(Date.now() / 1000 - item.created_at)} ago` : "";
+  toast?.(`New: ${item.symbol}`, `${CHAINS[item.chain] ?? item.chain} · cap ${usd(item.market_cap)} · liq. ${usd(item.liquidity_usd)}${born}`);
   navigator.vibrate?.(25);
   // Il palco segue l'ultimo uscito, a meno che non si stia guardando altro.
   if (Date.now() - pinnedAt > PIN_MS) showListing(lkey(item));
@@ -149,8 +149,8 @@ async function refresh() {
 }
 
 function clock() {
-  if (data.running) return "scansiono…";
-  if (!data.last_scan) return "primo giro a momenti";
+  if (data.running) return "scanning…";
+  if (!data.last_scan) return "first scan any moment";
   return ago(data.last_scan);
 }
 
@@ -174,15 +174,15 @@ function paint() {
 
   const st = data.listing_status ?? {};
   const parts = Object.entries(chains ?? {}).map(([c, info]) => `${CHAINS[c] ?? c} ${info.seen}`);
-  const rejected = st.rejected ? ` · ${st.rejected} scartati dal filtro` : "";
-  const rules = `cap < ${usd(data.filters.mcap_max_usd)}, sopra $100k solo pagella eccellente · sito, social, GitHub, RugCheck e GoPlus obbligatori${st.ai_review ? " · controllo Claude" : ""}`;
+  const rejected = st.rejected ? ` · ${st.rejected} binned by the filter` : "";
+  const rules = `cap < ${usd(data.filters.mcap_max_usd)}, above $100k only with an excellent grade · website, socials, GitHub, RugCheck and GoPlus required${st.ai_review ? " · Claude review" : ""}`;
   // Richiesta: "qui ci sono troppe scritte". Le regole restano a portata di
   // dito (tenendo premuto / passandoci sopra), non a schermo.
   const foot = root.querySelector("[data-radar-foot]");
   foot.hidden = true;
   foot.closest(".radar")?.querySelector("header h3")?.setAttribute("title", data.last_scan
-    ? `Visti: ${parts.join(" · ")}${rejected} · ${rules}`
-    : `Solana e Robinhood · ${rules}`);
+    ? `Seen: ${parts.join(" · ")}${rejected} · ${rules}`
+    : `Solana and Robinhood · ${rules}`);
 
   if (!view) {
     const first = data.listings?.[0];
@@ -201,9 +201,9 @@ const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce
 // Il backtest di un listing in una parola: quale strategia e quanto.
 function listingBadge(l) {
   const bt = l.backtest;
-  if (!bt) return { num: "…", chip: "backtest in corso", state: "watch" };
-  if (bt.state === "young") return { num: `${bt.bars}/${bt.need}`, chip: "candele per il test", state: "watch" };
-  if (bt.state === "none" || bt.return_pct == null) return { num: "—", chip: "nessun segnale", state: "watch" };
+  if (!bt) return { num: "…", chip: "backtesting", state: "watch" };
+  if (bt.state === "young") return { num: `${bt.bars}/${bt.need}`, chip: "candles to test", state: "watch" };
+  if (bt.state === "none" || bt.return_pct == null) return { num: "—", chip: "no signal", state: "watch" };
   return { num: pct(bt.return_pct), chip: short(bt.label), state: bt.in_position ? "in" : "watch",
     up: bt.return_pct > 0 };
 }
@@ -220,7 +220,7 @@ function paintListings(animate) {
   const more = box.querySelector("[data-listings-more]");
   if (more) {
     more.hidden = all.length <= 8;
-    more.textContent = listingsAll ? "Mostra meno" : `Mostra tutti (${all.length})`;
+    more.textContent = listingsAll ? "Show less" : `Show all (${all.length})`;
   }
   const empty = box.querySelector("[data-radar-new-empty]");
   if (empty) empty.hidden = items.length > 0;
@@ -291,10 +291,10 @@ function paintPulse(p) {
   tween(box.querySelector("[data-pulse-arrivals]"), p.arrivals_10m ?? 0);
   tween(box.querySelector("[data-pulse-rejected]"), data?.rejected?.length ?? p.rejected ?? 0);
   const last = box.querySelector("[data-pulse-last]");
-  last.textContent = p.last_arrival ? ` · ${ageShort(Date.now() / 1000 - p.last_arrival)} fa` : "";
+  last.textContent = p.last_arrival ? ` · ${ageShort(Date.now() / 1000 - p.last_arrival)} ago` : "";
   if (flashTimer) return;  // un avviso di scarto resta visibile il suo tempo
   const now = box.querySelector("[data-pulse-now]");
-  const text = p.checking?.length ? `Controllo ${p.checking.join(", ")}` : "In ascolto";
+  const text = p.checking?.length ? `Checking ${p.checking.join(", ")}` : "Listening";
   if (now.textContent !== text) {
     now.textContent = text;
     now.animate?.([{ opacity: 0, translate: "0 6px" }, { opacity: 1, translate: "0 0" }],
@@ -334,7 +334,7 @@ function paintRejected(arrived) {
   const open = new Set([...box.querySelectorAll("details[open]")].map((d) => d.dataset.key));
   const items = rejectedAll ? all : all.slice(0, REJECTED_SHOWN);
   box.querySelector("ul").innerHTML = items.map((r) => {
-    const born = r.created_at ? ` · ${ageShort(Math.max(0, r.at - r.created_at))} di vita` : "";
+    const born = r.created_at ? ` · lived ${ageShort(Math.max(0, r.at - r.created_at))}` : "";
     const meta = `${CHAINS[r.chain] ?? r.chain}${r.market_cap ? ` · cap ${usd(r.market_cap)}` : ""}${born} · ${ago(r.at)}`;
     return `
       <li class="${rkey(r) === arrived ? "is-arrival" : ""}">
@@ -351,13 +351,13 @@ function paintRejected(arrived) {
   }).join("");
   const more = box.querySelector("[data-rejected-more]");
   more.hidden = all.length <= REJECTED_SHOWN;
-  more.textContent = rejectedAll ? "Mostra meno" : `Mostra tutti (${all.length})`;
+  more.textContent = rejectedAll ? "Show less" : `Show all (${all.length})`;
 }
 
 /* ------------------------------------------------- il muro delle inculate */
 
-const SHAME_QUIPS = ["ci ha salutati con la manina", "ha preso i soldi ed è scappato", "promosso, poi evaporato",
-  "tanti auguri a chi l'ha tenuto", "il GitHub era di qualcun altro"];
+const SHAME_QUIPS = ["waved goodbye on the way out", "took the money and ran", "promoted, then evaporated",
+  "thoughts and prayers to the holders", "the GitHub was someone else's"];
 
 function paintShame() {
   const box = root?.querySelector("[data-radar-shame]");
@@ -366,8 +366,8 @@ function paintShame() {
   box.hidden = all.length === 0;
   box.querySelector("[data-shame-count]").textContent = all.length ? `· ${all.length}` : "";
   box.querySelector("ul").innerHTML = all.map((e, i) => {
-    const when = e.rug_at ? new Date(e.rug_at * 1000).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) : "";
-    const quip = e.fooled_by ? `ci ha fregati con ${e.fooled_by}` : SHAME_QUIPS[i % SHAME_QUIPS.length];
+    const when = e.rug_at ? new Date(e.rug_at * 1000).toLocaleDateString("en-US", { day: "2-digit", month: "2-digit" }) : "";
+    const quip = e.fooled_by ? `fooled us with ${e.fooled_by}` : SHAME_QUIPS[i % SHAME_QUIPS.length];
     return `
     <li>
       <span class="tk" data-chain="${escapeHtml(e.chain)}" aria-hidden="true">${escapeHtml((e.symbol ?? "?").slice(0, 2))}</span>
@@ -386,31 +386,31 @@ function paintMemory(m) {
   const box = root?.querySelector("[data-radar-memory]");
   if (!box || !m) return;
   box.hidden = !m.tracked;
-  box.querySelector("[data-memory-count]").textContent = m.tracked ? `· ${m.tracked} seguiti` : "";
+  box.querySelector("[data-memory-count]").textContent = m.tracked ? `· ${m.tracked} tracked` : "";
   const rate = (g) => (g?.rug_rate == null ? "—" : `${Math.round(g.rug_rate * 100)}% rug`);
   const known = (m.passed?.decided ?? 0) + (m.rejected?.decided ?? 0);
   box.querySelector("[data-memory-line]").textContent = known
-    ? `Passati ${rate(m.passed)} · scartati ${rate(m.rejected)}${m.notes?.[1] ? ` · ${m.notes[1]}` : ""}`
-    : "Raccolgo gli esiti: servono qualche ora di prezzi";
+    ? `Passed ${rate(m.passed)} · binned ${rate(m.rejected)}${m.notes?.[1] ? ` · ${m.notes[1]}` : ""}`
+    : "Collecting outcomes: needs a few hours of prices";
   // I rug passati dal filtro stanno nel muro qui sotto; qui gli scartati poi saliti.
-  const rows = (m.missed ?? []).slice(0, 4).map((e) => ({ ...e, why: `${pct(e.max_ret * 100)} dopo lo scarto` }));
+  const rows = (m.missed ?? []).slice(0, 4).map((e) => ({ ...e, why: `${pct(e.max_ret * 100)} after we binned it` }));
   box.querySelector("ul").innerHTML = rows.map((e) => `
     <li>
       <span class="tk" data-chain="${escapeHtml(e.chain)}" aria-hidden="true">${escapeHtml((e.symbol ?? "?").slice(0, 2))}</span>
-      <span class="tk-name"><b>${escapeHtml(e.symbol ?? "?")}</b><small>${escapeHtml(e.decision === "rejected" ? e.reason : "passato dal filtro")} · ${ago(e.at)}</small></span>
+      <span class="tk-name"><b>${escapeHtml(e.symbol ?? "?")}</b><small>${escapeHtml(e.decision === "rejected" ? e.reason : "passed the filter")} · ${ago(e.at)}</small></span>
       <span class="rj-why">${escapeHtml(e.why)}</span>
     </li>`).join("");
 }
 
 function emptyText() {
-  if (!data.last_scan) return "Primo giro in corso";
+  if (!data.last_scan) return "First scan running";
   const c = Object.values(data.chains ?? {});
   const sum = (k) => c.reduce((n, x) => n + (x[k] ?? 0), 0);
-  return `Nessuna per ora · ${sum("passing")} candidati, ${sum("tested")} provati`;
+  return `None yet · ${sum("passing")} candidates, ${sum("tested")} tested`;
 }
 
 function row(p, isNew) {
-  const meta = `${p.exception ? "eccezione GitHub · " : ""}${CHAINS[p.chain] ?? p.chain} · ${age(p.age_hours)} · cap ${usd(p.market_cap)} · liq. ${usd(p.liquidity_usd)}`;
+  const meta = `${p.exception ? "GitHub exception · " : ""}${CHAINS[p.chain] ?? p.chain} · ${age(p.age_hours)} · cap ${usd(p.market_cap)} · liq. ${usd(p.liquidity_usd)}`;
   return `
     <li class="${isNew ? "is-new" : ""}">
       <button type="button" data-radar="${escapeHtml(key(p))}">
@@ -439,10 +439,10 @@ let view = null;
 function chartLibrary() {
   if (window.LightweightCharts) return Promise.resolve(window.LightweightCharts);
   const tag = document.querySelector('script[src*="lightweight-charts"]');
-  if (!tag) return Promise.reject(new Error("libreria del grafico mancante"));
+  if (!tag) return Promise.reject(new Error("chart library missing"));
   return new Promise((resolve, reject) => {
     tag.addEventListener("load", () => resolve(window.LightweightCharts), { once: true });
-    tag.addEventListener("error", () => reject(new Error("libreria del grafico non caricata")), { once: true });
+    tag.addEventListener("error", () => reject(new Error("chart library failed to load")), { once: true });
   });
 }
 
@@ -461,13 +461,13 @@ function markOn() {
 }
 
 function paintIdleStage() {
-  stage.innerHTML = `<p class="radar-idle">Qui il grafico del primo token che passa</p>`;
+  stage.innerHTML = `<p class="radar-idle">First token through the filter gets charted here</p>`;
 }
 
 function links(p) {
   const out = [];
   const a = (url, label, cls = "") => `<a class="${cls}" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${label} ↗</a>`;
-  if (p.website) out.push(a(p.website, "Sito del progetto", "is-main"));
+  if (p.website) out.push(a(p.website, "Project website", "is-main"));
   if (p.github) out.push(a(p.github, "GitHub"));
   for (const s of p.socials ?? []) {
     if (s.type === "twitter") out.push(a(s.url, "X"));
@@ -481,7 +481,7 @@ function links(p) {
 // La pagella: quanto bene ha passato ogni filtro, non solo se l'ha passato.
 // Richiesta: "un bel benchmark che mi faccia capire [...] se in modo
 // eccellente oppure [...] mediocri".
-const GRADE_TONE = { eccellente: "top", buono: "good", sufficiente: "mid", mediocre: "low" };
+const GRADE_TONE = { eccellente: "top", buono: "good", sufficiente: "mid", mediocre: "low", excellent: "top", good: "good", fair: "mid", sufficient: "mid", poor: "low" };
 
 function reportCard(p) {
   const checks = p.checks ?? [];
@@ -492,7 +492,7 @@ function reportCard(p) {
   const head = r ? `
     <div class="rc-head" data-grade="${GRADE_TONE[r.grade] ?? "mid"}">
       <span class="rc-score">${r.score}</span>
-      <span><b>${escapeHtml(r.grade)}</b><small>media di ${r.counted} controlli · punto debole: ${escapeHtml(r.weakest)}</small></span>
+      <span><b>${escapeHtml(r.grade)}</b><small>average of ${r.counted} checks · weakest: ${escapeHtml(r.weakest)}</small></span>
     </div>` : "";
   const rows = checks.map((c) => {
     const bar = c.score == null ? "" : `
@@ -519,21 +519,21 @@ function factsOf(c) {
   const pairs = [];
   if (c.key === "github" && f) {
     pairs.push(["Repository", f.url ? `<a href="${escapeHtml(f.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(f.repo)} ↗</a>` : escapeHtml(f.repo)]);
-    if (f.description) pairs.push(["Descrizione", escapeHtml(f.description)]);
-    pairs.push(["Linguaggio", escapeHtml(f.language ?? "—")], ["Commit", escapeHtml(String(f.commits))],
-      ["Giorni attivi", String(f.active_days)], ["Autori", String(f.authors)], ["Stelle", String(f.stars)],
-      ["Fork", String(f.forks)], ["Osservatori", String(f.watchers)], ["Issue aperte", String(f.open_issues)],
-      ["Creato", escapeHtml(when(f.created_at) ?? "—")], ["Ultimo push", escapeHtml(when(f.pushed_at) ?? "—")],
-      ["Licenza", escapeHtml(f.license ?? "nessuna")]);
+    if (f.description) pairs.push(["Description", escapeHtml(f.description)]);
+    pairs.push(["Language", escapeHtml(f.language ?? "—")], ["Commit", escapeHtml(String(f.commits))],
+      ["Active days", String(f.active_days)], ["Authors", String(f.authors)], ["Stars", String(f.stars)],
+      ["Forks", String(f.forks)], ["Watchers", String(f.watchers)], ["Open issues", String(f.open_issues)],
+      ["Created", escapeHtml(when(f.created_at) ?? "—")], ["Last push", escapeHtml(when(f.pushed_at) ?? "—")],
+      ["License", escapeHtml(f.license ?? "none")]);
   } else if (c.key === "site" && f) {
-    pairs.push(["Pagina", `<a href="${escapeHtml(f.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(f.title || f.url)} ↗</a>`],
-      ["Parole", String(f.words)], ["HTTPS", f.https ? "sì" : "no"], ["Cita il contratto", f.cites_contract ? "sì" : "no"]);
+    pairs.push(["Page", `<a href="${escapeHtml(f.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(f.title || f.url)} ↗</a>`],
+      ["Words", String(f.words)], ["HTTPS", f.https ? "yes" : "no"], ["Cites contract", f.cites_contract ? "yes" : "no"]);
   } else if (c.key === "contract" && f) {
-    pairs.push(["Nome e logo", f.metadata_mutable ? "modificabili" : "bloccati"],
-      ["Tassa di trasferimento", `${f.transfer_fee_pct ?? 0}%`]);
+    pairs.push(["Name & logo", f.metadata_mutable ? "mutable" : "locked"],
+      ["Transfer tax", `${f.transfer_fee_pct ?? 0}%`]);
     if (f.holders) pairs.push(["Holder", escapeHtml(String(f.holders))]);
   } else if (c.key === "ai" && c.red_flags?.length) {
-    pairs.push(["Campanelli d'allarme", escapeHtml(c.red_flags.join(", "))]);
+    pairs.push(["Red flags", escapeHtml(c.red_flags.join(", "))]);
   }
   if (!pairs.length) return "";
   return `<dl class="rc-facts">${pairs.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>`;
@@ -567,7 +567,7 @@ function openStage(kind, id, p) {
     <nav class="stage-links">${links(p)}</nav>
     <ul class="radar-strats" data-radar-strats></ul>
     ${reportCard(p)}
-    <p class="radar-note">Backtest solo long con costi DEX (${data?.costs?.commission_pct ?? 0.3}% + ${data?.costs?.slippage_pct ?? 0.5}% per lato), sulle stesse candele del grafico. L'interruttore accende solo l'alert: compra solo il pilota, e solo se lo attivi.</p>`;
+    <p class="radar-note">Long-only backtest with DEX costs (${data?.costs?.commission_pct ?? 0.3}% + ${data?.costs?.slippage_pct ?? 0.5}% per side), on the same candles as the chart. The switch only turns on the alert: only the autopilot buys, and only if you turn it on.</p>`;
   view = { kind, id, p, chart: null, series: null, strategies: [], best: null, shown: new Set(), active: new Set(),
     timer: null, fitted: false, seeded: false };
   paintStageHead();
@@ -579,17 +579,17 @@ function paintStageHead() {
   if (!view) return;
   const { p } = view;
   const meta = stage.querySelector("[data-stage-meta]");
-  if (meta) meta.textContent = `${CHAINS[p.chain] ?? p.chain} · ${age(p.age_hours ?? 0)} · cap ${usd(p.market_cap)} · liq. ${usd(p.liquidity_usd)} · candele ${p.interval}`;
+  if (meta) meta.textContent = `${CHAINS[p.chain] ?? p.chain} · ${age(p.age_hours ?? 0)} · cap ${usd(p.market_cap)} · liq. ${usd(p.liquidity_usd)} · ${p.interval} candles`;
   const best = stage.querySelector("[data-stage-best]");
   if (!best) return;
   const s = view.strategies.find((x) => x.label === view.best);
   const bt = p.backtest;
   if (s) {
-    best.innerHTML = `Migliore finora: <b style="color:${colorOf(s.label)}">${escapeHtml(short(s.label))}</b> · <span data-sign="${s.return_pct > 0 ? "up" : "down"}">${pct(s.return_pct)}</span> · ${s.trades} trade · ${s.in_position ? "adesso dentro" : "adesso fuori"}${s.qualifies ? "" : " · test ancora debole"}`;
+    best.innerHTML = `Best so far: <b style="color:${colorOf(s.label)}">${escapeHtml(short(s.label))}</b> · <span data-sign="${s.return_pct > 0 ? "up" : "down"}">${pct(s.return_pct)}</span> · ${s.trades} trades · ${s.in_position ? "in now" : "out now"}${s.qualifies ? "" : " · test still weak"}`;
   } else if (bt?.state === "young") {
-    best.textContent = `Backtest appena ci sono ${bt.need} candele (ora ${bt.bars}). Intanto si vedono tutte le strategie.`;
+    best.textContent = `Backtest once there are ${bt.need} candles (now ${bt.bars}). Meanwhile, all strategies are shown.`;
   } else {
-    best.textContent = view.strategies.length ? "Nessuna strategia ha ancora fatto un trade qui." : "Backtest su tutte le strategie…";
+    best.textContent = view.strategies.length ? "No strategy has traded here yet." : "Backtesting every strategy…";
   }
 }
 
@@ -649,11 +649,11 @@ async function loadChart() {
   } catch {
     if (view !== current) return;
     const live = stage.querySelector("[data-radar-live]");
-    if (live) live.textContent = "non aggiornato";
+    if (live) live.textContent = "stale";
     // Il token e' su DexScreener: un rifiuto momentaneo della fonte delle
     // candele si riprova in pochi secondi, senza mostrare errori grezzi.
     if (!current.chart) {
-      stage.querySelector("[data-radar-chart]").textContent = "Carico le candele…";
+      stage.querySelector("[data-radar-chart]").textContent = "Loading candles…";
       current.timer = setTimeout(loadChart, RETRY_MS);
       return;
     }
@@ -689,7 +689,7 @@ function paintStrategies() {
     const on = view.active.has(s.strategy_name);
     const sub = s.excluded
       ? s.excluded
-      : `${pct(s.return_pct)} · ${s.trades} trade · ${s.events.length ? (s.in_position ? "adesso dentro" : "adesso fuori") : "nessun segnale ancora"}`;
+      : `${pct(s.return_pct)} · ${s.trades} trades · ${s.events.length ? (s.in_position ? "in now" : "out now") : "no signal yet"}`;
     return `
       <li data-shown="${shown}">
         <button type="button" class="rs-show" data-show="${escapeHtml(s.label)}" aria-pressed="${shown}">

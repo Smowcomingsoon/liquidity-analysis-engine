@@ -329,7 +329,7 @@ def morris_screening(
     default so later stages do not spend search budget on it.
     """
     if strategy_name not in PARAM_SPACES:
-        raise ValueError(f"Nessuno spazio parametri per {strategy_name!r}")
+        raise ValueError(f"No parameter space for {strategy_name!r}")
     space = PARAM_SPACES[strategy_name]
     obj = OBJECTIVES[objective]
     bp = backtest_params or {}

@@ -317,6 +317,6 @@ class AnalysisResponse(BaseModel):
     strategies: dict[TimeframeKey, list[StrategyState]]
     backtests: dict[TimeframeKey, BacktestResult]
     disclaimer: str = (
-        "Strumento di analisi tecnica automatica. Non costituisce consulenza "
-        "finanziaria, raccomandazione di investimento o segnale operativo."
+        "Automated technical analysis tool. Not financial advice, "
+        "an investment recommendation or a trading signal."
     )

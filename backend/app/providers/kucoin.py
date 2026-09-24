@@ -61,7 +61,7 @@ class KucoinProvider(DataProvider):
         formatted_symbol = format_symbol(symbol)
         candle_type = _CANONICAL_TO_TYPE.get(interval)
         if candle_type is None:
-            raise ProviderError(f"Timeframe {interval} non supportato su KuCoin")
+            raise ProviderError(f"Timeframe {interval} not supported on KuCoin")
         interval_seconds = _INTERVAL_SECONDS[interval]
 
         rows: list[list] = []
@@ -80,10 +80,10 @@ class KucoinProvider(DataProvider):
                     try:
                         payload = resp.json()
                     except ValueError as exc:
-                        raise ProviderError(f"Risposta non valida da KuCoin per {formatted_symbol}") from exc
+                        raise ProviderError(f"Invalid response from KuCoin for {formatted_symbol}") from exc
 
                     if payload.get("code") != "200000":
-                        raise ProviderError(payload.get("msg") or f"Errore KuCoin per {formatted_symbol}")
+                        raise ProviderError(payload.get("msg") or f"KuCoin error for {formatted_symbol}")
 
                     page_rows = payload.get("data") or []
                     if not page_rows:
@@ -96,10 +96,10 @@ class KucoinProvider(DataProvider):
                     end_at = min(int(r[0]) for r in page_rows) - 1
         except httpx.HTTPError as exc:
             if not rows:
-                raise ProviderUnreachable(f"KuCoin non raggiungibile per {formatted_symbol}: {exc}") from exc
+                raise ProviderUnreachable(f"KuCoin unreachable for {formatted_symbol}: {exc}") from exc
 
         if not rows:
-            raise ProviderError(f"Nessun dato disponibile per {formatted_symbol} ({interval})")
+            raise ProviderError(f"No data available for {formatted_symbol} ({interval})")
 
         # [time_s, open, close, high, low, volume, turnover] — newest first
         df = pd.DataFrame(rows, columns=["time", "open", "close", "high", "low", "volume", "turnover"])

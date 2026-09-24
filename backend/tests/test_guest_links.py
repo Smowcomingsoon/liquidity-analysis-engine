@@ -81,7 +81,7 @@ def test_guest_reads_but_cannot_write(env):
     ]:
         resp = client.request(method, path, json=body)
         assert resp.status_code == 403, (method, path, resp.status_code)
-        assert "sola lettura" in resp.json()["detail"]
+        assert "read-only" in resp.json()["detail"]
 
     for path in ("/admin/status", "/admin/ospiti", "/api/errors", "/api/optimize", "/api/guest-links"):
         assert client.get(path).status_code == 403, path

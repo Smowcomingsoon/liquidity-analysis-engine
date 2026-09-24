@@ -182,7 +182,7 @@ def fail_reason(s: TokenScore) -> str:
         total_tax = s.buy_tax + s.sell_tax
         if total_tax > 25.0:
             return f"Tax abusiva: {total_tax:.0f}% totale"
-    return "Nessun motivo — token passato"
+    return "No reason — token passed"
 
 
 # private aliases kept for backward compat inside this module

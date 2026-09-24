@@ -64,24 +64,24 @@ def is_serious(
     """Return (verdict, reason). The reason is shown to the user, so it names
     the specific bar that was missed rather than saying 'filtered'."""
     if _looks_like_meme(symbol, name):
-        return False, "nome o simbolo da meme coin"
+        return False, "meme coin name or symbol"
 
     # A major exchange has already done the listing work: age, liquidity and
     # market cap are its problem, not ours.
     if cex_listed is True:
-        return True, "quotato su un exchange centralizzato"
+        return True, "listed on a centralized exchange"
 
     if age_hours < AGE_MIN_H:
-        return False, f"troppo giovane ({age_hours / 24:.0f} giorni)"
+        return False, f"too young ({age_hours / 24:.0f} days)"
     if liquidity_usd < LIQUIDITY_MIN:
-        return False, f"liquidità ${liquidity_usd:,.0f} sotto la soglia"
+        return False, f"liquidity ${liquidity_usd:,.0f} below threshold"
     if market_cap is None:
         return False, "capitalizzazione sconosciuta"
     if market_cap < MARKET_CAP_MIN:
-        return False, f"capitalizzazione ${market_cap:,.0f} sotto la soglia"
+        return False, f"market cap ${market_cap:,.0f} below threshold"
     if volume_h24 < VOLUME_H24_MIN:
-        return False, f"volume 24h ${volume_h24:,.0f} sotto la soglia"
+        return False, f"24h volume ${volume_h24:,.0f} below threshold"
     if not website:
-        return False, "nessun sito del progetto"
+        return False, "no project website"
 
-    return True, "fondamentali sopra le soglie"
+    return True, "fundamentals above thresholds"

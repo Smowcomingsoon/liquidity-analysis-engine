@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Approva rivelazione chiave — Liquidity Engine</title>
+<title>Approve key reveal — Liquidity Engine</title>
 <style>
   :root { color-scheme: light dark; }
   body {
@@ -40,23 +40,23 @@
 </head>
 <body>
   <div class="card">
-    <h1>Approva la rivelazione di una chiave</h1>
-    <p class="lead">Qualcuno sta chiedendo di vedere la chiave privata di un wallet on-chain dal browser. Se sei tu, conferma qui.</p>
+    <h1>Approve a key reveal</h1>
+    <p class="lead">Someone is asking to see an on-chain wallet's private key from a browser. If that's you, confirm here.</p>
 
-    <div class="warn">Fallo solo se hai appena scansionato questo QR dal tuo browser. Se non hai chiesto nulla, chiudi questa pagina.</div>
+    <div class="warn">Only do this if you just scanned this QR from your own browser. If you didn't ask for anything, close this page.</div>
 
-    <label for="email">Email dell'account</label>
+    <label for="email">Account email</label>
     <input id="email" type="email" autocomplete="username" required />
 
     <button id="passkey-btn" type="button">Face ID / Touch ID</button>
 
-    <div class="divider">oppure</div>
-    <button id="show-password-btn" type="button" class="secondary">Usa la password</button>
+    <div class="divider">or</div>
+    <button id="show-password-btn" type="button" class="secondary">Use password</button>
 
     <form id="password-form">
       <label for="password">Password</label>
       <input id="password" type="password" autocomplete="current-password" />
-      <button type="submit">Approva con la password</button>
+      <button type="submit">Approve with password</button>
     </form>
 
     <p id="msg" class="msg" hidden></p>
@@ -72,13 +72,13 @@
   const passwordForm = document.getElementById("password-form");
 
   if (!token) {
-    say("Link senza token — scansiona di nuovo il QR dal browser.", "err");
+    say("Link has no token. Scan the QR from your browser again.", "err");
     passkeyBtn.disabled = true;
     showPasswordBtn.disabled = true;
   }
   if (!window.PublicKeyCredential) {
     passkeyBtn.disabled = true;
-    passkeyBtn.title = "Questo browser non supporta i passkey";
+    passkeyBtn.title = "This browser doesn't support passkeys";
   }
 
   function say(text, kind) {
@@ -100,22 +100,22 @@
 
   passkeyBtn.addEventListener("click", async () => {
     const email = emailInput.value.trim();
-    if (!email) { say("Scrivi prima l'email dell'account.", "err"); return; }
+    if (!email) { say("Enter the account email first.", "err"); return; }
     passkeyBtn.disabled = true;
-    say("Chiedo le opzioni…");
+    say("Fetching options…");
     try {
       const optResp = await fetch("/api/onchain/reveal/passkey/options", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
       const optBody = await optResp.json().catch(() => ({}));
-      if (!optResp.ok) throw new Error(optBody.detail || "Nessun passkey per questa email — usa la password.");
+      if (!optResp.ok) throw new Error(optBody.detail || "No passkey for this email. Use your password.");
 
-      say("Segui la richiesta di Face ID / Touch ID sul telefono…");
+      say("Follow the Face ID / Touch ID prompt on your phone…");
       const requestOptions = PublicKeyCredential.parseRequestOptionsFromJSON(JSON.parse(optBody.options));
       const assertion = await navigator.credentials.get({ publicKey: requestOptions });
 
-      say("Verifica in corso…");
+      say("Verifying…");
       const verResp = await fetch("/api/onchain/reveal/passkey/verify", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -123,12 +123,12 @@
         }),
       });
       const verBody = await verResp.json().catch(() => ({}));
-      if (!verResp.ok) throw new Error(verBody.detail || `Errore ${verResp.status}`);
-      say("Approvato — torna al browser, la chiave sta per apparire.", "ok");
+      if (!verResp.ok) throw new Error(verBody.detail || `Error ${verResp.status}`);
+      say("Approved. Head back to the browser, the key is about to show up.", "ok");
       passkeyBtn.style.display = "none";
       showPasswordBtn.style.display = "none";
     } catch (err) {
-      say(err.message || "Face ID/Touch ID non riuscito — usa la password.", "err");
+      say(err.message || "Face ID/Touch ID failed. Use your password.", "err");
       passkeyBtn.disabled = false;
     }
   });
@@ -137,7 +137,7 @@
     e.preventDefault();
     const btn = passwordForm.querySelector("button");
     btn.disabled = true;
-    say("Verifica in corso…");
+    say("Verifying…");
     try {
       const resp = await fetch("/api/onchain/reveal/approve", {
         method: "POST",
@@ -149,11 +149,11 @@
         }),
       });
       const body = await resp.json().catch(() => ({}));
-      if (!resp.ok) throw new Error(body.detail || `Errore ${resp.status}`);
-      say("Approvato — torna al browser, la chiave sta per apparire.", "ok");
+      if (!resp.ok) throw new Error(body.detail || `Error ${resp.status}`);
+      say("Approved. Head back to the browser, the key is about to show up.", "ok");
       passwordForm.hidden = true;
     } catch (err) {
-      say(err.message || "Errore di rete.", "err");
+      say(err.message || "Network error.", "err");
       btn.disabled = false;
     }
   });

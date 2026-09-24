@@ -101,8 +101,8 @@ def _parse_symbol(symbol: str) -> tuple[str, str, str]:
     m = _SYMBOL_RE.match(symbol.strip())
     if not m:
         raise ProviderError(
-            f"'{symbol}' non e' un pair DEX riconoscibile: va scelto da un risultato "
-            "della ricerca, non digitato a mano."
+            f"'{symbol}' is not a recognizable DEX pair: pick it from a search result, "
+            "don't type it by hand."
         )
     return m["base"], m["chain"], m["pool"]
 
@@ -184,9 +184,9 @@ async def gecko_get(url: str, params: dict | None = None) -> dict | None:
     try:
         payload = resp.json()
     except ValueError as exc:
-        raise ProviderError("Risposta non valida da GeckoTerminal") from exc
+        raise ProviderError("Invalid response from GeckoTerminal") from exc
     if not isinstance(payload, dict):
-        raise ProviderError("Risposta non valida da GeckoTerminal")
+        raise ProviderError("Invalid response from GeckoTerminal")
     _gecko_seen[key] = (time.monotonic(), payload)
     if len(_gecko_seen) > 512:
         for old in sorted(_gecko_seen, key=lambda k: _gecko_seen[k][0])[:128]:
@@ -213,7 +213,7 @@ class DexScreenerProvider(DataProvider):
         _base, chain, pool = _parse_symbol(symbol)
         network = GECKO_NETWORKS.get(chain)
         if network is None:
-            raise ProviderError(f"Chain '{chain}' non supportata")
+            raise ProviderError(f"Chain \'{chain}\' not supported")
         timeframe, aggregate, fold = _INTERVAL_TO_GECKO.get(interval, ("day", 1, 1))
 
         limit = min(max(outputsize * fold, fold), 1000) if since_ms is None else 1000
@@ -226,9 +226,9 @@ class DexScreenerProvider(DataProvider):
         try:
             payload = await gecko_get(url, params)
         except httpx.HTTPError as exc:
-            raise ProviderUnreachable(f"GeckoTerminal non raggiungibile per {symbol}: {exc}") from exc
+            raise ProviderUnreachable(f"GeckoTerminal unreachable for {symbol}: {exc}") from exc
         if payload is None:
-            raise ProviderError(f"Pool non trovato su {chain}: {pool}")
+            raise ProviderError(f"Pool not found on {chain}: {pool}")
 
         rows = (
             payload.get("data", {}).get("attributes", {}).get("ohlcv_list", [])
@@ -241,7 +241,7 @@ class DexScreenerProvider(DataProvider):
             # si costruiscono dagli scambi.
             rows = await self._rows_from_trades(network, pool, aggregate * 60, token_address)
         if not rows:
-            raise NoDataYet(f"Nessun dato disponibile per {symbol} ({interval})")
+            raise NoDataYet(f"No data available for {symbol} ({interval})")
 
         # [timestamp_s, open, high, low, close, volume], piu' recenti prima.
         df = pd.DataFrame(rows, columns=["open_time", "open", "high", "low", "close", "volume"])

@@ -272,7 +272,7 @@ def set_futures_credential(
     poter toccare le credenziali spot, e viceversa."""
     from app.models import MAX_FUTURES_LEVERAGE, FuturesCredential
     if not (1 <= leverage <= MAX_FUTURES_LEVERAGE):
-        raise ValueError(f"Leva {leverage}x fuori dal limite consentito (1-{MAX_FUTURES_LEVERAGE}x)")
+        raise ValueError(f"Leverage {leverage}x outside the allowed range (1-{MAX_FUTURES_LEVERAGE}x)")
     user = _users.get(user_id)
     if user is None:
         return None
@@ -370,8 +370,8 @@ def get_decrypted_onchain_private_key(user: User, chain: OnchainChain) -> str:
         return ""
     if address_from_private_key(chain, private_key_hex) != wallet.address:
         raise OnchainKeyIntegrityError(
-            f"La chiave decifrata per {chain} non corrisponde all'indirizzo salvato "
-            f"({wallet.address}) — dato corrotto, non usata."
+            f"The decrypted key for {chain} does not match the saved address "
+            f"({wallet.address}) — corrupted data, not used."
         )
     return private_key_hex
 
@@ -453,5 +453,5 @@ async def get_current_user(
 ) -> User:
     user = await get_current_user_optional(session, guest)
     if user is None:
-        raise HTTPException(status_code=401, detail="Accesso richiesto")
+        raise HTTPException(status_code=401, detail="Sign-in required")
     return user

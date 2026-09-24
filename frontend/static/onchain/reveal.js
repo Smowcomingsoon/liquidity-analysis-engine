@@ -35,29 +35,29 @@ function close() {
 
 export async function startReveal() {
   if (!dialog.open) dialog.showModal();
-  paint('<p class="reveal-status">Genero il QR…</p>');
+  paint('<p class="reveal-status">Generating QR…</p>');
 
   let session;
   try {
     session = await api.requestReveal(state.chain);
   } catch (error) {
     paint(`<p class="reveal-status is-error">${escapeHtml(error.message)}</p>
-      <button type="button" class="btn-quiet" data-close>Chiudi</button>`);
+      <button type="button" class="btn-quiet" data-close>Close</button>`);
     return;
   }
 
   paint(`
     <div class="qr" style="--ttl:${TTL_MS}ms">
-      <img src="${encodeURI(session.qr_data_uri)}" alt="Codice QR di approvazione" width="200" height="200" />
+      <img src="${encodeURI(session.qr_data_uri)}" alt="Approval QR code" width="200" height="200" />
       <svg viewBox="0 0 212 212" aria-hidden="true">
         <circle class="qr-track" cx="106" cy="106" r="102" />
         <circle class="qr-progress" cx="106" cy="106" r="102" />
       </svg>
     </div>
-    <p class="reveal-hint">Inquadra col telefono, o
-      <a href="${encodeURI(session.approve_url)}">apri il link</a> se sei gia' li'. Scade in due minuti.</p>
-    <p class="reveal-status" data-status>In attesa dell'approvazione…</p>
-    <button type="button" class="btn-quiet" data-close>Annulla</button>
+    <p class="reveal-hint">Scan it with your phone, or
+      <a href="${encodeURI(session.approve_url)}">open the link</a> if you're already on it. Expires in two minutes.</p>
+    <p class="reveal-status" data-status>Waiting for approval…</p>
+    <button type="button" class="btn-quiet" data-close>Cancel</button>
   `);
 
   listen(session.token);
@@ -72,11 +72,11 @@ function listen(token) {
     const statusEl = bodyEl.querySelector("[data-status]");
     if (status === "approved") {
       stream.close();
-      if (statusEl) statusEl.textContent = "Approvato — leggo la chiave…";
+      if (statusEl) statusEl.textContent = "Approved — reading key…";
       await finish(token);
     } else if (status === "expired") {
       stream.close();
-      if (statusEl) { statusEl.textContent = "QR scaduto. Chiudi e riprova."; statusEl.classList.add("is-error"); }
+      if (statusEl) { statusEl.textContent = "QR expired. Close and try again."; statusEl.classList.add("is-error"); }
     }
   });
 
@@ -85,7 +85,7 @@ function listen(token) {
     // rifare, non un polling di riserva che nasconderebbe il problema.
     stream?.close();
     const statusEl = bodyEl.querySelector("[data-status]");
-    if (statusEl) { statusEl.textContent = "Connessione persa. Annulla e riprova."; statusEl.classList.add("is-error"); }
+    if (statusEl) { statusEl.textContent = "Connection lost. Cancel and try again."; statusEl.classList.add("is-error"); }
   });
 }
 
@@ -100,14 +100,14 @@ async function finish(token) {
       <p class="reveal-hint">${escapeHtml(revealed.import_as)}</p>
       <p class="secret">${escapeHtml(revealed.private_key)}</p>
       <p class="reveal-hint">${escapeHtml(revealed.warning)}</p>
-      <button type="button" class="btn-quiet" data-close>Ho finito</button>
+      <button type="button" class="btn-quiet" data-close>I'm done</button>
     `);
     // La chiave non resta sullo schermo a tempo indeterminato: chi l'ha
     // aperta ha due minuti per copiarla, poi il pannello si chiude da solo.
     setTimeout(close, TTL_MS);
   } catch (error) {
     paint(`<p class="reveal-status is-error">${escapeHtml(error.message)}</p>
-      <button type="button" class="btn-quiet" data-close>Chiudi</button>`);
+      <button type="button" class="btn-quiet" data-close>Close</button>`);
   }
 }
 

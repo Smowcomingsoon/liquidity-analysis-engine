@@ -40,7 +40,7 @@ export async function openSend({ onSent } = {}) {
   const chain = state.chain;
   token = { ...NATIVE[chain], priceUsd: state.balance?.native_price_usd ?? null, isNative: true };
 
-  sheets.openSheet("Invia", "Manda crypto a un indirizzo qualsiasi — verifica l'indirizzo, un prelievo sbagliato non si annulla.");
+  sheets.openSheet("Send", "Send crypto to any address — double-check it, a wrong withdrawal can't be undone.");
 
   let armed = false;
   try { armed = Boolean((await api.getRiskStatus(chain)).execution_enabled); } catch { /* resta spento */ }
@@ -57,32 +57,32 @@ function paintForm(armed) {
   const chain = state.chain;
   const available = availableToSend(chain);
   sheets.setBody(`
-    ${armed ? "" : `<p class="sheet-note is-warn">Esecuzione reale spenta su questo server: qui non puoi inviare finché non viene accesa.</p>`}
+    ${armed ? "" : `<p class="sheet-note is-warn">Live execution is off on this server: you can't send from here until it's turned on.</p>`}
     <form class="form" id="send-form">
-      <label for="send-amount">Manda</label>
+      <label for="send-amount">Amount</label>
       <div class="swap-row">
         <input id="send-amount" name="amount" type="number" min="0" step="any" required />
         <button type="button" class="swap-max" id="send-max" ${token.isNative ? "" : "hidden"}>Max</button>
         <span class="swap-unit" id="send-symbol">${token.symbol}</span>
       </div>
-      <button type="button" class="swap-token-pick" id="send-pick-token">Cambia token ↕</button>
+      <button type="button" class="swap-token-pick" id="send-pick-token">Change token ↕</button>
       <p class="swap-available" id="send-available">
         ${token.isNative
-          ? (available != null ? `Disponibile: ${available.toLocaleString("it-IT", { maximumFractionDigits: 6 })} ${token.symbol} (riserva ${GAS_RESERVE[chain]} per il gas)` : "Saldo non disponibile.")
-          : "Verifica tu stesso il saldo di questo token prima di inviare."}
+          ? (available != null ? `Available: ${available.toLocaleString("en-US", { maximumFractionDigits: 6 })} ${token.symbol} (${GAS_RESERVE[chain]} kept for gas)` : "Balance unavailable.")
+          : "Check this token's balance yourself before sending."}
       </p>
       <p class="swap-usd" id="send-usd"></p>
 
-      <label for="send-to">A questo indirizzo</label>
-      <input id="send-to" name="to" type="text" placeholder="${chain === "solana" ? "indirizzo Solana" : "0x…"}" autocomplete="off" required />
-      <p class="swap-detail is-warn">Controlla l'indirizzo due volte: una transazione on-chain non si annulla.</p>
+      <label for="send-to">To address</label>
+      <input id="send-to" name="to" type="text" placeholder="${chain === "solana" ? "Solana address" : "0x…"}" autocomplete="off" required />
+      <p class="swap-detail is-warn">Check the address twice: on-chain transactions are final.</p>
 
       <label class="swap-confirm">
         <input type="checkbox" id="send-confirm-box" />
-        <span>Confermo: denaro reale, <b id="send-confirm-summary">—</b></span>
+        <span>I confirm: real money, <b id="send-confirm-summary">—</b></span>
       </label>
 
-      <button type="submit" class="btn-primary" id="send-submit" disabled>Inserisci importo e indirizzo</button>
+      <button type="submit" class="btn-primary" id="send-submit" disabled>Enter amount and address</button>
     </form>
     <output class="outcome" id="send-outcome" hidden></output>
   `);
@@ -117,15 +117,15 @@ function pickToken(armed) {
         paintForm(armed);
         return;
       }
-      if (submitButton) { submitButton.disabled = true; submitButton.textContent = "Verifico il token…"; }
+      if (submitButton) { submitButton.disabled = true; submitButton.textContent = "Checking token…"; }
       try {
         const info = await api.getTokenInfo(chain, address);
         token = { address, decimals: info.decimals, symbol: info.symbol || `${address.slice(0, 4)}…${address.slice(-4)}`, priceUsd: info.price_usd, isNative: false };
         paintForm(armed);
       } catch (error) {
-        if (submitButton) submitButton.textContent = "Riprova";
+        if (submitButton) submitButton.textContent = "Retry";
         const detailEl = sheets.sheetBody().querySelector("#send-amount")?.closest("form")?.querySelector(".swap-detail");
-        if (detailEl) detailEl.textContent = error instanceof ApiError ? error.message : "Token non riconosciuto.";
+        if (detailEl) detailEl.textContent = error instanceof ApiError ? error.message : "Token not recognized.";
       }
     },
   });
@@ -143,7 +143,7 @@ function updateState(armed) {
   if (summaryEl) summaryEl.textContent = ready ? `${amount} ${token.symbol} → ${to}` : "—";
   if (submitButton) {
     submitButton.disabled = !ready || !armed || !confirmBox?.checked;
-    submitButton.textContent = !ready ? "Inserisci importo e indirizzo" : (armed ? "Invia" : "Esecuzione spenta sul server");
+    submitButton.textContent = !ready ? "Enter amount and address" : (armed ? "Send" : "Execution off on server");
   }
 }
 
@@ -156,10 +156,10 @@ async function confirmAndSend(armed) {
   const submitButton = sheets.sheetBody().querySelector("#send-submit");
 
   submitButton.disabled = true;
-  submitButton.textContent = "Invio…";
+  submitButton.textContent = "Sending…";
   outcome.hidden = false;
   outcome.dataset.tone = "";
-  outcome.textContent = "Firmo e invio…";
+  outcome.textContent = "Signing and sending…";
 
   // Il tetto di rischio lato server e' notional_usd = amount * price_usd:
   // un fallback a 0 lo azzererebbe (bypass verso l'alto, mai accettabile).
@@ -175,13 +175,13 @@ async function confirmAndSend(armed) {
       amount, price_usd: priceUsd,
     });
     outcome.dataset.tone = result.accepted ? "ok" : "no";
-    outcome.textContent = result.accepted ? `Inviato. Firma: ${result.tx_signature}` : result.reason;
+    outcome.textContent = result.accepted ? `Sent. Signature: ${result.tx_signature}` : result.reason;
     if (result.accepted) onSentCb?.();
   } catch (error) {
     outcome.dataset.tone = "no";
-    outcome.textContent = error instanceof ApiError ? error.message : "Errore inatteso.";
+    outcome.textContent = error instanceof ApiError ? error.message : "Unexpected error.";
   } finally {
     submitButton.disabled = false;
-    submitButton.textContent = "Invia";
+    submitButton.textContent = "Send";
   }
 }

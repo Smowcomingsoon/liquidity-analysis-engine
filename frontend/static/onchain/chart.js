@@ -63,10 +63,10 @@ export function getCurrentToken() {
 function chartLibrary() {
   if (window.LightweightCharts) return Promise.resolve(window.LightweightCharts);
   const tag = document.querySelector('script[src*="lightweight-charts"]');
-  if (!tag) return Promise.reject(new Error("libreria del grafico mancante"));
+  if (!tag) return Promise.reject(new Error("chart library missing"));
   return new Promise((resolve, reject) => {
     tag.addEventListener("load", () => resolve(window.LightweightCharts), { once: true });
-    tag.addEventListener("error", () => reject(new Error("libreria del grafico non caricata")), { once: true });
+    tag.addEventListener("error", () => reject(new Error("chart library failed to load")), { once: true });
   });
 }
 
@@ -85,17 +85,17 @@ export function mountChart(container) {
   if (!currentToken && DEFAULT_TOKEN[state.chain]) currentToken = { ...DEFAULT_TOKEN[state.chain] };
   paintShell();
   if (currentToken) loadAndRender();
-  else setStatus("Scegli un token per vedere il grafico e fare uno swap.");
+  else setStatus("Pick a token to see the chart and swap.");
 }
 
 function paintShell() {
   chart = null;
   series = null;
-  const name = currentToken ? currentToken.symbolHint || shortAddr(currentToken.address) : "Scegli un token";
+  const name = currentToken ? currentToken.symbolHint || shortAddr(currentToken.address) : "Pick a token";
   root.innerHTML = `
     <div class="chart-head">
       <div>
-        <button type="button" class="token-head" id="market-pick-token" title="Cambia token">
+        <button type="button" class="token-head" id="market-pick-token" title="Change token">
           <span class="token-ic" aria-hidden="true"></span><span id="market-pair">${name}</span><span class="caret">▾</span>
         </button>
         <p class="price-line" id="market-live-price"></p>
@@ -137,7 +137,7 @@ function compactUsd(value) {
 function formatAge(hours) {
   if (hours == null) return "—";
   if (hours < 48) return `${Math.max(1, Math.round(hours))}h`;
-  return `${Math.round(hours / 24)}g`;
+  return `${Math.round(hours / 24)}d`;
 }
 
 function paintStats(stats) {
@@ -147,10 +147,10 @@ function paintStats(stats) {
   if (!metrics) return;
   const change = stats.price_change_h24;
   metrics.innerHTML = `
-    <div>Liquidità<b>${compactUsd(stats.liquidity_usd)}</b></div>
+    <div>Liquidity<b>${compactUsd(stats.liquidity_usd)}</b></div>
     <div>Volume 24h<b>${compactUsd(stats.volume_h24)}</b></div>
-    <div>Età<b>${formatAge(stats.age_hours)}</b></div>
-    <div>Var. 24h<b class="${change > 0 ? "is-up" : change < 0 ? "is-down" : ""}">${change != null ? `${change > 0 ? "+" : ""}${change}%` : "—"}</b></div>
+    <div>Age<b>${formatAge(stats.age_hours)}</b></div>
+    <div>24h chg<b class="${change > 0 ? "is-up" : change < 0 ? "is-down" : ""}">${change != null ? `${change > 0 ? "+" : ""}${change}%` : "—"}</b></div>
   `;
   root.dataset.change = change ?? "";
 }
@@ -210,7 +210,7 @@ function loadAndRender() {
       await paintMarkersAndLimits(chain, data.symbol);
       setStatus("");
     } catch (error) {
-      setStatus(error instanceof ApiError ? error.message : "Grafico non disponibile.");
+      setStatus(error instanceof ApiError ? error.message : "Chart unavailable.");
     }
   };
 
@@ -226,7 +226,7 @@ function loadAndRender() {
       priceEl.classList.toggle("is-down", change < 0);
       priceEl.classList.remove("is-warn");
     } catch (error) {
-      priceEl.textContent = error instanceof ApiError ? error.message : "Prezzo corrente non disponibile.";
+      priceEl.textContent = error instanceof ApiError ? error.message : "Live price unavailable.";
       priceEl.classList.add("is-warn");
     }
   };
@@ -251,7 +251,7 @@ async function paintMarkersAndLimits(chain, symbol) {
       .map((o) => ({
         time: o.updated_at, position: o.side === "buy" ? "belowBar" : "aboveBar",
         color: o.side === "buy" ? "#2de0a8" : "#ff5c5c", shape: o.side === "buy" ? "arrowUp" : "arrowDown",
-        text: o.side === "buy" ? "Compra" : "Vendi",
+        text: o.side === "buy" ? "Buy" : "Sell",
       }))
       .sort((a, b) => a.time - b.time);
     series.setMarkers(markers);
@@ -261,7 +261,7 @@ async function paintMarkersAndLimits(chain, symbol) {
       .forEach((o) => {
         series.createPriceLine({
           price: o.target_price_usd, color: "#f0b90b", lineWidth: 1, lineStyle: 2,
-          axisLabelVisible: true, title: o.direction === "buy_below" ? "limite compra" : "limite vendi",
+          axisLabelVisible: true, title: o.direction === "buy_below" ? "limit buy" : "limit sell",
         });
       });
   } catch { /* i marker/target sono un di piu': un grafico senza di loro resta comunque utile */ }

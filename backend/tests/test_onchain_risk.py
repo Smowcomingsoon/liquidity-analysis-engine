@@ -30,7 +30,7 @@ def test_daily_cap_accumulates_across_orders(tmp_path, monkeypatch):
     assert ok is True
     ok, reason = risk.check_daily_cap("u1", "solana", 80.01)
     assert ok is False
-    assert "tetto giornaliero" in reason
+    assert "daily cap" in reason
 
 
 def test_concentration_cap_blocks_over_15_percent(tmp_path, monkeypatch):
@@ -47,7 +47,7 @@ def test_concentration_cap_blocks_over_15_percent(tmp_path, monkeypatch):
     # Portafoglio: 100 USD totali. Aggiungere 20 su TOKEN_A -> 40/120 = 33% -> rifiuta.
     ok, reason = risk.check_concentration("u1", "solana", "TOKEN_A", 20.0)
     assert ok is False
-    assert "concentrazione" in reason
+    assert "concentration" in reason
     # Aggiungere 5 su TOKEN_A -> 25/105 = 23.8% -> ancora rifiuta.
     ok, _ = risk.check_concentration("u1", "solana", "TOKEN_A", 5.0)
     assert ok is False
@@ -105,7 +105,7 @@ def test_run_all_checks_rejects_when_pool_info_unverifiable(tmp_path, monkeypatc
     _fresh_db(tmp_path, monkeypatch)
     ok, reason = risk.run_all_checks("u1", "solana", "TOKEN", 20.0, 0.5, pool_info={})
     assert ok is False
-    assert "non verificabile" in reason
+    assert "cannot be verified" in reason
 
 
 def test_run_all_checks_passes_with_healthy_pool_info(tmp_path, monkeypatch):

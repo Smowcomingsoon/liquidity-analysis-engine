@@ -85,8 +85,8 @@ async def amount_out(token_in: str, token_out: str, amount_in: int) -> tuple[int
             continue
         if out > 0:
             return out, name
-        errors.append(f"{name}: nessun importo in uscita")
-    raise AggregatorError("; ".join(errors) or "nessuna fonte")
+        errors.append(f"{name}: no output amount")
+    raise AggregatorError("; ".join(errors) or "no source")
 
 
 async def quote(token_in: str, token_out: str, amount_in: int) -> dict:

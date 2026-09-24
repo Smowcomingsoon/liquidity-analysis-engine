@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Wallet on-chain (alpha) — Liquidity Engine</title>
+<title>On-chain wallet (alpha) — Liquidity Engine</title>
 <!-- Font serviti da qui, non da Google: niente due origini in piu' (DNS + TLS)
      ne' un foglio di stile che blocca il primo disegno. Stessi file latin di
      Google Fonts (OFL, vedi static/fonts/LICENSE.txt). Instrument Sans non
@@ -1242,9 +1242,9 @@
        compaiono solo quando c'e' un importo da confermare. */
     .swap-form .swap-field::before {
       display: block; margin-block-end: 8px; font-size: 12px; font-weight: 600; color: var(--ink-dim);
-      content: "1  Quanto vuoi scambiare";
+      content: "1  You pay";
     }
-    .swap-form .swap-field.is-readonly::before { content: "2  Cosa ricevi"; }
+    .swap-form .swap-field.is-readonly::before { content: "2  You receive"; }
     .swap-form:has(#swap-amount:placeholder-shown) :is(.route-info, .swap-confirm) { display: none; }
     .route-info div:nth-child(2) { display: none; }  /* il percorso (Jupiter/Uniswap) non serve a schermo */
   }
@@ -2157,12 +2157,12 @@
       <!-- Il marchio e' anche il ritorno al sito: un link vero, non
            history.back() — questa pagina si apre anche da zero (QR, link
            salvato) e li' "indietro" non avrebbe dove andare. -->
-      <a class="brand" href="/engn" title="Il progetto $ENGN"><span class="brand-dot" aria-hidden="true"></span>
+      <a class="brand" href="/engn" title="The $ENGN project"><span class="brand-dot" aria-hidden="true"></span>
         <svg class="logo logo-gem" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg-egg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6ff9a"/><stop offset="1" stop-color="#5fa82e"/></linearGradient></defs><path d="M16 2.5c6 0 10.5 9.2 10.5 16.2 0 6.3-4.7 10.8-10.5 10.8S5.5 25 5.5 18.7C5.5 11.7 10 2.5 16 2.5z" fill="url(#lg-egg)"/><path d="M9.5 15.5c2 1.6 4 1.6 6.5 0s4.5-1.6 6.5 0M8 21c2.6 2 5.3 2 8 0s5.4-2 8 0M12 9.8c1.4 1 2.7 1 4 0s2.6-1 4 0" fill="none" stroke="#1d3a0c" stroke-width="1.4" stroke-linecap="round" opacity=".55"/><path d="M11.5 7.5c1-1.6 2.3-2.6 3.6-2.9" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity=".7"/></svg>
         <svg class="logo logo-meme" viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="16" cy="20" rx="13.5" ry="9.5" fill="#6fd24a"/><circle cx="9.5" cy="10.5" r="5.5" fill="#6fd24a"/><circle cx="22.5" cy="10.5" r="5.5" fill="#6fd24a"/><circle cx="9.5" cy="10.5" r="3.6" fill="#fff"/><circle cx="22.5" cy="10.5" r="3.6" fill="#fff"/><circle cx="10.4" cy="11" r="1.8" fill="#111"/><circle cx="23.4" cy="11" r="1.8" fill="#111"/><path d="M5.5 10.2h8M18.5 10.2h8" stroke="#ff4fa3" stroke-width="1.6"/><path d="M7 21.5c4.5 4 13.5 4 18 0" fill="none" stroke="#b83a2e" stroke-width="2" stroke-linecap="round"/><circle cx="26" cy="5" r="3.4" fill="#ffb648"/><text x="26" y="6.6" text-anchor="middle" font-size="4.6" font-weight="800" fill="#111">$</text></svg>
         <h1><span class="bn bn-def">Liquidity Engine</span><span class="bn bn-gem">Gem Finder</span><span class="bn bn-meme">Meme Sniper</span></h1></a>
       <div class="topbar-right">
-        <button type="button" class="chain-flip" id="chain-flip" title="Tocca per cambiare rete">
+        <button type="button" class="chain-flip" id="chain-flip" title="Tap to switch chain">
           <span class="chain-ic" id="chain-ic" aria-hidden="true">◎</span><span id="chain-label">Solana</span><span class="flip-ic" aria-hidden="true">⇄</span>
         </button>
         <div class="switcher" id="chain-switch" data-selected="solana" role="tablist" aria-label="Chain">
@@ -2172,7 +2172,7 @@
         </div>
         <!-- L'indirizzo e' la porta del wallet: ricevi, invia, limiti,
              chiave. Prima c'erano anche il "⋯" e tredici voci. -->
-        <button type="button" class="addr-chip" id="more-btn" aria-haspopup="dialog" aria-controls="more" aria-label="Il tuo wallet" hidden>
+        <button type="button" class="addr-chip" id="more-btn" aria-haspopup="dialog" aria-controls="more" aria-label="Your wallet" hidden>
           <span class="avatar" aria-hidden="true"></span><span id="topbar-address-text">—</span>
         </button>
       </div>
@@ -2184,36 +2184,36 @@
         <input id="login-email" name="email" type="email" autocomplete="username" required />
         <label for="login-password">Password</label>
         <input id="login-password" name="password" type="password" autocomplete="current-password" required />
-        <button type="submit" class="btn-primary">Accedi</button>
+        <button type="submit" class="btn-primary">Log in</button>
         <p class="sheet-note is-error" id="login-error" hidden></p>
       </form>
     </section>
 
     <div id="app-shell" class="stack" data-view="entry" hidden>
       <section class="entry" id="entry" aria-labelledby="entry-title">
-        <h1 id="entry-title">Trovali prima.<br>Cavalcali meglio.</h1>
-        <p class="entry-sub">Due tavoli. Uno per chi studia, uno per chi scommette.</p>
+        <h1 id="entry-title">Find them first.<br>Ride them right.</h1>
+        <p class="entry-sub">Two tables. One for researchers, one for gamblers.</p>
         <div class="entry-cards">
           <button type="button" class="entry-card" data-go="gems" data-kind="gems">
-            <span class="entry-tag">Gemme · ricerca</span>
-            <b>Gemme nascoste</b>
-            <p>Progetti veri a micro e low cap su Solana e Robinhood Chain. Codice, tokenomics e holder passati al setaccio, h24. I migliori salgono in classifica.</p>
-            <span class="entry-go">Vai alla classifica</span>
+            <span class="entry-tag">Gems · research</span>
+            <b>Gem Finder</b>
+            <p>Real micro and low cap projects on Solana and Robinhood Chain. Code, tokenomics and holders screened 24/7. The best climb the leaderboard.</p>
+            <span class="entry-go">See the leaderboard</span>
           </button>
           <button type="button" class="entry-card" data-go="meme" data-kind="meme">
-            <span class="entry-tag">Meme · casinò</span>
-            <b>Sniper meme</b>
-            <p>Token nati da minuti, filtrati contro i rug e testati sulle strategie. È gioco d'azzardo puro: metti solo quello che sei pronto a bruciare.</p>
-            <span class="entry-go">Entra nel casinò</span>
+            <span class="entry-tag">Memes · casino</span>
+            <b>Meme Sniper</b>
+            <p>Tokens minutes old, rug-filtered and backtested on our strategies. It's pure gambling: only ape what you're ready to burn.</p>
+            <span class="entry-go">Enter the casino</span>
           </button>
         </div>
       </section>
       <div class="status-strip">
         <section class="status-card balance-card">
-          <p class="label">Saldo</p>
+          <p class="label">Balance</p>
           <div class="amount" id="balance">—</div>
           <div class="meta">
-            <button type="button" class="addr" id="address" title="Copia l'indirizzo"></button>
+            <button type="button" class="addr" id="address" title="Copy address"></button>
             <span class="live"><span class="dot" id="live-dot"></span><span id="fresh"></span></span>
           </div>
           <!-- Cosa hai, a colpo d'occhio: l'utente, "non e' chiaro che moneta
@@ -2240,14 +2240,14 @@
              strategia in auto-trade su questa chain, e quali. -->
         <section class="status-card sniper-card" id="sniper-card" hidden>
           <p class="label">Auto-trade sniper · Trend EMA</p>
-          <p class="sniper-state"><span class="pulse" id="sniper-pulse" hidden></span><span id="sniper-state-text">Spento</span></p>
-          <div class="sniper-tags" id="sniper-tags"><span>soglia liquidità $3k</span></div>
+          <p class="sniper-state"><span class="pulse" id="sniper-pulse" hidden></span><span id="sniper-state-text">Off</span></p>
+          <div class="sniper-tags" id="sniper-tags"><span>min liquidity $3k</span></div>
         </section>
 
         <section class="status-card security-card" id="status" data-armed="false" hidden>
-          <p class="label">Sicurezza</p>
-          <p class="value" id="status-text">Esecuzione reale spenta</p>
-          <p class="sub" id="status-sub">Preventivo attivo · nessuna firma automatica</p>
+          <p class="label">Security</p>
+          <p class="value" id="status-text">Live execution off</p>
+          <p class="sub" id="status-sub">Quotes only · no auto-signing</p>
         </section>
       </div>
 
@@ -2256,8 +2256,8 @@
            che conta". DREGG sta primo come metro di paragone. La disegna
            static/onchain/leaderboard.js. -->
       <section class="board" id="board" data-loading>
-        <p class="gem-banner" role="note"><b>Ricerca h24.</b> Progetti con codice, sito e tokenomics veri, a micro e low cap. Il punteggio è un filtro, non un consiglio: studia prima di comprare.</p>
-        <header><h3>Gemme · classifica</h3><span data-board-meta></span></header>
+        <p class="gem-banner" role="note"><b>24/7 research.</b> Micro and low cap projects with real code, site and tokenomics. The score is a filter, not advice: DYOR before you buy.</p>
+        <header><h3>Gems · leaderboard</h3><span data-board-meta></span></header>
         <ol class="board-podium" data-board-podium></ol>
         <div class="board-detail" data-board-detail hidden></div>
         <ol class="board-list" data-board-list></ol>
@@ -2272,42 +2272,42 @@
            static/onchain/radar.js. Sopra c'e' solo il saldo ("il saldo va
            bene inserirlo in cima, il resto poi"). -->
       <section class="radar" id="radar" data-loading>
-        <header><h3><span class="radar-dot" aria-hidden="true"></span>Gemme · scanner h24</h3><span data-radar-clock></span></header>
+        <header><h3><span class="radar-dot" aria-hidden="true"></span>Gems · 24/7 scanner</h3><span data-radar-clock></span></header>
         <div class="radar-grid">
           <div class="radar-col">
             <div class="radar-new" data-radar-new>
-              <h4>Appena usciti</h4>
+              <h4>Just launched</h4>
               <div class="radar-pulse" data-radar-pulse hidden>
                 <span class="rp-scan" aria-hidden="true"></span>
-                <p><span data-pulse-now>In ascolto</span></p>
-                <p class="rp-stats"><b data-pulse-arrivals>0</b> nuovi in 10 min<span data-pulse-last></span> · <b data-pulse-rejected>0</b> scartati</p>
+                <p><span data-pulse-now>Listening</span></p>
+                <p class="rp-stats"><b data-pulse-arrivals>0</b> new in 10 min<span data-pulse-last></span> · <b data-pulse-rejected>0</b> rejected</p>
               </div>
-              <p class="radar-empty" data-radar-new-empty>Nessuno ha passato il filtro</p>
+              <p class="radar-empty" data-radar-new-empty>Nothing passed the filter</p>
               <ul></ul>
               <button type="button" class="rj-more" data-listings-more hidden></button>
             </div>
-            <h4 class="radar-sub">Proposte</h4>
+            <h4 class="radar-sub">Picks</h4>
             <ul data-radar-list></ul>
             <p class="radar-foot" data-radar-foot></p>
           </div>
           <div class="radar-stage" data-radar-stage></div>
         </div>
         <div class="radar-rejected" data-radar-rejected hidden>
-          <h4 class="radar-sub">Scartati dal filtro <span data-rejected-count></span></h4>
+          <h4 class="radar-sub">Rejected by filter <span data-rejected-count></span></h4>
           <ul></ul>
           <button type="button" class="rj-more" data-rejected-more hidden></button>
         </div>
         <!-- La memoria: cosa e' successo davvero ai token visti (outcomes.py). -->
         <div class="radar-log" data-radar-memory hidden>
-          <h4 class="radar-sub">Memoria <span data-memory-count></span></h4>
+          <h4 class="radar-sub">Track record <span data-memory-count></span></h4>
           <p class="radar-foot" data-memory-line></p>
           <ul></ul>
         </div>
         <!-- Richiesta: "crea sezione ironica dove ci andranno a finire tutte le
              inculate subite". I rug passati dal filtro (outcomes.shame). -->
         <div class="radar-log radar-shame" data-radar-shame hidden>
-          <h4 class="radar-sub">Muro delle inculate <span data-shame-count></span></h4>
-          <p class="radar-foot">Promossi a pieni voti, spariti col malloppo. Da qui non escono più.</p>
+          <h4 class="radar-sub">Wall of Rugs <span data-shame-count></span></h4>
+          <p class="radar-foot">Passed with flying colors, then ran with the bag. They never leave this wall.</p>
           <ul></ul>
         </div>
       </section>
@@ -2316,32 +2316,32 @@
            tasti". Un interruttore, una riga di stato, i token che segue.
            Il contenuto lo disegna static/onchain/pilot.js. -->
       <section class="memes" id="memes" data-loading>
-        <p class="risk-banner" role="note"><b>Zona degen.</b> Token nati da minuti, liquidità sottile, rug dietro l'angolo. Gioca solo soldi che puoi bruciare.</p>
-        <header><h3><span class="radar-dot" aria-hidden="true"></span>Meme · pronti a esplodere</h3><span data-memes-meta></span></header>
+        <p class="risk-banner" role="note"><b>Degen zone.</b> Tokens minutes old, thin liquidity, rugs around every corner. Only play with money you can burn.</p>
+        <header><h3><span class="radar-dot" aria-hidden="true"></span>Memes · ready to pump</h3><span data-memes-meta></span></header>
         <ol class="memes-list" data-memes-list></ol>
-        <p class="memes-empty" data-memes-empty hidden>Niente di giocabile adesso. Il radar gira h24: torna tra poco.</p>
+        <p class="memes-empty" data-memes-empty hidden>Nothing worth a bet right now. The radar runs 24/7: check back soon.</p>
       </section>
 
       <section class="pilot" id="pilot" data-tone="off">
         <div class="pilot-main">
-          <div class="pilot-card"><p class="pilot-line"><small>Leggo il pilota…</small></p></div>
+          <div class="pilot-card"><p class="pilot-line"><small>Loading autopilot…</small></p></div>
           <button type="button" class="pilot-toggle" data-pilot-toggle role="switch" aria-checked="false">
-            <span><b>Pilota automatico</b><small></small></span>
+            <span><b>Autopilot</b><small></small></span>
             <span class="pilot-switch" aria-hidden="true"></span>
           </button>
           <div class="pilot-intro" hidden>
-            <h2>Il pilota compra solo quando la strategia lo dice.</h2>
-            <p>Cerca i token nuovi, li segue con la strategia Trend EMA e ti mostra ogni decisione. Questi sono i suoi limiti:</p>
+            <h2>Autopilot only buys when the strategy says so.</h2>
+            <p>It hunts new tokens, tracks them with the Trend EMA strategy and shows you every call. These are its limits:</p>
             <ul class="pilot-rules" data-rules></ul>
           </div>
         </div>
         <div class="pilot-side">
           <div class="pilot-feed" hidden>
-            <header><h3>Cosa sta guardando</h3><span data-updated></span></header>
+            <header><h3>Watching now</h3><span data-updated></span></header>
             <ul></ul>
           </div>
           <div class="pilot-rejected" hidden>
-            <header><h3>Scartati di recente</h3></header>
+            <header><h3>Recently rejected</h3></header>
             <ul></ul>
           </div>
         </div>
@@ -2358,7 +2358,7 @@
         <section class="order-panel">
           <div class="mo-side-tabs" id="order-tabs" role="tablist">
             <button type="button" class="mo-side-tab mo-tab-active" data-order-tab="swap" role="tab" aria-selected="true">Swap</button>
-            <button type="button" class="mo-side-tab" data-order-tab="limit" role="tab" aria-selected="false">Limite</button>
+            <button type="button" class="mo-side-tab" data-order-tab="limit" role="tab" aria-selected="false">Limit</button>
             <button type="button" class="mo-side-tab" data-order-tab="sniper" role="tab" aria-selected="false">Sniper</button>
           </div>
           <div id="order-panel-body"></div>
@@ -2366,9 +2366,9 @@
           <div class="sniper-box">
             <div class="head">
               <b>Sniper → Trend EMA (trend-following)</b>
-              <button type="button" class="switch" id="sniper-toggle" role="switch" aria-checked="false" aria-label="Attiva l'auto-trade sniper su questa chain"></button>
+              <button type="button" class="switch" id="sniper-toggle" role="switch" aria-checked="false" aria-label="Toggle sniper auto-trade on this chain"></button>
             </div>
-            <p>Ogni nuovo token scoperto su questa chain con liquidità &gt; $3.000 ed età &lt; 72h entra in watchlist con la strategia attiva. L'esecuzione resta soggetta ai tetti di rischio e al circuit breaker.</p>
+            <p>Every new token on this chain with liquidity &gt; $3,000 and age &lt; 72h joins the watchlist with the strategy on. Execution stays capped by risk limits and the circuit breaker.</p>
           </div>
         </section>
       </div>
@@ -2378,39 +2378,39 @@
            invia a portata di pollice. -->
       <section class="wallet-view" id="wallet-view">
         <div class="wallet-actions">
-          <button type="button" data-sheet="receive"><span aria-hidden="true">↓</span>Ricevi</button>
-          <button type="button" data-sheet="send"><span aria-hidden="true">↑</span>Invia</button>
+          <button type="button" data-sheet="receive"><span aria-hidden="true">↓</span>Receive</button>
+          <button type="button" data-sheet="send"><span aria-hidden="true">↑</span>Send</button>
         </div>
       <section class="bottom-panel" id="bottom-panel" hidden>
         <div class="bottom-tabs" id="bottom-tabs" role="tablist">
-          <button type="button" class="mo-side-tab mo-tab-active" data-bottom-tab="positions" role="tab" aria-selected="true">Saldi</button>
-          <button type="button" class="mo-side-tab" data-bottom-tab="orders" role="tab" aria-selected="false">Ordini aperti</button>
-          <button type="button" class="mo-side-tab" data-bottom-tab="history" role="tab" aria-selected="false">Storico</button>
-          <button type="button" class="mo-side-tab" data-bottom-tab="strategies" role="tab" aria-selected="false">Strategie</button>
+          <button type="button" class="mo-side-tab mo-tab-active" data-bottom-tab="positions" role="tab" aria-selected="true">Balances</button>
+          <button type="button" class="mo-side-tab" data-bottom-tab="orders" role="tab" aria-selected="false">Open orders</button>
+          <button type="button" class="mo-side-tab" data-bottom-tab="history" role="tab" aria-selected="false">History</button>
+          <button type="button" class="mo-side-tab" data-bottom-tab="strategies" role="tab" aria-selected="false">Strategies</button>
         </div>
         <div class="bottom-panel-body" id="bottom-panel-body"></div>
       </section>
       </section>
 
       <section class="empty" id="onchain-empty-state" hidden>
-        Nessun wallet <span data-chain-name></span> ancora.
-        <button type="button" class="btn-primary" data-create>Crea wallet</button>
+        No <span data-chain-name></span> wallet yet.
+        <button type="button" class="btn-primary" data-create>Create wallet</button>
       </section>
     </div>
   </div>
   <!-- Tre posti, come un DEX: cosa succede, scambia, cosa ho. Sostituisce
        il menu "⋯" che passava da una vista all'altra. -->
-  <nav class="dock" id="dock" aria-label="Sezioni" hidden>
+  <nav class="dock" id="dock" aria-label="Sections" hidden>
     <span class="dock-thumb" aria-hidden="true"></span>
-    <button type="button" data-go="gems"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4h11L21 9l-9 11L3 9z"/><path d="M3 9h18M9.5 4 12 20M14.5 4 12 20"/></svg><span>Gemme</span></button>
-    <button type="button" data-go="meme"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18 6"/></svg><span>Meme</span></button>
-    <button type="button" data-go="manual"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v15M3.5 15.5 7 19l3.5-3.5M17 20V5m-3.5 3.5L17 5l3.5 3.5"/></svg><span>Scambia</span></button>
-    <button type="button" data-go="wallet"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6" width="17" height="13" rx="3"/><path d="M3.5 10h17M16 14.5h1.5"/></svg><span>Portafoglio</span></button>
+    <button type="button" data-go="gems"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4h11L21 9l-9 11L3 9z"/><path d="M3 9h18M9.5 4 12 20M14.5 4 12 20"/></svg><span>Gems</span></button>
+    <button type="button" data-go="meme"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18 6"/></svg><span>Memes</span></button>
+    <button type="button" data-go="manual"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v15M3.5 15.5 7 19l3.5-3.5M17 20V5m-3.5 3.5L17 5l3.5 3.5"/></svg><span>Swap</span></button>
+    <button type="button" data-go="wallet"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6" width="17" height="13" rx="3"/><path d="M3.5 10h17M16 14.5h1.5"/></svg><span>Wallet</span></button>
   </nav>
   <div class="toast" id="toast" role="status" hidden>
     <span class="toast-mark" aria-hidden="true">✓</span>
     <span><span class="toast-title"></span><span class="toast-detail"></span></span>
-    <button type="button" class="toast-close" aria-label="Chiudi">✕</button>
+    <button type="button" class="toast-close" aria-label="Close">✕</button>
   </div>
 
   <dialog class="sheet" id="sheet">
@@ -2418,27 +2418,27 @@
     <h2 class="sheet-title"></h2>
     <p class="sheet-desc"></p>
     <div class="sheet-body"></div>
-    <button type="button" class="btn-quiet sheet-close">Chiudi</button>
+    <button type="button" class="btn-quiet sheet-close">Close</button>
   </dialog>
 
   <!-- Menu "⋯": le azioni che non servono a ogni visita (ricevi, invia,
        limiti, simula, chiave) stanno qui invece che sempre a schermo.
        Richiesta: "rendere l'app completamente minimal e mega moderna? troppi tasti". -->
-  <dialog class="sheet more-sheet" id="more" aria-label="Altre azioni">
+  <dialog class="sheet more-sheet" id="more" aria-label="More actions">
     <div class="grip" aria-hidden="true"></div>
     <div class="menu-list" id="actions" hidden>
-      <button type="button" class="menu-item" data-sheet="receive"><span class="menu-ic" aria-hidden="true">↓</span><span><b>Ricevi</b><small>Indirizzo e QR del wallet</small></span></button>
-      <button type="button" class="menu-item" data-sheet="send"><span class="menu-ic" aria-hidden="true">↑</span><span><b>Invia</b><small>Manda token a un altro indirizzo</small></span></button>
-      <button type="button" class="menu-item" data-sheet="risk"><span class="menu-ic" aria-hidden="true">◧</span><span><b>Limiti e sicurezza</b><small>Tetti di spesa, circuit breaker</small></span></button>
-      <button type="button" class="menu-item" data-sheet="simulate"><span class="menu-ic" aria-hidden="true">▶</span><span><b>Simula</b><small>Prova un ordine senza firmare</small></span></button>
+      <button type="button" class="menu-item" data-sheet="receive"><span class="menu-ic" aria-hidden="true">↓</span><span><b>Receive</b><small>Wallet address and QR</small></span></button>
+      <button type="button" class="menu-item" data-sheet="send"><span class="menu-ic" aria-hidden="true">↑</span><span><b>Send</b><small>Send tokens to another address</small></span></button>
+      <button type="button" class="menu-item" data-sheet="risk"><span class="menu-ic" aria-hidden="true">◧</span><span><b>Limits &amp; security</b><small>Spend caps, circuit breaker</small></span></button>
+      <button type="button" class="menu-item" data-sheet="simulate"><span class="menu-ic" aria-hidden="true">▶</span><span><b>Simulate</b><small>Test an order without signing</small></span></button>
     </div>
     <button type="button" class="reveal-row" id="reveal-row" hidden>
-      <span class="t"><b>Rivela chiave privata</b><small>Serve il tuo telefono — mai solo da questa pagina</small></span>
+      <span class="t"><b>Reveal private key</b><small>Needs your phone, never this page alone</small></span>
       <span class="chev">›</span>
     </button>
   </dialog>
 
-  <dialog class="sheet pilot-sheet" id="pilot-sheet" aria-label="Diagnosi del pilota">
+  <dialog class="sheet pilot-sheet" id="pilot-sheet" aria-label="Autopilot diagnostics">
     <div class="grip" aria-hidden="true"></div>
     <div class="pilot-sheet-body"></div>
   </dialog>
@@ -2449,9 +2449,9 @@
 
   <dialog class="sheet" id="picker">
     <div class="grip" aria-hidden="true"></div>
-    <h2 class="sheet-title">Cerca token</h2>
+    <h2 class="sheet-title">Search token</h2>
     <div class="sheet-body"></div>
-    <button type="button" class="btn-quiet sheet-close">Chiudi</button>
+    <button type="button" class="btn-quiet sheet-close">Close</button>
   </dialog>
 
   <!--onchain-boot-->

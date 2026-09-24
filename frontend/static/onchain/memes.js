@@ -37,7 +37,7 @@ async function refresh() {
     delete root.dataset.loading;
     root.querySelector("[data-memes-list]").innerHTML = items.map(row).join("");
     root.querySelector("[data-memes-empty]").hidden = items.length > 0;
-    root.querySelector("[data-memes-meta]").textContent = items.length ? `${items.length} in pista` : "";
+    root.querySelector("[data-memes-meta]").textContent = items.length ? `${items.length} on the runway` : "";
   } catch {
     // Like the radar: if the server does not answer, keep what is on screen.
   }

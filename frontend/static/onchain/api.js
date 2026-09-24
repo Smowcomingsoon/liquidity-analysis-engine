@@ -40,13 +40,13 @@ async function send(path, { method = "GET", body, timeoutMs = DEFAULT_TIMEOUT_MS
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (cause) {
-    throw new ApiError(cause.name === "TimeoutError" ? "rete lenta" : "rete non raggiungibile", { cause });
+    throw new ApiError(cause.name === "TimeoutError" ? "network is slow" : "network unreachable", { cause });
   }
 
   let payload = null;
   try { payload = await response.json(); } catch { /* 204, o una risposta non-JSON */ }
 
-  if (!response.ok) throw new ApiError(payload?.detail || `errore ${response.status}`);
+  if (!response.ok) throw new ApiError(payload?.detail || `error ${response.status}`);
   return payload;
 }
 

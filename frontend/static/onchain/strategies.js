@@ -15,6 +15,7 @@
 import * as api from "@onchain/api.js";
 import { ApiError } from "@onchain/api.js";
 import { state } from "@onchain/store.js";
+import { escapeHtml, strategyLabel } from "@onchain/format.js";
 
 function parseChainFromSymbol(symbol) {
   const m = /^.+@([a-z]+):.+$/.exec(symbol);
@@ -23,20 +24,20 @@ function parseChainFromSymbol(symbol) {
 
 export async function mountStrategies(container) {
   const chain = state.chain;
-  container.innerHTML = "<p class='sheet-note'>Leggo la watchlist…</p>";
+  container.innerHTML = "<p class='sheet-note'>Loading watchlist…</p>";
 
   let strategies = [];
   let entries = [];
   try {
     [strategies, entries] = await Promise.all([api.getStrategies(), api.getWatchlist()]);
   } catch (error) {
-    container.innerHTML = `<p class="sheet-note is-error">${error instanceof ApiError ? error.message : "Errore inatteso."}</p>`;
+    container.innerHTML = `<p class="sheet-note is-error">${error instanceof ApiError ? error.message : "Unexpected error."}</p>`;
     return;
   }
 
   const onchainEntries = entries.filter((e) => e.base_token_address && parseChainFromSymbol(e.symbol) === chain);
   container.innerHTML = `
-    <p class="swap-detail">Per aggiungere un nuovo token usa la ricerca nella tab Watchlist del sito — qui attivi solo quelli gia' presenti.</p>
+    <p class="swap-detail">To add a new token, use search in the site's Watchlist tab — here you can only toggle the ones already there.</p>
     <ul id="strategies-list" class="tx-list"></ul>
   `;
   paintList(container, onchainEntries, strategies);
@@ -46,7 +47,7 @@ function paintList(container, entries, strategies) {
   const list = container.querySelector("#strategies-list");
   if (!list) return;
   if (!entries.length) {
-    list.innerHTML = "<li>Nessun token di questa chain in watchlist ancora.</li>";
+    list.innerHTML = "<li>No tokens from this chain in your watchlist yet.</li>";
     return;
   }
   list.innerHTML = entries.map((entry) => `
@@ -56,7 +57,7 @@ function paintList(container, entries, strategies) {
         ${strategies.map((name) => `
           <label class="mo-radio-label" style="display:flex;align-items:center;gap:4px">
             <input type="checkbox" data-auto-trade="${entry.id}:${name}" ${entry.auto_trade?.[name] ? "checked" : ""} />
-            ${name}
+            ${escapeHtml(strategyLabel(name))}
           </label>`).join("")}
       </div>
       <p class="swap-detail" data-entry-error="${entry.id}" hidden></p>
@@ -78,7 +79,7 @@ function paintList(container, entries, strategies) {
         if (errorEl) {
           errorEl.hidden = false;
           errorEl.classList.add("is-warn");
-          errorEl.textContent = error instanceof ApiError ? error.message : "Errore inatteso.";
+          errorEl.textContent = error instanceof ApiError ? error.message : "Unexpected error.";
         }
       } finally {
         box.disabled = false;

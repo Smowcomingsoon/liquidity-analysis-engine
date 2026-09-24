@@ -34,7 +34,7 @@ def test_rejected_by_per_trade_cap_never_touches_the_ledger(tmp_path, monkeypatc
     _fresh_db(tmp_path, monkeypatch)
     result = _run(simulate.simulate_order("u1", "solana", "TOKEN", "lorenzo", "buy", 999.0, 0.5, 2.0))
     assert result["accepted"] is False
-    assert "tetto per operazione" in result["reason"]
+    assert "per-trade cap" in result["reason"]
     assert result["idempotency_key"] is None
     assert ledger.get_position("u1", "solana", "TOKEN") == {"quantity": 0.0, "cost_usd": 0.0}
 

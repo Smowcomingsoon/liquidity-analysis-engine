@@ -33,7 +33,7 @@ def generate(chain: OnchainChain) -> NewKey:
         # chiave di qualunque altra chain EVM, nessun adattamento specifico.
         acct = Account.create()
         return NewKey(address=acct.address, private_key_hex=acct.key.hex())
-    raise ValueError(f"Chain non supportata: {chain}")
+    raise ValueError(f"Unsupported chain: {chain}")
 
 
 def to_import_format(chain: OnchainChain, private_key_hex: str) -> str:
@@ -46,7 +46,7 @@ def to_import_format(chain: OnchainChain, private_key_hex: str) -> str:
         return base58.b58encode(bytes.fromhex(private_key_hex)).decode()
     if chain == "robinhood":
         return private_key_hex if private_key_hex.startswith("0x") else f"0x{private_key_hex}"
-    raise ValueError(f"Chain non supportata: {chain}")
+    raise ValueError(f"Unsupported chain: {chain}")
 
 
 def address_from_private_key(chain: OnchainChain, private_key_hex: str) -> str:
@@ -57,4 +57,4 @@ def address_from_private_key(chain: OnchainChain, private_key_hex: str) -> str:
         return str(Keypair.from_bytes(bytes.fromhex(private_key_hex)).pubkey())
     if chain == "robinhood":
         return Account.from_key(private_key_hex).address
-    raise ValueError(f"Chain non supportata: {chain}")
+    raise ValueError(f"Unsupported chain: {chain}")

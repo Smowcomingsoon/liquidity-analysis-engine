@@ -82,9 +82,9 @@ def _trades_sheet(wb: Workbook, title: str, trades: list, initial_capital: float
     cui si esporta.
     """
     ws = wb.create_sheet(title)
-    _sheet_header(ws, 1, ["#", "Direzione", "Entrata", "Uscita", "Giorni",
-                          "Prezzo entrata", "Prezzo uscita", "P&L %", "P&L",
-                          "Capitale dopo", "P&L cumulato"])
+    _sheet_header(ws, 1, ["#", "Direction", "Entry", "Exit", "Days",
+                          "Entry price", "Exit price", "P&L %", "P&L",
+                          "Equity after", "Cumulative P&L"])
     for i, t in enumerate(trades, start=1):
         r = i + 1
         entry, exit_ = _ts(t.entry_time), _ts(t.exit_time)
@@ -117,7 +117,7 @@ def _trades_sheet(wb: Workbook, title: str, trades: list, initial_capital: float
     last = len(trades) + 1
     if trades:
         r = last + 1
-        ws.cell(row=r, column=1, value="Totale").font = _LABEL
+        ws.cell(row=r, column=1, value="Total").font = _LABEL
         c = ws.cell(row=r, column=9, value=f"=SUM(I2:I{last})")
         c.font = _LABEL
         c.number_format = _MONEY
@@ -137,9 +137,9 @@ def _pnl_chart(ws, last_row: int, anchor: str) -> None:
         return
     ch = BarChart()
     ch.type = "col"
-    ch.title = "Risultato per operazione"
+    ch.title = "Result per trade"
     ch.y_axis.title = "P&L"
-    ch.x_axis.title = "Operazione"
+    ch.x_axis.title = "Trade"
     ch.height, ch.width = 7.5, 24
     ch.add_data(Reference(ws, min_col=9, min_row=1, max_row=last_row), titles_from_data=True)
     ch.set_categories(Reference(ws, min_col=1, min_row=2, max_row=last_row))
@@ -160,17 +160,17 @@ def build_backtest_workbook(
 
     # --- Riepilogo ---------------------------------------------------------
     ws = wb.active
-    ws.title = "Riepilogo"
+    ws.title = "Summary"
     ws["A1"] = "Backtest"
     ws["A1"].font = Font(name=_FONT, bold=True, size=14)
     rows = [
-        ("Coppia", symbol.upper()),
-        ("Strategia", strategy_name),
-        ("Timeframe del backtest", bt.interval),
-        ("Timeframe del grafico", chart_interval),
-        ("Dal", _ts(bt.data_start)),
-        ("Al", _ts(bt.data_end)),
-        ("Esportato il", datetime.now(tz=timezone.utc).replace(tzinfo=None)),
+        ("Pair", symbol.upper()),
+        ("Strategy", strategy_name),
+        ("Backtest timeframe", bt.interval),
+        ("Chart timeframe", chart_interval),
+        ("From", _ts(bt.data_start)),
+        ("To", _ts(bt.data_end)),
+        ("Exported on", datetime.now(tz=timezone.utc).replace(tzinfo=None)),
     ]
     r = 3
     for label, value in rows:
@@ -182,19 +182,19 @@ def build_backtest_workbook(
         r += 1
 
     r += 1
-    ws.cell(row=r, column=1, value="Risultato").font = Font(name=_FONT, bold=True, size=12)
+    ws.cell(row=r, column=1, value="Result").font = Font(name=_FONT, bold=True, size=12)
     r += 1
     n = bt.num_trades
     # I totali sono formule sul foglio delle operazioni: cancellando righe il
     # riepilogo segue, invece di restare a raccontare un file che non esiste piu'.
     metrics = [
-        ("Capitale iniziale", bt.initial_capital, _MONEY, True),
-        ("Capitale finale", f"=B{r}+Trade!I{n + 2}" if n else bt.final_equity, _MONEY, False),
-        ("Rendimento", f"=IF(B{r}<>0,B{r + 1}/B{r}-1,\"\")", _PCT, False),
-        ("Operazioni", f"=COUNT(Trade!A2:A{n + 1})" if n else 0, "0", False),
-        ("Vincenti", f"=COUNTIF(Trade!I2:I{n + 1},\">0\")" if n else 0, "0", False),
+        ("Initial capital", bt.initial_capital, _MONEY, True),
+        ("Final capital", f"=B{r}+Trade!I{n + 2}" if n else bt.final_equity, _MONEY, False),
+        ("Return", f"=IF(B{r}<>0,B{r + 1}/B{r}-1,\"\")", _PCT, False),
+        ("Trades", f"=COUNT(Trade!A2:A{n + 1})" if n else 0, "0", False),
+        ("Winners", f"=COUNTIF(Trade!I2:I{n + 1},\">0\")" if n else 0, "0", False),
         ("Win rate", f"=IF(B{r + 3}>0,B{r + 4}/B{r + 3},\"\")" if n else "", _PCT, False),
-        ("Drawdown massimo", float(bt.max_drawdown_pct) / 100.0, _PCT, False),
+        ("Max drawdown", float(bt.max_drawdown_pct) / 100.0, _PCT, False),
         ("Profit factor", bt.profit_factor, "0.00", False),
         ("Sharpe", bt.sharpe_ratio, "0.00", False),
     ]
@@ -206,14 +206,14 @@ def build_backtest_workbook(
         r += 1
 
     r += 1
-    ws.cell(row=r, column=1, value="Parametri della strategia").font = Font(name=_FONT, bold=True, size=12)
+    ws.cell(row=r, column=1, value="Strategy parameters").font = Font(name=_FONT, bold=True, size=12)
     r += 1
     for k, v in (params or {}).items():
         ws.cell(row=r, column=1, value=str(k)).font = _BODY
         ws.cell(row=r, column=2, value=v if isinstance(v, (int, float, str)) else str(v)).font = _INPUT
         r += 1
     r += 1
-    ws.cell(row=r, column=1, value="Parametri del backtest").font = Font(name=_FONT, bold=True, size=12)
+    ws.cell(row=r, column=1, value="Backtest parameters").font = Font(name=_FONT, bold=True, size=12)
     r += 1
     for k, v in (backtest_params or {}).items():
         ws.cell(row=r, column=1, value=str(k)).font = _BODY
@@ -221,7 +221,7 @@ def build_backtest_workbook(
         r += 1
 
     ws.cell(row=r + 1, column=1,
-            value="In blu i valori immessi; il resto sono formule sui fogli Trade ed Equity.").font = _BODY
+            value="Inputs in blue; everything else is formulas on the Trade and Equity sheets.").font = _BODY
     _widths(ws, {1: 30, 2: 26})
 
     # --- Trade -------------------------------------------------------------
@@ -229,13 +229,13 @@ def build_backtest_workbook(
     _pnl_chart(ws_tr, last, "M2")
 
     if bt.oos_trades:
-        ws_oos, last_oos = _trades_sheet(wb, "Trade fuori campione", bt.oos_trades,
+        ws_oos, last_oos = _trades_sheet(wb, "Out-of-sample trades", bt.oos_trades,
                                          bt.initial_capital)
         _pnl_chart(ws_oos, last_oos, "M2")
 
     # --- Equity ------------------------------------------------------------
     ws_eq = wb.create_sheet("Equity")
-    _sheet_header(ws_eq, 1, ["Data", "Capitale", "Massimo raggiunto", "Drawdown"])
+    _sheet_header(ws_eq, 1, ["Date", "Equity", "Peak", "Drawdown"])
     curve = bt.equity_curve or []
     for i, (t, v) in enumerate(curve, start=2):
         c = ws_eq.cell(row=i, column=1, value=_ts(t))
@@ -257,9 +257,9 @@ def build_backtest_workbook(
     if len(curve) > 1:
         last_eq = len(curve) + 1
         ch = LineChart()
-        ch.title = f"Capitale — {symbol.upper()} · {strategy_name}"
-        ch.y_axis.title = "Capitale"
-        ch.x_axis.title = "Data"
+        ch.title = f"Equity — {symbol.upper()} · {strategy_name}"
+        ch.y_axis.title = "Equity"
+        ch.x_axis.title = "Date"
         ch.height, ch.width = 9, 26
         ch.add_data(Reference(ws_eq, min_col=2, min_row=1, max_row=last_eq), titles_from_data=True)
         ch.add_data(Reference(ws_eq, min_col=3, min_row=1, max_row=last_eq), titles_from_data=True)
@@ -267,7 +267,7 @@ def build_backtest_workbook(
         ws_eq.add_chart(ch, "F2")
 
         dd = LineChart()
-        dd.title = "Calo dal massimo"
+        dd.title = "Drawdown from peak"
         dd.height, dd.width = 6, 26
         dd.add_data(Reference(ws_eq, min_col=4, min_row=1, max_row=last_eq), titles_from_data=True)
         dd.set_categories(Reference(ws_eq, min_col=1, min_row=2, max_row=last_eq))

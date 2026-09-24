@@ -24,23 +24,23 @@ _API_KEY_HEADER = {
 # grezzo resta comunque nel messaggio: e' quello che serve per capire il caso
 # che qui non e' previsto.
 _HINTS = {
-    "api key required": "la chiave non e' arrivata all'exchange",
-    "signature for this request is not valid": "il secret non corrisponde alla chiave",
-    "invalid api key": "chiave non valida, o non abilitata al trading spot",
-    "api key info invalid": "chiave non valida per questo exchange",
-    "invalid symbol": "questo pair non esiste su questo exchange",
-    "oversold": "saldo insufficiente per l'importo richiesto",
-    "insufficient position": "saldo insufficiente per l'importo richiesto",
-    "not authorized": "alla chiave manca il permesso di fare ordini (spot trading)",
+    "api key required": "the key never reached the exchange",
+    "signature for this request is not valid": "the secret does not match the key",
+    "invalid api key": "invalid key, or not enabled for spot trading",
+    "api key info invalid": "invalid key for this exchange",
+    "invalid symbol": "this pair does not exist on this exchange",
+    "oversold": "insufficient balance for the requested amount",
+    "insufficient position": "insufficient balance for the requested amount",
+    "not authorized": "the key lacks order permission (spot trading)",
     # Non "ip" e basta: comparirebbe dentro parole qualunque del messaggio.
-    "ip white": "l'indirizzo del server non e' fra quelli ammessi dalla chiave",
-    "ip address": "l'indirizzo del server non e' fra quelli ammessi dalla chiave",
+    "ip white": "the server IP is not whitelisted for this key",
+    "ip address": "the server IP is not whitelisted for this key",
     # MEXC risponde cosi' quando la chiave puo' fare ordini ma non puo'
     # leggere il saldo — succede solo con "% saldo" (che deve leggerlo prima
     # di calcolare quanto ordinare), mai con un importo fisso, che salta
     # questo passaggio: da qui il sintomo "fisso funziona, percentuale no".
-    "no authority": "alla chiave manca il permesso di lettura saldo (account) — serve oltre a quello di trading",
-    "no permission to access the endpoint": "alla chiave manca il permesso di lettura saldo (account) — serve oltre a quello di trading",
+    "no authority": "the key lacks balance-read (account) permission — needed on top of trading",
+    "no permission to access the endpoint": "the key lacks balance-read (account) permission — needed on top of trading",
 }
 
 
@@ -80,7 +80,7 @@ async def place_order(
     max_usdt: float | None = None,
 ) -> dict:
     if exchange not in _API_KEY_HEADER:
-        raise RuntimeError(f"Exchange non gestito da questo esecutore: {exchange}")
+        raise RuntimeError(f"Exchange not handled by this executor: {exchange}")
     base_url = BINANCE_BASE if exchange == "binance" else MEXC_BASE
     headers = {_API_KEY_HEADER[exchange]: api_key}
 
@@ -114,7 +114,7 @@ async def place_order(
                     raise _explain(exchange, "price", price_resp.text)
                 price = float(price_resp.json()["price"])
                 if price <= 0:
-                    raise RuntimeError("Prezzo di mercato non disponibile per questo simbolo")
+                    raise RuntimeError("Market price not available for this symbol")
                 qty = quote_qty / price
                 order_params["quantity"] = f"{qty:.6f}".rstrip("0").rstrip(".")
             else:
@@ -136,7 +136,7 @@ async def place_order(
                 free = balances.get(base, 0.0)
                 qty = free * size_value / 100
             if qty <= 0:
-                raise RuntimeError("Quantità calcolata zero o negativa — saldo insufficiente o prezzo non disponibile")
+                raise RuntimeError("Computed quantity is zero or negative — insufficient balance or price unavailable")
             order_params["quantity"] = f"{qty:.6f}".rstrip("0").rstrip(".")
 
         signed_qs = _sign(api_secret, order_params)

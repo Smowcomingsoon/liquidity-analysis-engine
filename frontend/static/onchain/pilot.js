@@ -32,15 +32,15 @@ let busy = false;
 const ago = (ts) => {
   if (!ts) return null;
   const s = Math.max(0, Math.round(Date.now() / 1000 - ts));
-  if (s < 60) return `${s} s fa`;
-  if (s < 3600) return `${Math.round(s / 60)} min fa`;
-  if (s < 86400) return `${Math.round(s / 3600)} h fa`;
-  return `${Math.round(s / 86400)} g fa`;
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  return `${Math.round(s / 86400)}d ago`;
 };
 const until = (ts) => {
   const s = Math.round(ts - Date.now() / 1000);
-  if (s <= 0) return "a momenti";
-  return s < 60 ? `tra ${s} s` : `tra ${Math.round(s / 60)} min`;
+  if (s <= 0) return "any moment";
+  return s < 60 ? `in ${s}s` : `in ${Math.round(s / 60)} min`;
 };
 const money = (v) => (v == null ? "—" : formatUsd(v));
 // Limiti e budget sono cifre tonde: "$50", non "$50.00".
@@ -89,7 +89,7 @@ export async function refreshPilot() {
     if (chain !== state.chain) return;
     data = null;
     root.querySelector(".pilot-card").innerHTML =
-      `<p class="pilot-error">${escapeHtml(error instanceof ApiError ? error.message : "Non riesco a leggere il pilota.")}</p>`;
+      `<p class="pilot-error">${escapeHtml(error instanceof ApiError ? error.message : "Can't read the autopilot.")}</p>`;
   }
   // Si aggiorna da solo solo mentre si guarda: in background non serve.
   if (document.visibilityState === "visible" && !root.closest("[hidden]")) {
@@ -102,12 +102,12 @@ export async function refreshPilot() {
 function headline() {
   const { label } = chainInfo();
   if (!data.enabled) {
-    return { tone: "off", title: "Pilota spento", sub: `Non compra niente da solo su ${label}` };
+    return { tone: "off", title: "Autopilot off", sub: `Not buying anything on its own on ${label}` };
   }
   const blocker = data.health.find((h) => !h.ok);
-  if (blocker) return { tone: "warn", title: "Acceso, ma fermo", sub: `${blocker.label}: ${blocker.detail}` };
-  if (!data.scan.last_at) return { tone: "live", title: "Il pilota sta partendo", sub: "Primo giro di controllo a momenti" };
-  return { tone: "live", title: "Il pilota sta lavorando", sub: null };
+  if (blocker) return { tone: "warn", title: "On, but stuck", sub: `${blocker.label}: ${blocker.detail}` };
+  if (!data.scan.last_at) return { tone: "live", title: "Autopilot warming up", sub: "First scan any moment now" };
+  return { tone: "live", title: "Autopilot is hunting", sub: null };
 }
 
 function paint() {
@@ -116,7 +116,7 @@ function paint() {
   root.dataset.tone = head.tone;
 
   root.querySelector(".pilot-card").innerHTML = `
-    <button type="button" class="pilot-status" data-pilot-status aria-label="Stato del pilota, apri i dettagli">
+    <button type="button" class="pilot-status" data-pilot-status aria-label="Autopilot status, open details">
       <span class="pilot-dot" aria-hidden="true"></span>
       <span class="pilot-line">
         <b>${escapeHtml(head.title)}</b>
@@ -125,33 +125,33 @@ function paint() {
       <span class="pilot-chev" aria-hidden="true">›</span>
     </button>
     <dl class="pilot-stats">
-      <div><dt>Sotto controllo</dt><dd>${tokens.length}</dd></div>
-      <div><dt>Esaminati oggi</dt><dd>${scan.seen_today}</dd></div>
-      <div><dt>Spesi oggi</dt><dd>${whole(limits.spent_today_usd)}<span> / ${whole(limits.daily_usd)}</span></dd></div>
+      <div><dt>Watching</dt><dd>${tokens.length}</dd></div>
+      <div><dt>Scanned today</dt><dd>${scan.seen_today}</dd></div>
+      <div><dt>Spent today</dt><dd>${whole(limits.spent_today_usd)}<span> / ${whole(limits.daily_usd)}</span></dd></div>
     </dl>
     <span class="pilot-scan" aria-hidden="true"></span>`;
 
   const toggleEl = root.querySelector("[data-pilot-toggle]");
   toggleEl.setAttribute("aria-checked", String(data.enabled));
   toggleEl.querySelector("small").textContent = data.enabled
-    ? `Compra da solo, al massimo ${whole(limits.per_trade_usd)} per volta e ${whole(limits.daily_usd)} al giorno`
-    : "Spento: non compra niente da solo. Le posizioni aperte si chiudono comunque";
+    ? `Buys on its own, max ${whole(limits.per_trade_usd)} per trade and ${whole(limits.daily_usd)} per day`
+    : "Off: buys nothing on its own. Open positions still get closed";
 
   const intro = root.querySelector(".pilot-intro");
   intro.hidden = data.enabled || tokens.length > 0;
   intro.querySelector("[data-rules]").innerHTML = `
-    <li><span>Per ogni acquisto</span><b>${whole(limits.per_trade_usd)}</b></li>
-    <li><span>Al giorno</span><b>${whole(limits.daily_usd)}</b></li>
-    <li><span>Token nuovi</span><b>liquidità &gt; ${compact(data.filters.min_liquidity_usd)} · età &lt; ${hours(data.filters.max_age_hours)}</b></li>
-    <li><span>Strategia</span><b>${escapeHtml(strategyLabel(data.strategy))}</b></li>`;
+    <li><span>Per buy</span><b>${whole(limits.per_trade_usd)}</b></li>
+    <li><span>Per day</span><b>${whole(limits.daily_usd)}</b></li>
+    <li><span>New tokens</span><b>liquidity &gt; ${compact(data.filters.min_liquidity_usd)} · age &lt; ${hours(data.filters.max_age_hours)}</b></li>
+    <li><span>Strategy</span><b>${escapeHtml(strategyLabel(data.strategy))}</b></li>`;
 
   const feed = root.querySelector(".pilot-feed");
   feed.hidden = !data.enabled && tokens.length === 0;
   const known = new Set([...feed.querySelectorAll("[data-token]")].map((li) => li.dataset.token));
   feed.querySelector("ul").innerHTML = tokens.length
     ? tokens.map((t) => row(t, !known.has(t.watch_symbol) && known.size > 0)).join("")
-    : `<li class="pilot-empty">Ancora nessun token. Al prossimo giro guardo i nuovi arrivi su ${escapeHtml(chainInfo().label)}.</li>`;
-  feed.querySelector("[data-updated]").textContent = "aggiornato ora";
+    : `<li class="pilot-empty">No tokens yet. Next scan checks fresh launches on ${escapeHtml(chainInfo().label)}.</li>`;
+  feed.querySelector("[data-updated]").textContent = "updated just now";
 
   const rejected = root.querySelector(".pilot-rejected");
   rejected.hidden = !data.enabled || data.rejected.length === 0;
@@ -163,7 +163,7 @@ function paint() {
 
 function row(t, isNew) {
   const detail = t.state === "watch" && t.added_at
-    ? `nuovo · ${ago(t.added_at).replace(" fa", "")} · liq. ${compact(t.liquidity_at_add)}`
+    ? `new · ${ago(t.added_at).replace(" ago", "")} · liq. ${compact(t.liquidity_at_add)}`
     : t.reason;
   const price = t.position ? money(t.position.cost_usd) : t.last_price != null ? `$${formatPrice(t.last_price)}` : "—";
   return `
@@ -182,8 +182,8 @@ function formatPrice(p) {
 
 function clockText() {
   const { last_at: last, next_at: next } = data.scan;
-  if (!last) return "Primo giro di controllo a momenti";
-  return `Ultimo controllo ${ago(last)} · prossimo ${until(next)}`;
+  if (!last) return "First scan any moment now";
+  return `Last check ${ago(last)} · next ${until(next)}`;
 }
 
 function startClock() {
@@ -207,12 +207,12 @@ async function toggle() {
   toggleEl.disabled = true;
   try {
     await api.setSniperAutotrade(state.chain, next);
-    onToast?.(next ? "Pilota acceso" : "Pilota spento",
-      next ? `compra al massimo ${whole(data.limits.per_trade_usd)} per volta` : "non compra più niente da solo");
+    onToast?.(next ? "Autopilot on" : "Autopilot off",
+      next ? `max ${whole(data.limits.per_trade_usd)} per buy` : "no more solo buying");
     onChange?.();
   } catch (error) {
     toggleEl.setAttribute("aria-checked", String(!next));
-    onToast?.("Non riuscito", error instanceof ApiError ? error.message : "errore inatteso");
+    onToast?.("Didn't work", error instanceof ApiError ? error.message : "unexpected error");
   } finally {
     toggleEl.disabled = false;
     busy = false;
@@ -241,41 +241,41 @@ function openToken(symbol) {
   const free = Math.max(0, limits.daily_usd - limits.spent_today_usd);
   const real = data.health.find((h) => h.key === "execution");
   const signals = data.health.find((h) => h.key === "signals");
-  const since = t.added_at ? `In osservazione da ${ago(t.added_at).replace(" fa", "")}` : "Nella watchlist";
+  const since = t.added_at ? `Watching for ${ago(t.added_at).replace(" ago", "")}` : "On the watchlist";
   openSheet(`
     <header class="diag-head">
       <span class="tk" aria-hidden="true">${escapeHtml(t.symbol.slice(0, 2))}</span>
-      <div><h2>${escapeHtml(t.symbol)}</h2><p>${escapeHtml(since)} · candele ${escapeHtml(t.interval)}</p></div>
+      <div><h2>${escapeHtml(t.symbol)}</h2><p>${escapeHtml(since)} · ${escapeHtml(t.interval)} candles</p></div>
     </header>
     <div class="verdict" data-state="${t.state}"><b>${escapeHtml(t.state_label)}</b>${escapeHtml(t.reason)}</div>
     <ul class="checks">
-      ${t.liquidity_at_add != null ? check(t.liquidity_at_add >= filters.min_liquidity_usd, "Liquidità alla scoperta", compact(t.liquidity_at_add)) : ""}
-      ${t.age_at_add != null ? check(t.age_at_add <= filters.max_age_hours, "Età alla scoperta", hours(t.age_at_add)) : ""}
-      ${check(t.last_eval_at ? true : signals.ok ? null : false, "Strategia valutata",
-        t.last_eval_at ? ago(t.last_eval_at) : signals.ok ? "al prossimo giro" : "ferma")}
-      ${check(free >= limits.per_trade_usd, "Budget di oggi", `${whole(free)} liberi`)}
-      ${check(real.ok, "Ordini reali", real.ok ? "abilitati" : "spenti")}
-      ${t.position ? check("info", "Posizione aperta", `${money(t.position.cost_usd)} investiti`) : ""}
+      ${t.liquidity_at_add != null ? check(t.liquidity_at_add >= filters.min_liquidity_usd, "Liquidity when found", compact(t.liquidity_at_add)) : ""}
+      ${t.age_at_add != null ? check(t.age_at_add <= filters.max_age_hours, "Age when found", hours(t.age_at_add)) : ""}
+      ${check(t.last_eval_at ? true : signals.ok ? null : false, "Strategy checked",
+        t.last_eval_at ? ago(t.last_eval_at) : signals.ok ? "next scan" : "stalled")}
+      ${check(free >= limits.per_trade_usd, "Today's budget", `${whole(free)} left`)}
+      ${check(real.ok, "Live orders", real.ok ? "enabled" : "off")}
+      ${t.position ? check("info", "Open position", `${money(t.position.cost_usd)} in`) : ""}
     </ul>
     ${t.events.length ? `<ol class="diag-log">${t.events.map((e) => `
       <li><time>${escapeHtml(ago(e.ts))}</time><span>${escapeHtml(e.text)}</span></li>`).join("")}</ol>` : ""}
-    <button type="button" class="btn-quiet" data-close>Chiudi</button>`);
+    <button type="button" class="btn-quiet" data-close>Close</button>`);
 }
 
 function openHealth() {
   if (!data) return;
   const { scan } = data;
   openSheet(`
-    <header class="diag-head"><div><h2>Come sta il pilota</h2><p>${escapeHtml(chainInfo().label)} · ${escapeHtml(strategyLabel(data.strategy))}</p></div></header>
+    <header class="diag-head"><div><h2>Autopilot health</h2><p>${escapeHtml(chainInfo().label)} · ${escapeHtml(strategyLabel(data.strategy))}</p></div></header>
     <ul class="checks">
-      ${check(data.enabled, "Interruttore", data.enabled ? "acceso" : "spento")}
+      ${check(data.enabled, "Switch", data.enabled ? "on" : "off")}
       ${data.health.map((h) => check(h.ok, h.label, h.detail)).join("")}
     </ul>
     <ul class="checks">
-      ${check(scan.last_at ? true : null, "Ultimo giro dello scanner", scan.last_at ? ago(scan.last_at) : "non ancora")}
-      ${check("info", "Token esaminati oggi", String(scan.seen_today))}
-      ${check("info", "Aggiunti oggi", String(scan.accepted_today))}
-      ${check("info", "Segnali ricontrollati ogni", `${data.signals_every_s} s`)}
+      ${check(scan.last_at ? true : null, "Last scanner run", scan.last_at ? ago(scan.last_at) : "not yet")}
+      ${check("info", "Tokens scanned today", String(scan.seen_today))}
+      ${check("info", "Added today", String(scan.accepted_today))}
+      ${check("info", "Signals rechecked every", `${data.signals_every_s} s`)}
     </ul>
-    <button type="button" class="btn-quiet" data-close>Chiudi</button>`);
+    <button type="button" class="btn-quiet" data-close>Close</button>`);
 }

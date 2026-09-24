@@ -380,7 +380,7 @@ async def _vet(k: str, pending: _Pending, item: dict, pair: dict) -> dict | None
             chart = verdict["status"] == "ok" and await _chart_ready(item)
     except Exception:
         logger.exception("listings: filtro fallito su %s", item["symbol"])
-        verdict, chart = {"status": "wait", "reason": "controllo non riuscito"}, False
+        verdict, chart = {"status": "wait", "reason": "check failed"}, False
     finally:
         pending.vetting = False
     now = time.time()
@@ -393,7 +393,7 @@ async def _vet(k: str, pending: _Pending, item: dict, pair: dict) -> dict | None
     if verdict["status"] == "ok" and not chart:
         pending.verdict = verdict
         pending.next_vet_at = now + CHART_RETRY_S
-        pending.waiting_for = "grafico non ancora disponibile"
+        pending.waiting_for = "chart not available yet"
         return None
     del _pending[k]
     _done[k] = now

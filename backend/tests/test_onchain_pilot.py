@@ -100,11 +100,11 @@ def test_scan_shows_what_was_seen_added_and_rejected(client, monkeypatch):
     assert token["symbol"] == "NEWCOIN"
     assert token["state"] == "watch"
     assert token["liquidity_at_add"] == 5000.0
-    assert token["events"][-1]["text"].startswith("Entrato in osservazione")
+    assert token["events"][-1]["text"].startswith("Added to watch")
 
     [rejected] = body["rejected"]
     assert rejected["symbol"] == "THIN"
-    assert "liquidità" in rejected["reason"]
+    assert "liquidity" in rejected["reason"]
 
 
 def test_second_scan_counts_each_token_once_and_adds_nothing_new(client, monkeypatch):
@@ -130,7 +130,7 @@ def test_skipped_signal_is_shown_with_its_reason(client, monkeypatch):
     [token] = client.get("/api/onchain/pilot/solana").json()["tokens"]
     assert token["state"] == "blocked"
     assert token["reason"] == "tetto giornaliero raggiunto"
-    assert any(e["text"].startswith("Segnale di acquisto: saltato") for e in token["events"])
+    assert any(e["text"].startswith("buy signal: skipped") for e in token["events"])
 
 
 def test_evaluation_time_is_reported(client, monkeypatch):

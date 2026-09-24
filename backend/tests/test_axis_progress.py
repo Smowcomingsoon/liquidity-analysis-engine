@@ -62,8 +62,8 @@ def test_a_slow_axis_reports_progress_before_it_finishes():
         df, "Lorenzo (trend-follower)", _busy_len_axis(), {},
         np.array([[0.5]]), coarse=12, progress=log.append, counter=counter,
     )
-    mid = [m for m in log if "ancora al lavoro" in m]
-    final = [m for m in log if m.startswith("asse len:")]
+    mid = [m for m in log if "still working" in m]
+    final = [m for m in log if m.startswith("axis len:")]
     assert final, "la riga finale dell'asse deve comunque arrivare"
     if counter["n"] > 12:
         assert mid, "un asse che costa piu' di 12 backtest deve dire qualcosa nel frattempo"
@@ -82,7 +82,7 @@ def test_the_progress_line_does_not_pretend_to_be_the_final_mapping():
         np.array([[0.5]]), coarse=12, progress=log.append, counter={"n": 0, "boundary": 0},
     )
     for m in log:
-        if "ancora al lavoro" in m:
+        if "still working" in m:
             assert "confin" not in m
             assert "intervall" not in m
 
@@ -95,7 +95,7 @@ def test_progress_lines_are_evenly_spaced_by_backtest_count():
         np.array([[0.5]]), coarse=12, progress=log.append, counter={"n": 0, "boundary": 0},
     )
     counts = [int(m.split("—")[1].split("backtest")[0].strip())
-              for m in log if "ancora al lavoro" in m]
+              for m in log if "still working" in m]
     assert all(c % 12 == 0 for c in counts)
     assert counts == sorted(counts)
 
@@ -119,7 +119,7 @@ def test_a_cheap_axis_still_only_says_the_final_line():
     partition_axes(df, "Lorenzo (trend-follower)", space, {},
                     np.array([[0.5]]), coarse=4, progress=log.append, counter=counter)
     if counter["n"] <= 12:
-        assert not any("ancora al lavoro" in m for m in log)
+        assert not any("still working" in m for m in log)
 
 
 # --- lo stesso, per l'apertura delle celle -----------------------------------

@@ -35,13 +35,13 @@ async def test_spot_connection(
     con un messaggio leggibile se le chiavi non funzionano; altrimenti
     restituisce [{"asset": str, "free": float}, ...] (solo saldi > 0)."""
     if not api_key or not api_secret:
-        raise DiagnosticsError("Chiave API o secret mancanti")
+        raise DiagnosticsError("API key or secret missing")
     try:
         if exchange in ("mexc", "binance"):
             return await _mexc_binance_balances(exchange, api_key, api_secret)
         if exchange == "kucoin":
             if not passphrase:
-                raise DiagnosticsError("KuCoin richiede anche la passphrase")
+                raise DiagnosticsError("KuCoin also requires the passphrase")
             return await _kucoin_balances(api_key, api_secret, passphrase)
         if exchange == "kraken":
             raw = await kraken_exec.get_all_balances(api_key, api_secret)
@@ -54,7 +54,7 @@ async def test_spot_connection(
         raise
     except Exception as exc:  # noqa: BLE001 — qualunque errore diventa un messaggio per l'utente
         raise DiagnosticsError(str(exc)) from exc
-    raise DiagnosticsError(f"Exchange non supportato dalla Diagnosi: {exchange}")
+    raise DiagnosticsError(f"Exchange not supported by Diagnostics: {exchange}")
 
 
 async def _mexc_binance_balances(exchange: str, api_key: str, api_secret: str) -> list[dict]:
@@ -106,12 +106,12 @@ async def _bitstamp_balance(api_key: str, api_secret: str) -> list[dict]:
 async def test_futures_connection(exchange: str, api_key: str, api_secret: str, passphrase: str = "") -> float:
     """Restituisce il margine USDT disponibile, o solleva DiagnosticsError."""
     if not api_key or not api_secret:
-        raise DiagnosticsError("Chiave API o secret mancanti")
+        raise DiagnosticsError("API key or secret missing")
     if exchange not in futures_registry.SUPPORTED_FUTURES_EXCHANGES:
-        raise DiagnosticsError(f"{exchange} non ha un adattatore futures registrato")
+        raise DiagnosticsError(f"{exchange} has no registered futures adapter")
     adapter = futures_registry.get(exchange)
     if adapter.needs_passphrase and not passphrase:
-        raise DiagnosticsError(f"{adapter.name} richiede anche la passphrase")
+        raise DiagnosticsError(f"{adapter.name} also requires the passphrase")
     creds = FuturesCreds(api_key=api_key, api_secret=api_secret, passphrase=passphrase)
     try:
         return await adapter.available_margin(creds)

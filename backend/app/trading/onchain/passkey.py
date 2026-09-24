@@ -97,7 +97,7 @@ def start_registration(user: User) -> tuple[str, str]:
 def finish_registration(user: User, state_token: str, credential: dict, label: str = "") -> Passkey:
     challenge = _pop_ceremony(state_token, user.id)
     if challenge is None:
-        raise ValueError("Registrazione scaduta o non valida — riprova.")
+        raise ValueError("Registration expired or invalid — try again.")
     verified = webauthn.verify_registration_response(
         credential=credential,
         expected_challenge=challenge,
@@ -136,10 +136,10 @@ def finish_authentication(user: User, state_token: str, credential: dict) -> int
     ignorare — verify_authentication_response lo controlla da solo."""
     challenge = _pop_ceremony(state_token, user.id)
     if challenge is None:
-        raise ValueError("Verifica scaduta o non valida — riprova.")
+        raise ValueError("Verification expired or invalid — try again.")
     passkey = next((pk for pk in user.passkeys if pk.credential_id == credential.get("id", "")), None)
     if passkey is None:
-        raise ValueError("Questo passkey non e' registrato su questo account.")
+        raise ValueError("This passkey is not registered on this account.")
     verified = webauthn.verify_authentication_response(
         credential=credential,
         expected_challenge=challenge,

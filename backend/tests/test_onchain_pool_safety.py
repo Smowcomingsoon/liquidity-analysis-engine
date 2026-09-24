@@ -67,13 +67,13 @@ def test_fetch_pool_snapshot_returns_none_on_missing_liquidity(monkeypatch):
 def test_check_liquidity_minimum_rejects_when_unverifiable():
     ok, reason = pool_safety.check_liquidity_minimum(None, 3000.0)
     assert ok is False
-    assert "non verificabile" in reason
+    assert "cannot be verified" in reason
 
 
 def test_check_liquidity_minimum_rejects_below_threshold():
     ok, reason = pool_safety.check_liquidity_minimum(2999.99, 3000.0)
     assert ok is False
-    assert "sotto il minimo" in reason
+    assert "below the required minimum" in reason
     ok, _ = pool_safety.check_liquidity_minimum(3000.0, 3000.0)
     assert ok is True
 
@@ -84,7 +84,7 @@ def test_check_pool_age_rejects_too_young(monkeypatch):
     monkeypatch.setattr(time, "time", lambda: now)
     ok, reason = pool_safety.check_pool_age(now - 10 * 60, minimum_minutes=30.0)
     assert ok is False
-    assert "eta' minima" in reason
+    assert "minimum age" in reason
     ok, _ = pool_safety.check_pool_age(now - 31 * 60, minimum_minutes=30.0)
     assert ok is True
 
@@ -92,7 +92,7 @@ def test_check_pool_age_rejects_too_young(monkeypatch):
 def test_check_pool_age_rejects_when_unverifiable():
     ok, reason = pool_safety.check_pool_age(None)
     assert ok is False
-    assert "non verificabile" in reason
+    assert "cannot be verified" in reason
 
 
 def test_check_liquidity_drop_passes_without_history():

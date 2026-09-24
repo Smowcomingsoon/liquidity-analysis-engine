@@ -66,16 +66,16 @@ def _proxy() -> str | None:
 
 
 _HINTS = {
-    "600": "parametro rifiutato da MEXC",
-    "1002": "il contratto non esiste o non e' abilitato",
-    "2001": "la chiave non e' abilitata al trading su contratti",
-    "2005": "margine insufficiente per l'importo richiesto",
-    "30004": "posizione insufficiente per chiudere questa quantita'",
+    "600": "parameter rejected by MEXC",
+    "1002": "the contract does not exist or is not enabled",
+    "2001": "the key is not enabled for contract trading",
+    "2005": "insufficient margin for the requested amount",
+    "30004": "position too small to close this quantity",
     # Questo capita a molti conti: MEXC ha chiuso l'invio ordini via API sui
     # contratti se non e' stato abilitato esplicitamente. Senza questa
     # traduzione l'errore che arriva non spiega niente.
-    "not support": "questo conto non ha l'invio ordini sui contratti abilitato via API — va chiesto a MEXC",
-    "maintenance": "MEXC non risponde (manutenzione o problema loro)",
+    "not support": "this account does not have API contract ordering enabled — ask MEXC for it",
+    "maintenance": "MEXC not responding (maintenance or an issue on their side)",
 }
 
 
@@ -85,9 +85,9 @@ class MexcFutures(FuturesAdapter):
     needs_passphrase = False
     max_leverage = 10
     key_hint = (
-        "Chiave API con permesso «Contract Trading». Attenzione: su molti conti MEXC "
-        "l'invio ordini sui contratti via API e' disattivato di default e va richiesto "
-        "all'assistenza — una chiave corretta puo' comunque essere rifiutata all'ordine."
+        "API key with the «Contract Trading» permission. Heads up: on many MEXC accounts "
+        "API contract ordering is disabled by default and must be requested "
+        "from support — a correct key can still be rejected when ordering."
     )
 
     def symbol_for(self, symbol: str) -> str:
@@ -138,7 +138,7 @@ class MexcFutures(FuturesAdapter):
     # ── letture ───────────────────────────────────────────────────────────
 
     async def available_margin(self, creds: FuturesCreds) -> float:
-        data = await self._get("/api/v1/private/account/asset/USDT", {}, creds, "saldo")
+        data = await self._get("/api/v1/private/account/asset/USDT", {}, creds, "balance")
         if not data:
             return 0.0
         return float(data.get("availableBalance") or data.get("availableOpen") or 0)
@@ -147,13 +147,13 @@ class MexcFutures(FuturesAdapter):
         # Pubblico: un prezzo non deve poter fallire per una chiave sbagliata.
         async with httpx.AsyncClient(base_url=BASE, timeout=15.0, proxy=_proxy()) as c:
             resp = await c.get("/api/v1/contract/ticker", params={"symbol": self.symbol_for(symbol)})
-        data = self._unwrap(resp, "prezzo")
+        data = self._unwrap(resp, "price")
         # Un simbolo sconosciuto (o mal formato) torna qui come lista vuota,
         # non come 404 o corpo d'errore: data[0] senza guardia crasherebbe
         # con IndexError invece del messaggio chiaro sotto.
         row = (data[0] if data else None) if isinstance(data, list) else data
         if not row:
-            raise explain("mexc", "prezzo", f"symbol {symbol} sconosciuto", _HINTS)
+            raise explain("mexc", "price", f"symbol {symbol} unknown", _HINTS)
         # fairPrice e' il mark su cui MEXC calcola la liquidazione; lastPrice
         # e' solo l'ultimo scambio, e usarlo sposterebbe il prezzo di
         # liquidazione mostrato rispetto a quello vero.
@@ -169,14 +169,14 @@ class MexcFutures(FuturesAdapter):
         validi mentre per eccesso li lascia passare quando non dovrebbero."""
         async with httpx.AsyncClient(base_url=BASE, timeout=15.0, proxy=_proxy()) as c:
             resp = await c.get("/api/v1/contract/detail", params={"symbol": symbol})
-        data = self._unwrap(resp, "dati del contratto")
+        data = self._unwrap(resp, "contract data")
         # Stesso caso di mark_price: un simbolo sconosciuto torna come lista
         # vuota, non come errore — data[0] senza guardia crasherebbe qui.
         row = (data[0] if data else None) if isinstance(data, list) else data
         size = float((row or {}).get("contractSize") or 0)
         if size <= 0:
-            raise explain("mexc", "dati del contratto",
-                          f"contractSize assente per {symbol}", _HINTS)
+            raise explain("mexc", "contract data",
+                          f"contractSize missing for {symbol}", _HINTS)
         min_vol = float((row or {}).get("minVol") or 1)
         return size, min_vol
 
@@ -185,7 +185,7 @@ class MexcFutures(FuturesAdapter):
         return size
 
     async def open_positions(self, creds: FuturesCreds) -> list[Position]:
-        data = await self._get("/api/v1/private/position/open_positions", {}, creds, "posizioni") or []
+        data = await self._get("/api/v1/private/position/open_positions", {}, creds, "positions") or []
         out = []
         for p in data:
             vol = float(p.get("holdVol") or 0)
@@ -232,15 +232,15 @@ class MexcFutures(FuturesAdapter):
         real = contracts * csize * mark
         if abs(real - notional) / notional < 0.005:
             return real, ""
-        return real, (f"{contracts} contratti da {csize:g} — MEXC non accetta frazioni di contratto, "
-                      f"quindi l'ordine usa {real:.2f} USDT invece di {notional:.2f}")
+        return real, (f"{contracts} contracts of {csize:g} — MEXC doesn't accept fractional contracts, "
+                      f"so the order uses {real:.2f} USDT instead of {notional:.2f}")
 
     async def place_order(self, symbol, side, size_mode, size_value, leverage, creds, max_usdt=None):
         sym = self.symbol_for(symbol)
         available = await self.available_margin(creds)
         mark = await self.mark_price(sym, creds)
         if mark <= 0:
-            raise explain("mexc", "ordine", "prezzo di mercato non disponibile", _HINTS)
+            raise explain("mexc", "order", "market price not available", _HINTS)
         notional = self._capped(self._notional(size_mode, size_value, leverage, available, mark), max_usdt)
         csize, min_vol = await self._contract_spec(sym)
         vol = notional / mark / csize
@@ -261,10 +261,10 @@ class MexcFutures(FuturesAdapter):
             min_notional = csize * mark * min_vol
             min_margin = min_notional / leverage
             raise explain(
-                "mexc", "ordine",
-                f"la dimensione richiesta vale {vol:.3f} contratti, meno del minimo di {min_vol:g} "
-                f"(un contratto = {csize} unita' a {mark:.4f}, {min_notional:.2f} USDT di nozionale) "
-                f"— serve almeno {min_margin:.2f} USDT di margine con leva {leverage}x", _HINTS,
+                "mexc", "order",
+                f"the requested size is {vol:.3f} contracts, below the minimum of {min_vol:g} "
+                f"(one contract = {csize} units at {mark:.4f}, {min_notional:.2f} USDT notional) "
+                f"— needs at least {min_margin:.2f} USDT of margin at {leverage}x leverage", _HINTS,
             )
         return await self._post("/api/v1/private/order/create", {
             "symbol": sym,
@@ -274,7 +274,7 @@ class MexcFutures(FuturesAdapter):
             "type": 5,                  # 5 = mercato
             "openType": 1,              # 1 = isolated, mai cross
             "leverage": leverage,
-        }, creds, "ordine")
+        }, creds, "order")
 
     async def close_position(self, symbol: str, creds: FuturesCreds) -> dict | None:
         sym = self.symbol_for(symbol)
@@ -293,4 +293,4 @@ class MexcFutures(FuturesAdapter):
             "type": 5,
             "openType": 1,
             "leverage": pos.leverage,
-        }, creds, "chiusura")
+        }, creds, "close")

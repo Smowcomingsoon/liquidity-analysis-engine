@@ -215,7 +215,7 @@ def get_provider(asset_type: AssetType, exchange: CryptoExchange = "mexc") -> Da
             # di una chiave quando il problema e' che le azioni sono spente.
             raise HTTPException(
                 status_code=400,
-                detail="Le azioni sono disattivate: questo sistema opera solo su crypto (USDT/USDC).",
+                detail="Stocks are disabled: this system trades crypto only (USDT/USDC).",
             )
         return twelvedata_provider
     if exchange == "binance":
@@ -334,8 +334,8 @@ async def _run_onchain_auto_trade(owner: User, entry: WatchlistEntry, strategy_n
                 owner.id, symbol=entry.symbol, exchange=entry.exchange,
                 strategy_name=strategy_name, signal_type=signal.type,
                 outcome="saltato",
-                detail="esecuzione automatica on-chain non ancora collegata: "
-                       "manca l'indirizzo del token, non solo del pool",
+                detail="on-chain auto-execution not wired yet: "
+                       "the token address is missing, not just the pool's",
                 price=signal.price,
             )
         return
@@ -347,7 +347,7 @@ async def _run_onchain_auto_trade(owner: User, entry: WatchlistEntry, strategy_n
             trading_log.record(
                 owner.id, symbol=entry.symbol, exchange=entry.exchange,
                 strategy_name=strategy_name, signal_type=signal.type,
-                outcome="saltato", detail=f"simbolo on-chain non riconosciuto: {exc}", price=signal.price,
+                outcome="saltato", detail=f"on-chain symbol not recognized: {exc}", price=signal.price,
             )
         return
 
@@ -357,7 +357,7 @@ async def _run_onchain_auto_trade(owner: User, entry: WatchlistEntry, strategy_n
             trading_log.record(
                 owner.id, symbol=entry.symbol, exchange=entry.exchange,
                 strategy_name=strategy_name, signal_type=signal.type,
-                outcome="saltato", detail=f"nessun wallet on-chain configurato per la chain '{chain}'",
+                outcome="saltato", detail=f"no on-chain wallet configured for chain '{chain}'",
                 price=signal.price,
             )
         return
@@ -372,7 +372,7 @@ async def _run_onchain_auto_trade(owner: User, entry: WatchlistEntry, strategy_n
             trading_log.record(
                 owner.id, symbol=entry.symbol, exchange=entry.exchange,
                 strategy_name=strategy_name, signal_type=signal.type,
-                outcome="saltato", detail=f"pilota spento su {chain}: nessun acquisto automatico",
+                outcome="saltato", detail=f"pilot off on {chain}: no automatic buys",
                 price=signal.price,
             )
         fresh = [s for s in fresh if s not in buys]
@@ -389,7 +389,7 @@ async def _run_onchain_auto_trade(owner: User, entry: WatchlistEntry, strategy_n
             trading_log.record(
                 owner.id, symbol=entry.symbol, exchange=entry.exchange,
                 strategy_name=strategy_name, signal_type=signal.type,
-                outcome="saltato", detail=f"tipo di segnale non gestito dall'auto-trade on-chain: {signal.type}",
+                outcome="saltato", detail=f"signal type not handled by on-chain auto-trade: {signal.type}",
                 price=signal.price,
             )
             continue
@@ -401,8 +401,8 @@ async def _run_onchain_auto_trade(owner: User, entry: WatchlistEntry, strategy_n
                     owner.id, symbol=entry.symbol, exchange=entry.exchange,
                     strategy_name=strategy_name, signal_type=signal.type,
                     outcome="saltato",
-                    detail="vendita saltata: decimali del token non ottenibili dal vero contratto/mint "
-                           "(RPC irraggiungibile o token non riconosciuto) — mai indovinati",
+                    detail="sell skipped: token decimals unavailable from the real contract/mint "
+                           "(RPC unreachable or token not recognized) — never guessed",
                     price=signal.price,
                 )
                 continue
@@ -412,7 +412,7 @@ async def _run_onchain_auto_trade(owner: User, entry: WatchlistEntry, strategy_n
                 trading_log.record(
                     owner.id, symbol=entry.symbol, exchange=entry.exchange,
                     strategy_name=strategy_name, signal_type=signal.type,
-                    outcome="saltato", detail="nessuna posizione registrata su questo token da vendere",
+                    outcome="saltato", detail="no recorded position on this token to sell",
                     price=signal.price,
                 )
                 continue
@@ -446,7 +446,7 @@ async def _run_onchain_auto_trade(owner: User, entry: WatchlistEntry, strategy_n
                     else (entry.base_token_address, quote_token)
                 found = await onchain_quotes.find_pool_and_fee(token_in, token_out)
                 if found is None:
-                    raise RuntimeError("nessun pool Uniswap v3 trovato per questo token su nessun fee tier")
+                    raise RuntimeError("no Uniswap v3 pool found for this token on any fee tier")
                 _pool, fee = found
                 amount_in = buy_amount_in if is_buy else sell_amount_in
                 v3_quote = await onchain_quotes.uniswap_v3_quote(token_in, token_out, fee, amount_in)
@@ -554,10 +554,10 @@ async def _watchlist_alert_loop() -> None:
                             owner_id=owner.id,
                             symbol=pa.symbol,
                             interval=entry.interval,
-                            strategy_name="Alert prezzo",
+                            strategy_name="Price alert",
                             signal_type=pa.condition.value,
                             price=current_price,
-                            label=f"Prezzo {direction} {pa.price:g}",
+                            label=f"Price {'above' if direction == 'sopra' else 'below'} {pa.price:g}",
                             chat_id=owner.telegram_chat_id,
                         )
 
@@ -617,9 +617,9 @@ async def _watchlist_alert_loop() -> None:
                         api_key, api_secret, passphrase = auth.get_decrypted_futures_credential(owner, entry.exchange)
                         skip = ""
                         if not futures_cred.enabled:
-                            skip = "esecuzione automatica disattivata per questo exchange (futures)"
+                            skip = "auto-execution disabled for this exchange (futures)"
                         elif not (api_key and api_secret):
-                            skip = "chiavi API futures mancanti o non leggibili"
+                            skip = "futures API keys missing or unreadable"
                         if skip:
                             for signal in fresh:
                                 trading_log.record(
@@ -665,9 +665,9 @@ async def _watchlist_alert_loop() -> None:
                         api_key, api_secret, passphrase = auth.get_decrypted_credential(owner, entry.exchange)
                         skip = ""
                         if not cred.enabled:
-                            skip = "esecuzione automatica disattivata per questo exchange"
+                            skip = "auto-execution disabled for this exchange"
                         elif not (api_key and api_secret):
-                            skip = "chiavi API mancanti o non leggibili"
+                            skip = "API keys missing or unreadable"
                         if skip:
                             # Registrato solo per chi l'exchange l'ha configurato:
                             # per tutti gli altri non c'e' nulla da segnalare, e
@@ -787,7 +787,7 @@ async def _pilot_vet(candidate) -> dict:
     qualche ora (un "wait" no: si riprova al giro dopo)."""
     key = f"{candidate.chain_id}:{candidate.token_address}"
     if key in onchain_outcomes.shamed():
-        return {"status": "fail", "reason": "rug gia' subito", "checks": []}
+        return {"status": "fail", "reason": "already rugged on us", "checks": []}
     cached = _pilot_verdicts.get(key)
     if cached and _time.time() - cached[0] < _PILOT_VERDICT_TTL_S:
         return cached[1]
@@ -880,21 +880,21 @@ async def _sniper_onchain_bridge_tick() -> None:
         seen[candidate.chain_id].append(candidate.token_address or candidate.symbol)
         reason = None
         if candidate.liquidity_usd < _SNIPER_ONCHAIN_MIN_LIQUIDITY_USD:
-            reason = f"liquidità ${candidate.liquidity_usd:,.0f} sotto ${_SNIPER_ONCHAIN_MIN_LIQUIDITY_USD:,.0f}"
+            reason = f"liquidity ${candidate.liquidity_usd:,.0f} below ${_SNIPER_ONCHAIN_MIN_LIQUIDITY_USD:,.0f}"
         elif candidate.age_hours > _SNIPER_ONCHAIN_MAX_AGE_HOURS:
-            reason = f"troppo vecchio ({candidate.age_hours:.0f} h, massimo {_SNIPER_ONCHAIN_MAX_AGE_HOURS:.0f})"
+            reason = f"too old ({candidate.age_hours:.0f} h, max {_SNIPER_ONCHAIN_MAX_AGE_HOURS:.0f})"
         elif not candidate.token_address or not candidate.pair_address:
-            reason = "indirizzo del token o del pool mancante"
+            reason = "token or pool address missing"
         elif not candidate.market_cap or candidate.market_cap > _SNIPER_ONCHAIN_MAX_MCAP_USD:
-            reason = f"cap {'sconosciuta' if not candidate.market_cap else f'${candidate.market_cap:,.0f}'} oltre ${_SNIPER_ONCHAIN_MAX_MCAP_USD:,.0f}"
+            reason = f"cap {'unknown' if not candidate.market_cap else f'${candidate.market_cap:,.0f}'} above ${_SNIPER_ONCHAIN_MAX_MCAP_USD:,.0f}"
         elif (candidate.chain_id, candidate.token_address) not in vetted_keys:
             try:
                 verdict = await _pilot_vet(candidate)
             except Exception:  # noqa: BLE001 — un filtro che non risponde non fa passare niente
                 logger.exception("sniper_onchain_bridge: filtro fallito su %s", candidate.symbol)
-                verdict = {"status": "wait", "reason": "controllo non riuscito"}
+                verdict = {"status": "wait", "reason": "check failed"}
             if verdict["status"] != "ok":
-                reason = verdict["reason"] or "non supera il filtro"
+                reason = verdict["reason"] or "does not pass the filter"
         if reason:
             onchain_pilot.record_rejection(
                 candidate.chain_id, symbol=candidate.symbol, reason=reason,
@@ -1259,7 +1259,7 @@ async def require_authentication(request: Request, call_next):
             return await call_next(request)
         return JSONResponse(
             status_code=403,
-            content={"detail": "Modalita' ospite: sola lettura, questa azione non e' disponibile."},
+            content={"detail": "Guest mode: read-only, this action is not available."},
         )
 
     if (
@@ -1281,7 +1281,7 @@ async def require_authentication(request: Request, call_next):
 
     return JSONResponse(
         status_code=401,
-        content={"detail": "Accesso richiesto: questa funzione e' riservata agli utenti registrati."},
+        content={"detail": "Sign-in required: this feature is for registered users only."},
     )
 
 app.add_middleware(GZipMiddleware, minimum_size=500)
@@ -1296,20 +1296,20 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 # capire cosa si e' sbagliato no.
 
 _VALIDATION_WORDING = {
-    "int_parsing": "serve un numero intero",
-    "int_from_float": "serve un numero intero, senza decimali",
-    "int_type": "serve un numero intero",
-    "float_parsing": "serve un numero",
-    "float_type": "serve un numero",
-    "bool_parsing": "serve vero o falso",
-    "literal_error": "valore non ammesso",
-    "enum": "valore non ammesso",
-    "missing": "parametro obbligatorio mancante",
-    "string_too_short": "troppo corto",
-    "string_too_long": "troppo lungo",
-    "greater_than_equal": "troppo piccolo",
-    "less_than_equal": "troppo grande",
-    "string_pattern_mismatch": "valore non ammesso",
+    "int_parsing": "must be a whole number",
+    "int_from_float": "must be a whole number, no decimals",
+    "int_type": "must be a whole number",
+    "float_parsing": "must be a number",
+    "float_type": "must be a number",
+    "bool_parsing": "must be true or false",
+    "literal_error": "value not allowed",
+    "enum": "value not allowed",
+    "missing": "required parameter missing",
+    "string_too_short": "too short",
+    "string_too_long": "too long",
+    "greater_than_equal": "too small",
+    "less_than_equal": "too large",
+    "string_pattern_mismatch": "value not allowed",
 }
 
 
@@ -1317,21 +1317,21 @@ def _validation_message(errors: list[dict]) -> str:
     parts: list[str] = []
     for err in errors[:4]:
         loc = [str(x) for x in err.get("loc", ()) if x not in ("query", "body", "path")]
-        field = ".".join(loc) or "richiesta"
-        wording = _VALIDATION_WORDING.get(err.get("type", ""), err.get("msg", "valore non valido"))
+        field = ".".join(loc) or "request"
+        wording = _VALIDATION_WORDING.get(err.get("type", ""), err.get("msg", "invalid value"))
         got = err.get("input", None)
         # Il valore ricevuto e' meta' della diagnosi: "serve un numero intero"
         # senza il "ricevuto ''" non fa capire che il campo era rimasto vuoto.
         if isinstance(got, str):
-            shown = f' (ricevuto "{got[:40]}")' if got != "" else " (campo vuoto)"
+            shown = f' (got "{got[:40]}")' if got != "" else " (empty field)"
         elif got is None:
             shown = ""
         else:
-            shown = f" (ricevuto {str(got)[:40]})"
+            shown = f" (got {str(got)[:40]})"
         parts.append(f"{field}: {wording}{shown}")
     if len(errors) > 4:
-        parts.append(f"e altri {len(errors) - 4}")
-    return "Parametri non validi — " + " · ".join(parts)
+        parts.append(f"and {len(errors) - 4} more")
+    return "Invalid parameters — " + " · ".join(parts)
 
 
 @app.exception_handler(RequestValidationError)
@@ -1680,7 +1680,7 @@ def _parse_pine_or_400(source: str) -> tuple[list, list[PineParamOut], bool]:
 
 @app.post("/api/pinescript", response_model=PineScriptOut)
 async def upload_pinescript(req: PineUploadRequest) -> PineScriptOut:
-    name = req.name.strip() or "Script senza nome"
+    name = req.name.strip() or "Untitled script"
     _stmts, params_out, strategy_style = _parse_pine_or_400(req.source)
     default_params = {p.var_name: p.default for p in params_out}
     meta = pine_storage.save_script(name, req.source, default_params)
@@ -1713,7 +1713,7 @@ async def list_pinescripts() -> list[PineScriptOut]:
 async def get_pinescript(script_id: str) -> dict:
     loaded = pine_storage.load_script(script_id)
     if loaded is None:
-        raise HTTPException(status_code=404, detail="Script non trovato")
+        raise HTTPException(status_code=404, detail="Script not found")
     meta, source = loaded
     _stmts, params_out, strategy_style = _parse_pine_or_400(source)
     return {
@@ -1729,7 +1729,7 @@ async def get_pinescript(script_id: str) -> dict:
 @app.delete("/api/pinescript/{script_id}")
 async def delete_pinescript(script_id: str) -> dict:
     if not pine_storage.delete_script(script_id):
-        raise HTTPException(status_code=404, detail="Script non trovato")
+        raise HTTPException(status_code=404, detail="Script not found")
     return {"ok": True}
 
 
@@ -1748,13 +1748,13 @@ class PineRunRequest(BaseModel):
 async def run_pinescript(script_id: str, req: PineRunRequest) -> dict:
     loaded = pine_storage.load_script(script_id)
     if loaded is None:
-        raise HTTPException(status_code=404, detail="Script non trovato")
+        raise HTTPException(status_code=404, detail="Script not found")
     _meta, source = loaded
     stmts, params_out, strategy_style = _parse_pine_or_400(source)
 
     symbol = req.symbol.strip()
     if not symbol:
-        raise HTTPException(status_code=400, detail="Ticker mancante")
+        raise HTTPException(status_code=400, detail="Ticker missing")
     interval = req.interval or DEFAULT_INTERVALS[req.timeframe]
     provider = get_provider(req.asset_type, req.exchange)
 
@@ -1766,7 +1766,7 @@ async def run_pinescript(script_id: str, req: PineRunRequest) -> dict:
     except ProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     if df.empty:
-        raise HTTPException(status_code=502, detail=f"Nessun dato per {symbol} su {interval}")
+        raise HTTPException(status_code=502, detail=f"No data for {symbol} on {interval}")
 
     merged_params = {p.var_name: p.default for p in params_out}
     merged_params.update(req.params or {})
@@ -1791,9 +1791,9 @@ async def run_pinescript(script_id: str, req: PineRunRequest) -> dict:
                 "needs_mapping": True,
                 "candidates": interp.boolean_candidates(),
                 "warning": (
-                    "Questo script non usa strategy.entry/close: seleziona quali variabili booleane "
-                    "corrispondono a entry_long / entry_short (exit_long / exit_short sono opzionali — "
-                    "se non li mappi, la posizione resta aperta fino al segnale opposto)."
+                    "This script doesn't use strategy.entry/close: pick which boolean variables "
+                    "map to entry_long / entry_short (exit_long / exit_short are optional — "
+                    "if you don't map them, the position stays open until the opposite signal)."
                 ),
             }
 
@@ -1824,7 +1824,7 @@ class IndicatorComputeRequest(BaseModel):
 async def compute_indicator_route(req: IndicatorComputeRequest) -> dict:
     symbol = req.symbol.strip()
     if not symbol:
-        raise HTTPException(status_code=400, detail="Ticker mancante")
+        raise HTTPException(status_code=400, detail="Ticker missing")
     interval = req.interval or DEFAULT_INTERVALS[req.timeframe]
     provider = get_provider(req.asset_type, req.exchange)
     try:
@@ -1835,7 +1835,7 @@ async def compute_indicator_route(req: IndicatorComputeRequest) -> dict:
     except ProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     if df.empty:
-        raise HTTPException(status_code=502, detail=f"Nessun dato per {symbol} su {interval}")
+        raise HTTPException(status_code=502, detail=f"No data for {symbol} on {interval}")
 
     try:
         series = indicator_catalog.compute_indicator(df, req.indicator, req.params)
@@ -1905,28 +1905,28 @@ def _set_session_cookie(response: Response, user_id: str, request: Request) -> N
 async def register(req: RegisterRequest, request: Request, response: Response) -> dict:
     ip_key = f"register:{_client_ip(request)}"
     if rate_limit.is_locked(ip_key):
-        raise HTTPException(status_code=429, detail="Troppi tentativi. Riprova tra qualche minuto.")
+        raise HTTPException(status_code=429, detail="Too many attempts. Try again in a few minutes.")
 
     email = req.email.strip().lower()
     if "@" not in email or len(email) < 5:
         rate_limit.register_failure(ip_key)
-        raise HTTPException(status_code=400, detail="Email non valida")
+        raise HTTPException(status_code=400, detail="Invalid email")
 
     consentite = {e.strip().lower() for e in settings.registration_allowed_emails.split(",") if e.strip()}
     if consentite and email not in consentite:
         rate_limit.register_failure(ip_key)
         # Stesso messaggio che si da' a un'email gia' presente: due risposte
         # diverse direbbero a un estraneo quali indirizzi esistono.
-        raise HTTPException(status_code=403, detail="Registrazione non consentita per questo indirizzo")
+        raise HTTPException(status_code=403, detail="Registration not allowed for this address")
     if not auth.is_strong_password(req.password):
         rate_limit.register_failure(ip_key)
         raise HTTPException(
             status_code=400,
-            detail="La password deve avere almeno 8 caratteri, con lettere e numeri, e non essere troppo comune",
+            detail="Password must be at least 8 characters, with letters and numbers, and not too common",
         )
     if auth.find_by_email(email):
         rate_limit.register_failure(ip_key)
-        raise HTTPException(status_code=400, detail="Email già registrata")
+        raise HTTPException(status_code=400, detail="Email already registered")
 
     user = auth.create_user(email, req.password)
     rate_limit.register_success(ip_key)
@@ -1940,7 +1940,7 @@ async def login(req: LoginRequest, request: Request, response: Response) -> dict
     ip_key = f"ip:{_client_ip(request)}"
     email_key = f"email:{email}"
     if rate_limit.is_locked(ip_key) or rate_limit.is_locked(email_key):
-        raise HTTPException(status_code=429, detail="Troppi tentativi falliti. Riprova tra qualche minuto.")
+        raise HTTPException(status_code=429, detail="Too many failed attempts. Try again in a few minutes.")
 
     user = auth.verify_login(email, req.password)
     if user is None:
@@ -2010,7 +2010,7 @@ async def get_trading_credentials(user: User = Depends(auth.get_current_user)) -
 async def set_trading_credential(body: TradingCredentialRequest, user: User = Depends(auth.get_current_user)):
     supported = {"binance", "mexc", "kucoin", "kraken", "coinbase", "bitstamp"}
     if body.exchange not in supported:
-        raise HTTPException(status_code=400, detail=f"Exchange non supportato: {body.exchange}")
+        raise HTTPException(status_code=400, detail=f"Unsupported exchange: {body.exchange}")
     auth.set_trading_credential(
         user.id, body.exchange, body.api_key, body.api_secret, body.passphrase,
         body.enabled, body.size_mode, body.size_value,
@@ -2036,13 +2036,13 @@ class ManualOrderRequest(BaseModel):
 async def place_manual_order(body: ManualOrderRequest, user: User = Depends(auth.get_current_user)):
     supported = {"binance", "mexc", "kucoin", "kraken", "coinbase", "bitstamp"}
     if body.exchange not in supported:
-        raise HTTPException(status_code=400, detail=f"Exchange non supportato: {body.exchange}")
+        raise HTTPException(status_code=400, detail=f"Unsupported exchange: {body.exchange}")
     cred = user.trading_credentials.get(body.exchange)
     if not cred:
-        raise HTTPException(status_code=400, detail="Credenziali non configurate per questo exchange")
+        raise HTTPException(status_code=400, detail="No credentials configured for this exchange")
     api_key, api_secret, passphrase = auth.get_decrypted_credential(user, body.exchange)
     if not api_key or not api_secret:
-        raise HTTPException(status_code=400, detail="API key o secret mancanti — configurali prima nella sezione Trading automatico")
+        raise HTTPException(status_code=400, detail="API key or secret missing — set them up first in the Auto trading section")
 
     # Il pair si verifica prima di mandare l'ordine, dove abbiamo un provider
     # per quell'exchange. Scriverlo a mano e' l'unico modo che c'e' di
@@ -2051,7 +2051,7 @@ async def place_manual_order(body: ManualOrderRequest, user: User = Depends(auth
     # controllo qui costa una chiamata e dice il nome esatto atteso.
     symbol = body.symbol.strip().upper()
     if not symbol:
-        raise HTTPException(status_code=400, detail="Pair mancante")
+        raise HTTPException(status_code=400, detail="Pair missing")
     if body.exchange in ("mexc", "binance", "kucoin"):
         symbol = canonical_symbol(symbol, "crypto", body.exchange)
         provider = get_provider("crypto", body.exchange)
@@ -2060,13 +2060,13 @@ async def place_manual_order(body: ManualOrderRequest, user: User = Depends(auth
         except ProviderError as exc:
             raise HTTPException(
                 status_code=400,
-                detail=f"Pair {symbol} non trovato su {body.exchange}: {exc}",
+                detail=f"Pair {symbol} not found on {body.exchange}: {exc}",
             ) from exc
         if probe.empty:
             raise HTTPException(
                 status_code=400,
-                detail=f"Pair {symbol} non trovato su {body.exchange}. Controlla il nome esatto "
-                       "(es. BTCUSDT) e che sia quotato su questo exchange.",
+                detail=f"Pair {symbol} not found on {body.exchange}. Check the exact name "
+                       "(e.g. BTCUSDT) and that it's listed on this exchange.",
             )
 
     from app.models import StrategySignal
@@ -2118,20 +2118,20 @@ async def close_manual_spot_position(body: ClosePositionRequest, user: User = De
     a mano nel form dell'ordine manuale.
     """
     if not body.confirm:
-        raise HTTPException(status_code=400, detail="Conferma richiesta per vendere tutta la posizione")
+        raise HTTPException(status_code=400, detail="Confirmation required to sell the whole position")
     supported = {"binance", "mexc", "kucoin", "kraken", "coinbase", "bitstamp"}
     if body.exchange not in supported:
-        raise HTTPException(status_code=400, detail=f"Exchange non supportato: {body.exchange}")
+        raise HTTPException(status_code=400, detail=f"Unsupported exchange: {body.exchange}")
     cred = user.trading_credentials.get(body.exchange)
     if not cred:
-        raise HTTPException(status_code=400, detail="Credenziali non configurate per questo exchange")
+        raise HTTPException(status_code=400, detail="No credentials configured for this exchange")
     api_key, api_secret, passphrase = auth.get_decrypted_credential(user, body.exchange)
     if not api_key or not api_secret:
-        raise HTTPException(status_code=400, detail="API key o secret mancanti")
+        raise HTTPException(status_code=400, detail="API key or secret missing")
 
     symbol = body.symbol.strip().upper()
     if not symbol:
-        raise HTTPException(status_code=400, detail="Pair mancante")
+        raise HTTPException(status_code=400, detail="Pair missing")
 
     from app.models import StrategySignal
     # exit_long -> SELL, e "pct_balance 100" e' tutto il saldo libero della
@@ -2194,19 +2194,19 @@ async def get_futures_credentials(user: User = Depends(auth.get_current_user)) -
 @app.patch("/api/auth/futures")
 async def set_futures_credential_endpoint(body: FuturesCredentialRequest, user: User = Depends(auth.get_current_user)):
     if body.exchange not in SUPPORTED_FUTURES_EXCHANGES_ORDERED:
-        raise HTTPException(status_code=400, detail=f"Futures non ancora supportati per questo exchange: {body.exchange}")
+        raise HTTPException(status_code=400, detail=f"Futures not supported yet for this exchange: {body.exchange}")
     adapter = futures_registry.get(body.exchange)
     existing_cred = user.futures_credentials.get(body.exchange)
     has_passphrase = bool(body.passphrase) or bool(existing_cred and existing_cred.passphrase_enc)
     if adapter.needs_passphrase and not has_passphrase:
-        raise HTTPException(status_code=400, detail=f"{adapter.name} richiede una passphrase oltre a chiave e secret")
+        raise HTTPException(status_code=400, detail=f"{adapter.name} requires a passphrase in addition to key and secret")
     # Il tetto e' quello di questo exchange, non il massimo globale: un
     # cursore che arriva a 10x su un adattatore che ne sopporta solo 5 deve
     # fermarsi prima di raggiungere il server, ma il server e' l'ultima
     # parola in ogni caso.
     max_lev = min(MAX_FUTURES_LEVERAGE, adapter.max_leverage)
     if not (1 <= body.leverage <= max_lev):
-        raise HTTPException(status_code=400, detail=f"Leva {body.leverage}x fuori dal limite di {adapter.name} (1-{max_lev}x)")
+        raise HTTPException(status_code=400, detail=f"Leverage {body.leverage}x outside {adapter.name}'s limit (1-{max_lev}x)")
     try:
         auth.set_futures_credential(
             user.id, body.exchange, body.api_key, body.api_secret,
@@ -2252,7 +2252,7 @@ async def diagnostics_test_connection(
         if not api_key or not api_secret:
             raise HTTPException(
                 status_code=400,
-                detail=f"Nessuna chiave salvata per {body.exchange} ({body.market}) — inseriscine una per provarla.",
+                detail=f"No key saved for {body.exchange} ({body.market}) — add one to test it.",
             )
     try:
         if body.market == "futures":
@@ -2306,8 +2306,8 @@ def _require_onchain_enabled() -> None:
     if not settings.onchain_enabled:
         raise HTTPException(
             status_code=400,
-            detail="Il sistema wallet on-chain e' spento (interruttore generale) — nessuna chiave, saldo o "
-                   "rivelazione e' raggiungibile finche' non viene riacceso.",
+            detail="The on-chain wallet system is off (master switch) — no key, balance or "
+                   "reveal is reachable until it's switched back on.",
         )
 
 
@@ -2333,12 +2333,12 @@ async def create_onchain_wallet(
     _require_onchain_enabled()
     updated = auth.create_onchain_wallet(user.id, body.chain)
     if updated is None:
-        raise HTTPException(status_code=404, detail="Utente non trovato")
+        raise HTTPException(status_code=404, detail="User not found")
     w = updated.onchain_wallets[body.chain]
     return {
         "chain": body.chain, "address": w.address, "enabled": w.enabled, "created_at": w.created_at,
-        "backup_reminder": "Salva questa chiave altrove appena puoi (bottone 'Rivela chiave'): se il "
-                            "server perde questo dato, il wallet non e' recuperabile in nessun altro modo.",
+        "backup_reminder": "Back up this key somewhere else as soon as you can ('Reveal key' button): if the "
+                            "server loses it, the wallet can't be recovered any other way.",
     }
 
 
@@ -2353,7 +2353,7 @@ async def set_onchain_wallet_enabled(
     _require_onchain_enabled()
     updated = auth.set_onchain_wallet_enabled(user.id, chain, body.enabled)
     if updated is None:
-        raise HTTPException(status_code=404, detail="Nessun wallet su questa chain — creane uno prima")
+        raise HTTPException(status_code=404, detail="No wallet on this chain — create one first")
     if not body.enabled:
         # Kill switch attivato — alert immediato (piano SRE punto 5).
         asyncio.create_task(telegram.send_infra_alert(
@@ -2372,7 +2372,7 @@ async def request_onchain_reveal(chain: OnchainChain, user: User = Depends(auth.
     consumarlo su /reveal. Un browser da solo, anche loggato, non basta."""
     _require_onchain_enabled()
     if chain not in user.onchain_wallets:
-        raise HTTPException(status_code=404, detail="Nessun wallet su questa chain — creane uno prima")
+        raise HTTPException(status_code=404, detail="No wallet on this chain — create one first")
     token = onchain_reveal.create(user.id, chain)
     approve_url = f"{settings.public_base_url}/onchain-approve.html?token={token}"
     qr_buf = io.BytesIO()
@@ -2432,7 +2432,7 @@ async def approve_onchain_reveal(body: OnchainRevealApproveRequest) -> dict:
     if verified is None:
         raise HTTPException(status_code=401, detail="Email o password errate")
     if not onchain_reveal.approve(body.token, verified.id):
-        raise HTTPException(status_code=400, detail="Richiesta scaduta o non valida — riprova dal browser")
+        raise HTTPException(status_code=400, detail="Request expired or invalid — try again from the browser")
     return {"ok": True}
 
 
@@ -2447,7 +2447,7 @@ async def onchain_reveal_passkey_options(body: OnchainRevealPasskeyOptionsReques
     conferma di chi sia davvero finche' la firma biometrica non torna."""
     user = auth.find_by_email(body.email)
     if user is None or not user.passkeys:
-        raise HTTPException(status_code=400, detail="Nessun passkey registrato per questa email — usa la password.")
+        raise HTTPException(status_code=400, detail="No passkey registered for this email — use your password.")
     options_json, state_token = onchain_passkey.start_authentication(user)
     return {"options": options_json, "state_token": state_token}
 
@@ -2463,14 +2463,14 @@ class OnchainRevealPasskeyVerifyRequest(BaseModel):
 async def onchain_reveal_passkey_verify(body: OnchainRevealPasskeyVerifyRequest) -> dict:
     user = auth.find_by_email(body.email)
     if user is None:
-        raise HTTPException(status_code=401, detail="Email non riconosciuta")
+        raise HTTPException(status_code=401, detail="Email not recognized")
     try:
         new_sign_count = onchain_passkey.finish_authentication(user, body.state_token, body.credential)
     except Exception as exc:  # noqa: BLE001 — errore di verifica WebAuthn, mai un 500 muto
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     auth.update_passkey_sign_count(user.id, body.credential.get("id", ""), new_sign_count)
     if not onchain_reveal.approve(body.token, user.id):
-        raise HTTPException(status_code=400, detail="Richiesta scaduta o non valida — riprova dal browser")
+        raise HTTPException(status_code=400, detail="Request expired or invalid — try again from the browser")
     return {"ok": True}
 
 
@@ -2492,11 +2492,11 @@ async def reveal_onchain_wallet(
     sola sessione del browser non basta piu'."""
     _require_onchain_enabled()
     if chain not in user.onchain_wallets:
-        raise HTTPException(status_code=404, detail="Nessun wallet su questa chain — creane uno prima")
+        raise HTTPException(status_code=404, detail="No wallet on this chain — create one first")
     if not onchain_reveal.consume(body.token, user.id, chain):
         raise HTTPException(
             status_code=403,
-            detail="Nessuna approvazione valida per questo wallet — scansiona di nuovo il QR dal telefono.",
+            detail="No valid approval for this wallet — scan the QR code again from your phone.",
         )
     try:
         private_key_hex = auth.get_decrypted_onchain_private_key(user, chain)
@@ -2517,10 +2517,10 @@ async def reveal_onchain_wallet(
         "chain": chain,
         "address": user.onchain_wallets[chain].address,
         "private_key": onchain_keys.to_import_format(chain, private_key_hex),
-        "import_as": "Phantom/Solflare — Importa chiave privata" if chain == "solana"
-        else "MetaMask/Rabby — Importa account",
-        "warning": "Chiunque veda questa chiave puo' svuotare il wallet. Non farne screenshot, "
-                   "non condividerla in chat: importala e chiudi questa schermata.",
+        "import_as": "Phantom/Solflare — Import private key" if chain == "solana"
+        else "MetaMask/Rabby — Import account",
+        "warning": "Anyone who sees this key can drain the wallet. Don't screenshot it, "
+                   "don't share it in chat: import it and close this screen.",
     }
 
 
@@ -2529,11 +2529,11 @@ async def onchain_wallet_balance(chain: OnchainChain, user: User = Depends(auth.
     _require_onchain_enabled()
     wallet = user.onchain_wallets.get(chain)
     if wallet is None:
-        raise HTTPException(status_code=404, detail="Nessun wallet su questa chain — creane uno prima")
+        raise HTTPException(status_code=404, detail="No wallet on this chain — create one first")
     try:
         native = await onchain_balances.native_balance(chain, wallet.address)
     except Exception as exc:  # noqa: BLE001 — un RPC pubblico irraggiungibile non deve essere un 500 muto
-        raise HTTPException(status_code=502, detail=f"RPC non raggiungibile: {exc}") from exc
+        raise HTTPException(status_code=502, detail=f"RPC unreachable: {exc}") from exc
     unit = "SOL" if chain == "solana" else "ETH"
     # None se GeckoTerminal non risponde — mai un "$" calcolato su un
     # prezzo inventato: la UI mostra solo le unita' native in quel caso.
@@ -2553,11 +2553,11 @@ async def onchain_wallet_transactions(chain: OnchainChain, user: User = Depends(
     _require_onchain_enabled()
     wallet = user.onchain_wallets.get(chain)
     if wallet is None:
-        raise HTTPException(status_code=404, detail="Nessun wallet su questa chain — creane uno prima")
+        raise HTTPException(status_code=404, detail="No wallet on this chain — create one first")
     try:
         result = await onchain_balances.recent_transactions(chain, wallet.address)
     except Exception as exc:  # noqa: BLE001 — un RPC pubblico irraggiungibile non deve essere un 500 muto
-        raise HTTPException(status_code=502, detail=f"RPC non raggiungibile: {exc}") from exc
+        raise HTTPException(status_code=502, detail=f"RPC unreachable: {exc}") from exc
     return {"chain": chain, "address": wallet.address, **result}
 
 
@@ -2584,7 +2584,7 @@ async def onchain_quote_solana(body: OnchainQuoteSolanaRequest, user: User = Dep
             body.input_mint, body.output_mint, body.amount_lamports, body.slippage_bps,
         )
     except Exception as exc:  # noqa: BLE001 — un aggregatore irraggiungibile non deve essere un 500 muto
-        raise HTTPException(status_code=502, detail=f"Jupiter non raggiungibile: {exc}") from exc
+        raise HTTPException(status_code=502, detail=f"Jupiter unreachable: {exc}") from exc
     return {k: v for k, v in quote.items() if k != "raw"}
 
 
@@ -2626,7 +2626,7 @@ async def onchain_quote_robinhood(
             quote = await onchain_aggregator.quote(body.token_in, body.token_out, body.amount_in)
         except onchain_aggregator.AggregatorError as exc:
             logger.warning("aggregator quote failed %s -> %s: %s", body.token_in, body.token_out, exc)
-            raise HTTPException(status_code=400, detail="Nessun mercato per questa coppia in questo momento.") from exc
+            raise HTTPException(status_code=400, detail="No market for this pair right now.") from exc
         return {
             "route": "aggregator", "source": quote["source"], "pool": None, "fee": None,
             "in_amount": body.amount_in, "out_amount": quote["amount_out"],
@@ -2669,11 +2669,11 @@ async def onchain_token_info(chain: str, address: str, user: User = Depends(auth
     essere possibile in ogni valuta o crypto possibile"."""
     _require_onchain_enabled()
     if chain not in ("solana", "robinhood"):
-        raise HTTPException(status_code=400, detail="Chain non supportata.")
+        raise HTTPException(status_code=400, detail="Unsupported chain.")
     try:
         return await _onchain_token_meta(chain, address)
     except Exception as exc:  # noqa: BLE001 — un indirizzo sbagliato non deve essere un 500 muto
-        raise HTTPException(status_code=502, detail=f"Decimali non recuperabili: {exc}") from exc
+        raise HTTPException(status_code=502, detail=f"Could not fetch decimals: {exc}") from exc
 
 
 @app.get("/api/onchain/portfolio/{chain}")
@@ -2686,10 +2686,10 @@ async def onchain_portfolio(chain: str, user: User = Depends(auth.get_current_us
     `partial`, non nascosto in un elenco che sembra completo e non lo e'."""
     _require_onchain_enabled()
     if chain not in ("solana", "robinhood"):
-        raise HTTPException(status_code=400, detail="Chain non supportata.")
+        raise HTTPException(status_code=400, detail="Unsupported chain.")
     wallet = user.onchain_wallets.get(chain)
     if wallet is None:
-        raise HTTPException(status_code=400, detail=f"Nessun wallet {chain} per questo utente.")
+        raise HTTPException(status_code=400, detail=f"No {chain} wallet for this user.")
 
     known_evm_tokens = []
     if chain == "robinhood":
@@ -2700,7 +2700,7 @@ async def onchain_portfolio(chain: str, user: User = Depends(auth.get_current_us
     try:
         raw_balances = await onchain_balances.all_token_balances(chain, wallet.address, known_evm_tokens)
     except Exception as exc:  # noqa: BLE001 — l'RPC che non risponde non deve essere un 500 muto
-        raise HTTPException(status_code=502, detail=f"RPC non raggiungibile: {exc}") from exc
+        raise HTTPException(status_code=502, detail=f"RPC unreachable: {exc}") from exc
 
     async def _enrich(entry: dict) -> dict:
         try:
@@ -2733,7 +2733,7 @@ async def onchain_live_price(chain: str, address: str, user: User = Depends(auth
     di un preventivo, mai un secondo feed da mantenere."""
     _require_onchain_enabled()
     if chain not in ("solana", "robinhood"):
-        raise HTTPException(status_code=400, detail="Chain non supportata.")
+        raise HTTPException(status_code=400, detail="Unsupported chain.")
     quote_token = _ONCHAIN_QUOTE_TOKEN[chain]
     if address.lower() == quote_token.lower():
         return {"price_usd": 1.0}  # il token di quota e' la stablecoin stessa
@@ -2745,7 +2745,7 @@ async def onchain_live_price(chain: str, address: str, user: User = Depends(auth
         else:
             decimals = await onchain_token_metadata.get_token_decimals(chain, address)
         if decimals is None:
-            raise HTTPException(status_code=502, detail="Decimali del token non recuperabili.")
+            raise HTTPException(status_code=502, detail="Could not fetch token decimals.")
         one_unit = 10 ** decimals
         if chain == "solana":
             quote = await onchain_quotes.jupiter_quote(address, quote_token, one_unit, 50)
@@ -2757,7 +2757,7 @@ async def onchain_live_price(chain: str, address: str, user: User = Depends(auth
                 pairs = await _dexscreener_token_pairs(chain, address)
                 price = _pair_price_usd(pairs[0], address) if pairs else None
                 if price is None:
-                    raise HTTPException(status_code=404, detail="Prezzo non disponibile per questo token.")
+                    raise HTTPException(status_code=404, detail="Price not available for this token.")
                 return {"price_usd": price}
             _pool, fee = found
             quote = await onchain_quotes.uniswap_v3_quote(address, quote_token, fee, one_unit)
@@ -2765,7 +2765,7 @@ async def onchain_live_price(chain: str, address: str, user: User = Depends(auth
         raise
     except Exception as exc:  # noqa: BLE001 — un quote fallito non deve essere un 500 muto
         logger.info("onchain live price failed for %s/%s: %s", chain, address, exc)
-        raise HTTPException(status_code=502, detail="Prezzo non disponibile, riprovo tra poco.") from exc
+        raise HTTPException(status_code=502, detail="Price not available, retrying shortly.") from exc
 
     out_amount = quote["out_amount"] if chain == "solana" else quote["amount_out"]
     return {"price_usd": out_amount / (10 ** _ONCHAIN_QUOTE_DECIMALS)}
@@ -2788,7 +2788,7 @@ async def _dexscreener_token_pairs(chain: str, address: str) -> list[dict]:
             r = await client.get(f"https://api.dexscreener.com/latest/dex/tokens/{address}")
         pairs = [p for p in (r.json().get("pairs") or []) if p.get("chainId") == chain] if r.status_code == 200 else []
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail="DexScreener non risponde, riprovo tra poco.") from exc
+        raise HTTPException(status_code=502, detail="DexScreener not responding, retrying shortly.") from exc
     pairs.sort(key=lambda p: float((p.get("liquidity") or {}).get("usd") or 0), reverse=True)
     _dex_pairs_cache[key] = (_time.time(), pairs)
     return pairs
@@ -2824,10 +2824,10 @@ async def onchain_chart(
     possibile")."""
     _require_onchain_enabled()
     if chain not in ("solana", "robinhood"):
-        raise HTTPException(status_code=400, detail="Chain non supportata.")
+        raise HTTPException(status_code=400, detail="Unsupported chain.")
     pairs = await _dexscreener_token_pairs(chain, address)
     if not pairs:
-        raise HTTPException(status_code=404, detail="Nessun mercato per questo token su questa chain.")
+        raise HTTPException(status_code=404, detail="No market for this token on this chain.")
     # Il pool piu' liquido puo' non avere candele (GeckoTerminal non lo
     # indicizza ancora, o limita le richieste): si prova il successivo
     # invece di lasciare il grafico vuoto.
@@ -2842,7 +2842,7 @@ async def onchain_chart(
         top = pair
         break
     if df is None:
-        raise HTTPException(status_code=502, detail="Grafico non disponibile per questo token, riprovo tra poco.")
+        raise HTTPException(status_code=502, detail="Chart not available for this token, retrying shortly.")
     pool_address = top["pairAddress"]
     candles = [
         {"time": int(ts.timestamp()), "open": float(row.open), "high": float(row.high),
@@ -2928,15 +2928,15 @@ async def create_limit_order(body: LimitOrderCreateRequest, user: User = Depends
     avrebbe un prezzo da confrontare col target."""
     _require_onchain_enabled()
     if body.chain not in user.onchain_wallets:
-        raise HTTPException(status_code=400, detail=f"Nessun wallet {body.chain} per questo utente.")
+        raise HTTPException(status_code=400, detail=f"No {body.chain} wallet for this user.")
     native = onchain_prices.NATIVE_TOKEN_ADDRESS[body.chain]
     if native.lower() not in (body.token_in.lower(), body.token_out.lower()):
         raise HTTPException(
             status_code=400,
-            detail="Un ordine limite richiede il token nativo su un lato: e' l'unico prezzo che sappiamo verificare.",
+            detail="A limit order needs the native token on one side: it's the only price we can verify.",
         )
     if body.amount_in <= 0 or body.target_price_usd <= 0:
-        raise HTTPException(status_code=400, detail="Size e prezzo target devono essere positivi.")
+        raise HTTPException(status_code=400, detail="Size and target price must be positive.")
     return onchain_ledger.create_limit_order(
         user.id, body.chain, body.token_in, body.token_out,
         body.token_in_symbol, body.token_out_symbol, body.token_in_decimals, body.token_out_decimals,
@@ -2953,7 +2953,7 @@ async def list_limit_orders(chain: str, user: User = Depends(auth.get_current_us
 async def cancel_limit_order(order_id: str, user: User = Depends(auth.get_current_user)) -> dict:
     cancelled = onchain_ledger.cancel_limit_order(order_id, user.id)
     if not cancelled:
-        raise HTTPException(status_code=404, detail="Ordine non trovato o non piu' annullabile.")
+        raise HTTPException(status_code=404, detail="Order not found or can no longer be cancelled.")
     return {"cancelled": True}
 
 
@@ -3023,7 +3023,7 @@ async def _check_limit_order(order: dict) -> None:
 
         user = auth.get_user(order["owner_id"])
         if user is None:
-            onchain_ledger.mark_limit_order_failed(order["id"], "utente non trovato")
+            onchain_ledger.mark_limit_order_failed(order["id"], "user not found")
             return
         private_key_hex = auth.get_decrypted_onchain_private_key(user, chain)
 
@@ -3032,7 +3032,7 @@ async def _check_limit_order(order: dict) -> None:
         token = order["token_out_symbol"] if order["direction"] == "buy_below" else order["token_in_symbol"]
 
         result = await onchain_execute.execute_order(
-            order["owner_id"], chain, token, "ordine limite", side,
+            order["owner_id"], chain, token, "limit order", side,
             notional_usd, quote["price_impact_pct"], current_price_usd,
             private_key_hex, quote,
         )
@@ -3043,7 +3043,7 @@ async def _check_limit_order(order: dict) -> None:
         # riprova al giro dopo — un tetto puo' liberarsi, un ordine limite
         # non deve morire per un rifiuto temporaneo.
     except auth.OnchainKeyIntegrityError as exc:
-        onchain_ledger.mark_limit_order_failed(order["id"], f"chiave non leggibile: {exc}")
+        onchain_ledger.mark_limit_order_failed(order["id"], f"key unreadable: {exc}")
     except Exception as exc:  # noqa: BLE001
         logger.warning("limit_order_loop: ordine %s, errore nel check: %s", order["id"], exc)
 
@@ -3082,12 +3082,12 @@ def _maybe_alert_onchain_risk_event(owner_email: str, chain: str, result: dict, 
     da chiamare dove pool_safety segnala il fallimento, con lo stesso
     `telegram.send_infra_alert()` usato qui sotto."""
     reason = (result.get("reason") or "")
-    if "circuit breaker attivo" in reason:
+    if "circuit breaker active" in reason:
         asyncio.create_task(telegram.send_infra_alert(
             f"Circuit breaker scattato su {chain} (utente {owner_email}): {reason}"
         ))
         return
-    if "tetto giornaliero" in reason:
+    if "daily cap" in reason:
         asyncio.create_task(telegram.send_infra_alert(
             f"Tetto giornaliero raggiunto su {chain} (utente {owner_email}): {reason}"
         ))
@@ -3156,13 +3156,13 @@ async def onchain_execute_solana(
     prima (nessuna riduzione, nessun controllo di allowlist)."""
     _require_onchain_enabled()
     if "solana" not in user.onchain_wallets:
-        raise HTTPException(status_code=400, detail="Nessun wallet Solana per questo utente.")
+        raise HTTPException(status_code=400, detail="No Solana wallet for this user.")
     try:
         quote = await onchain_quotes.jupiter_quote(
             body.input_mint, body.output_mint, body.amount_lamports, body.slippage_bps,
         )
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=f"Jupiter non raggiungibile: {exc}") from exc
+        raise HTTPException(status_code=502, detail=f"Jupiter unreachable: {exc}") from exc
     try:
         private_key_hex = auth.get_decrypted_onchain_private_key(user, "solana")
     except auth.OnchainKeyIntegrityError as exc:
@@ -3208,17 +3208,17 @@ async def onchain_execute_robinhood(
     la stessa scelta "mai fabbricare dati" del resto del modulo."""
     _require_onchain_enabled()
     if "robinhood" not in user.onchain_wallets:
-        raise HTTPException(status_code=400, detail="Nessun wallet Robinhood Chain per questo utente.")
+        raise HTTPException(status_code=400, detail="No Robinhood Chain wallet for this user.")
     try:
         found = await onchain_quotes.find_pool_and_fee(body.token_in, body.token_out, body.fee)
         if found is None:
-            raise HTTPException(status_code=400, detail="Nessun pool per questa coppia su nessun fee tier di Uniswap v3.")
+            raise HTTPException(status_code=400, detail="No pool for this pair on any Uniswap v3 fee tier.")
         pool, fee = found
         quote = await onchain_quotes.uniswap_v3_quote(body.token_in, body.token_out, fee, body.amount_in)
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=f"Robinhood Chain non raggiungibile: {exc}") from exc
+        raise HTTPException(status_code=502, detail=f"Robinhood Chain unreachable: {exc}") from exc
     try:
         private_key_hex = auth.get_decrypted_onchain_private_key(user, "robinhood")
     except auth.OnchainKeyIntegrityError as exc:
@@ -3257,9 +3257,9 @@ async def onchain_send_token(body: OnchainSendRequest, user: User = Depends(auth
     quello giusto, e non e' compito di un guardrail automatico deciderlo."""
     _require_onchain_enabled()
     if body.chain not in user.onchain_wallets:
-        raise HTTPException(status_code=400, detail=f"Nessun wallet {body.chain} per questo utente.")
+        raise HTTPException(status_code=400, detail=f"No {body.chain} wallet for this user.")
     if body.amount <= 0:
-        raise HTTPException(status_code=400, detail="La size deve essere positiva.")
+        raise HTTPException(status_code=400, detail="Size must be positive.")
 
     is_native = body.token_address is None or body.token_address.lower() == onchain_prices.NATIVE_TOKEN_ADDRESS[body.chain].lower()
     if is_native:
@@ -3269,9 +3269,9 @@ async def onchain_send_token(body: OnchainSendRequest, user: User = Depends(auth
         try:
             decimals = await onchain_token_metadata.get_token_decimals(body.chain, body.token_address)
         except Exception as exc:  # noqa: BLE001
-            raise HTTPException(status_code=502, detail=f"Decimali non recuperabili: {exc}") from exc
+            raise HTTPException(status_code=502, detail=f"Could not fetch decimals: {exc}") from exc
         if decimals is None:
-            raise HTTPException(status_code=502, detail="Decimali del token non recuperabili.")
+            raise HTTPException(status_code=502, detail="Could not fetch token decimals.")
         token_label = body.token_address
 
     amount_raw = int(round(body.amount * 10 ** decimals))
@@ -3323,7 +3323,7 @@ async def onchain_execute_twap(
     proporzionalmente alla size della fetta."""
     _require_onchain_enabled()
     if body.chain not in user.onchain_wallets:
-        raise HTTPException(status_code=400, detail=f"Nessun wallet {body.chain} per questo utente.")
+        raise HTTPException(status_code=400, detail=f"No {body.chain} wallet for this user.")
     try:
         private_key_hex = auth.get_decrypted_onchain_private_key(user, body.chain)
     except auth.OnchainKeyIntegrityError as exc:
@@ -3331,7 +3331,7 @@ async def onchain_execute_twap(
 
     if body.chain == "solana":
         if not (body.input_mint and body.output_mint and body.total_amount_lamports):
-            raise HTTPException(status_code=400, detail="input_mint/output_mint/total_amount_lamports richiesti per solana.")
+            raise HTTPException(status_code=400, detail="input_mint/output_mint/total_amount_lamports required for solana.")
 
         async def quote_for_slice(slice_usd: float) -> tuple[float, dict]:
             amount_lamports = max(1, round(body.total_amount_lamports * (slice_usd / body.total_usd)))
@@ -3346,7 +3346,7 @@ async def onchain_execute_twap(
         }
     else:
         if not (body.token_in and body.token_out and body.fee is not None and body.total_amount_in):
-            raise HTTPException(status_code=400, detail="token_in/token_out/fee/total_amount_in richiesti per robinhood.")
+            raise HTTPException(status_code=400, detail="token_in/token_out/fee/total_amount_in required for robinhood.")
 
         async def quote_for_slice(slice_usd: float) -> tuple[float, dict]:
             amount_in = max(1, round(body.total_amount_in * (slice_usd / body.total_usd)))
@@ -3418,7 +3418,7 @@ async def set_sniper_autotrade(
     _sniper_onchain_bridge_loop. Spento di default per ogni utente,
     acceso solo qui, mai da un default globale."""
     if chain not in user.onchain_wallets:
-        raise HTTPException(status_code=400, detail=f"Nessun wallet {chain} per questo utente — crealo prima.")
+        raise HTTPException(status_code=400, detail=f"No {chain} wallet for this user — create it first.")
     updated = auth.set_sniper_autotrade_chain(user.id, chain, body.enabled)
     return {"chains": updated.sniper_autotrade_chains}
 
@@ -3432,25 +3432,25 @@ def _pilot_token_view(user: User, entry: WatchlistEntry, chain: str, positions: 
     position = positions.get((entry.base_token_address or "").lower())
 
     events = [
-        {"ts": j["ts"], "text": f"Segnale {_PILOT_SIGNAL_WORDS.get(j['signal_type'], j['signal_type'])}: "
-                                f"{j['outcome']}" + (f" — {j['detail']}" if j.get("detail") else "")}
+        {"ts": j["ts"], "text": f"{_PILOT_SIGNAL_WORDS.get(j['signal_type'], j['signal_type'])} signal: "
+                                f"{_PILOT_OUTCOME_WORDS.get(j['outcome'], j['outcome'])}" + (f" — {j['detail']}" if j.get("detail") else "")}
         for j in mine[:6]
     ]
     if found:
-        events.append({"ts": found["added_at"], "text": "Entrato in osservazione (scoperto dallo sniper)"})
+        events.append({"ts": found["added_at"], "text": "Added to watch (found by the sniper)"})
 
     if position:
-        state, label = "in", "In posizione"
-        reason = f"{position['quantity']:g} token, costati ${position['cost_usd']:,.2f}"
+        state, label = "in", "In position"
+        reason = f"{position['quantity']:g} tokens, cost ${position['cost_usd']:,.2f}"
     elif mine and mine[0]["outcome"] != "eseguito":
-        state, label = "blocked", "Segnale non eseguito"
-        reason = mine[0].get("detail") or mine[0]["outcome"]
+        state, label = "blocked", "Signal not executed"
+        reason = mine[0].get("detail") or _PILOT_OUTCOME_WORDS.get(mine[0]["outcome"], mine[0]["outcome"])
     elif mine:
-        state, label = "watch", "Uscito, osservo"
-        reason = f"ultimo ordine: {_PILOT_SIGNAL_WORDS.get(mine[0]['signal_type'], mine[0]['signal_type'])}"
+        state, label = "watch", "Exited, watching"
+        reason = f"last order: {_PILOT_SIGNAL_WORDS.get(mine[0]['signal_type'], mine[0]['signal_type'])}"
     else:
-        state, label = "watch", "Osservo il trend"
-        reason = "nessun segnale della strategia finora"
+        state, label = "watch", "Watching the trend"
+        reason = "no strategy signal so far"
 
     return {
         "symbol": base_symbol,
@@ -3473,10 +3473,11 @@ def _pilot_token_view(user: User, entry: WatchlistEntry, chain: str, positions: 
 
 
 _PILOT_SIGNAL_WORDS = {
-    "entry_long": "di acquisto", "flip_to_long": "di acquisto",
-    "exit_long": "di vendita", "flip_to_short": "di vendita",
-    "entry_short": "short", "exit_short": "chiusura short",
+    "entry_long": "buy", "flip_to_long": "buy",
+    "exit_long": "sell", "flip_to_short": "sell",
+    "entry_short": "short", "exit_short": "close short",
 }
+_PILOT_OUTCOME_WORDS = {"eseguito": "executed", "saltato": "skipped", "fallito": "failed"}
 
 
 @app.get("/api/onchain/radar")
@@ -3603,7 +3604,7 @@ async def onchain_radar_follow(req: RadarFollowRequest, user: User = Depends(aut
     L'acquisto automatico resta una scelta a parte, del pilota."""
     _require_onchain_enabled()
     if req.strategy_name not in AVAILABLE_STRATEGIES:
-        raise HTTPException(status_code=400, detail="Strategia sconosciuta")
+        raise HTTPException(status_code=400, detail="Unknown strategy")
     symbol = onchain_radar.watch_symbol(req.symbol, req.chain, req.pool)
     entry = next((e for e in watchlist_store.list_entries(user.id) if e.symbol == symbol), None)
     if entry is None and req.enabled:
@@ -3631,18 +3632,18 @@ async def onchain_pilot_status(chain: OnchainChain, user: User = Depends(auth.ge
     # Cosa lo ferma, in ordine di gravita'. Ogni voce e' una condizione che
     # il codice controlla davvero (bridge e giro dei segnali), non un'ipotesi.
     health = [
-        {"key": "wallet", "ok": chain in user.onchain_wallets, "label": "Wallet su questa rete",
-         "detail": "creato" if chain in user.onchain_wallets else "manca: crealo prima"},
-        {"key": "scanner", "ok": settings.sniper_enabled, "label": "Scanner dei token nuovi",
-         "detail": "attivo" if settings.sniper_enabled else "spento sul server: nessun token nuovo arriva"},
+        {"key": "wallet", "ok": chain in user.onchain_wallets, "label": "Wallet on this network",
+         "detail": "created" if chain in user.onchain_wallets else "missing: create it first"},
+        {"key": "scanner", "ok": settings.sniper_enabled, "label": "New-token scanner",
+         "detail": "on" if settings.sniper_enabled else "off on the server: no new tokens coming in"},
         {"key": "signals", "ok": bool(settings.telegram_bot_token and user.telegram_chat_id and _telegram_allowed(user)),
-         "label": "Controllo dei segnali",
-         "detail": "attivo" if settings.telegram_bot_token and user.telegram_chat_id and _telegram_allowed(user)
-         else "fermo: serve Telegram collegato, senza la strategia non viene valutata"},
-        {"key": "execution", "ok": settings.onchain_execution_enabled, "label": "Ordini reali",
-         "detail": "abilitati" if settings.onchain_execution_enabled else "spenti sul server: i segnali restano solo registrati"},
-        {"key": "breaker", "ok": not breaker.get("tripped"), "label": "Freno di emergenza",
-         "detail": "armato, non scattato" if not breaker.get("tripped") else "scattato: riattivalo da Limiti"},
+         "label": "Signal check",
+         "detail": "on" if settings.telegram_bot_token and user.telegram_chat_id and _telegram_allowed(user)
+         else "stopped: needs Telegram linked, without it the strategy is not evaluated"},
+        {"key": "execution", "ok": settings.onchain_execution_enabled, "label": "Live orders",
+         "detail": "enabled" if settings.onchain_execution_enabled else "off on the server: signals are only logged"},
+        {"key": "breaker", "ok": not breaker.get("tripped"), "label": "Emergency brake",
+         "detail": "armed, not tripped" if not breaker.get("tripped") else "tripped: re-arm it from Limits"},
     ]
 
     positions = {p["token"].lower(): p for p in onchain_ledger.get_all_positions(user.id, chain)}
@@ -3688,8 +3689,8 @@ async def onchain_reset_circuit_breaker(chain: OnchainChain, user: User = Depend
 def _require_onchain_admin(user: User) -> None:
     allowed = {e.strip().lower() for e in settings.admin_emails.split(",") if e.strip()}
     if user.email.lower() not in allowed:
-        raise HTTPException(status_code=403, detail="Solo un amministratore configurato (settings.admin_emails) "
-                                                      "puo' leggere /admin/status.")
+        raise HTTPException(status_code=403, detail="Only a configured admin (settings.admin_emails) "
+                                                      "can read /admin/status.")
 
 
 # ---------------------------------------------------------------- link ospite
@@ -3702,7 +3703,7 @@ class GuestLinkRequest(BaseModel):
 def _require_admin(user: User) -> None:
     allowed = {e.strip().lower() for e in settings.admin_emails.split(",") if e.strip()}
     if guest_links.is_guest(user) or user.email.lower() not in allowed:
-        raise HTTPException(status_code=403, detail="Solo un amministratore puo' gestire i link ospite.")
+        raise HTTPException(status_code=403, detail="Only an admin can manage guest links.")
 
 
 def _guest_link_out(link: guest_links.GuestLink, request: Request) -> dict:
@@ -3736,7 +3737,7 @@ async def guest_links_revoke(link_id: str, request: Request, user: User = Depend
     _require_admin(user)
     link = guest_links.revoke_link(link_id)
     if link is None:
-        raise HTTPException(status_code=404, detail="Link non trovato")
+        raise HTTPException(status_code=404, detail="Link not found")
     return _guest_link_out(link, request)
 
 
@@ -3746,8 +3747,8 @@ async def guest_enter(request: Request, t: str = "") -> Response:
     if link is None:
         return HTMLResponse(
             "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'>"
-            "<title>Link non valido</title><body style='font:16px system-ui;padding:32px;background:#0b0b0c;color:#ddd'>"
-            "<p>Questo link ospite e' scaduto o e' stato revocato.</p></body>",
+            "<title>Invalid link</title><body style='font:16px system-ui;padding:32px;background:#0b0b0c;color:#ddd'>"
+            "<p>This guest link has expired or been revoked.</p></body>",
             status_code=410,
             headers=_HTML_HEADERS,
         )
@@ -3763,8 +3764,8 @@ async def guest_enter(request: Request, t: str = "") -> Response:
     return response
 
 
-_GUEST_ADMIN_HTML = """<!doctype html><html lang="it"><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Link ospite</title>
+_GUEST_ADMIN_HTML = """<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Guest links</title>
 <style>
 body{font:15px/1.45 system-ui,sans-serif;margin:0;padding:24px 16px;background:#0b0b0c;color:#e6e6e6;max-width:640px}
 h1{font-size:18px;margin:0 0 16px}form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
@@ -3772,23 +3773,23 @@ input,button{font:inherit;font-size:16px;padding:8px 10px;border-radius:8px;bord
 button{cursor:pointer}ul{list-style:none;padding:0;margin:0}li{padding:10px 0;border-top:1px solid #222}
 .off{opacity:.45}code{word-break:break-all;font-size:13px;color:#9ad}small{color:#888}
 </style>
-<h1>Link ospite &middot; sola lettura</h1>
-<form id="f"><input id="label" placeholder="Per chi (es. Marco)" maxlength="60">
-<input id="days" type="number" min="1" max="90" value="7" style="width:5em"> giorni
-<button>Crea link</button></form>
+<h1>Guest links &middot; read-only</h1>
+<form id="f"><input id="label" placeholder="For whom (e.g. Marco)" maxlength="60">
+<input id="days" type="number" min="1" max="90" value="7" style="width:5em"> days
+<button>Create link</button></form>
 <ul id="list"></ul>
 <script>
 const $=s=>document.querySelector(s);
-const day=t=>new Date(t*1000).toLocaleDateString("it-IT",{day:"numeric",month:"short"});
+const day=t=>new Date(t*1000).toLocaleDateString("en-US",{day:"numeric",month:"short"});
 async function load(){
   const r=await fetch("/api/guest-links");const rows=r.ok?await r.json():[];
   $("#list").innerHTML="";
   for(const l of rows){const li=document.createElement("li");if(!l.active)li.className="off";
-    li.innerHTML=`<b></b> <small>${l.active?"scade il "+day(l.expires_at):"chiuso"}</small><br>`;
-    li.querySelector("b").textContent=l.label||"senza nome";
+    li.innerHTML=`<b></b> <small>${l.active?"expires "+day(l.expires_at):"closed"}</small><br>`;
+    li.querySelector("b").textContent=l.label||"unnamed";
     if(l.url){const c=document.createElement("code");c.textContent=l.url;li.append(c," ");
-      const cp=document.createElement("button");cp.textContent="Copia";cp.onclick=()=>navigator.clipboard.writeText(l.url);
-      const rv=document.createElement("button");rv.textContent="Revoca";
+      const cp=document.createElement("button");cp.textContent="Copy";cp.onclick=()=>navigator.clipboard.writeText(l.url);
+      const rv=document.createElement("button");rv.textContent="Revoke";
       rv.onclick=async()=>{await fetch("/api/guest-links/"+l.id,{method:"DELETE"});load();};li.append(cp," ",rv);}
     $("#list").append(li);}
 }
@@ -3811,7 +3812,7 @@ _GUEST_BANNER = (
     '<div role="status" style="position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:2147483647;'
     'padding:6px 12px;border-radius:999px;background:rgba(20,20,22,.88);color:#e6e6e6;'
     'font:12px/1.2 system-ui,sans-serif;letter-spacing:.02em;pointer-events:none;'
-    'border:1px solid rgba(255,255,255,.12)">Ospite &middot; sola lettura</div>'
+    'border:1px solid rgba(255,255,255,.12)">Guest &middot; read-only</div>'
 )
 
 
@@ -3926,19 +3927,19 @@ async def quote_futures_order(body: FuturesQuoteRequest, user: User = Depends(au
     margine impegnato e prezzo di liquidazione stimato — mai un click
     singolo come per lo spot (vedi il piano "Operazioni futures", Fase 4)."""
     if body.exchange not in SUPPORTED_FUTURES_EXCHANGES_ORDERED:
-        raise HTTPException(status_code=400, detail=f"Futures non ancora supportati per questo exchange: {body.exchange}")
+        raise HTTPException(status_code=400, detail=f"Futures not supported yet for this exchange: {body.exchange}")
     cred = user.futures_credentials.get(body.exchange)
     if not cred:
-        raise HTTPException(status_code=400, detail="Credenziali futures non configurate per questo exchange")
+        raise HTTPException(status_code=400, detail="No futures credentials configured for this exchange")
     api_key, api_secret, passphrase = auth.get_decrypted_futures_credential(user, body.exchange)
     if not api_key or not api_secret:
-        raise HTTPException(status_code=400, detail="API key o secret mancanti")
+        raise HTTPException(status_code=400, detail="API key or secret missing")
     adapter = futures_registry.get(body.exchange)
     if adapter.needs_passphrase and not passphrase:
-        raise HTTPException(status_code=400, detail=f"{adapter.name} richiede una passphrase, non ancora salvata")
+        raise HTTPException(status_code=400, detail=f"{adapter.name} requires a passphrase, not saved yet")
     max_lev = min(MAX_FUTURES_LEVERAGE, adapter.max_leverage)
     if not (1 <= body.leverage <= max_lev):
-        raise HTTPException(status_code=400, detail=f"Leva {body.leverage}x fuori dal limite di {adapter.name} (1-{max_lev}x)")
+        raise HTTPException(status_code=400, detail=f"Leverage {body.leverage}x outside {adapter.name}'s limit (1-{max_lev}x)")
 
     symbol = body.symbol.strip().upper()
     creds = FuturesCreds(api_key=api_key, api_secret=api_secret, passphrase=passphrase)
@@ -4003,12 +4004,12 @@ class FuturesOrderRequest(BaseModel):
 @app.post("/api/trading/futures/order")
 async def place_manual_futures_order(body: FuturesOrderRequest, user: User = Depends(auth.get_current_user)):
     if not body.confirm:
-        raise HTTPException(status_code=400, detail="Conferma richiesta: mostra prima l'anteprima (/api/trading/futures/quote)")
+        raise HTTPException(status_code=400, detail="Confirmation required: show the preview first (/api/trading/futures/quote)")
     if body.exchange not in SUPPORTED_FUTURES_EXCHANGES_ORDERED:
-        raise HTTPException(status_code=400, detail=f"Futures non ancora supportati per questo exchange: {body.exchange}")
+        raise HTTPException(status_code=400, detail=f"Futures not supported yet for this exchange: {body.exchange}")
     cred = user.futures_credentials.get(body.exchange)
     if not cred:
-        raise HTTPException(status_code=400, detail="Credenziali futures non configurate per questo exchange")
+        raise HTTPException(status_code=400, detail="No futures credentials configured for this exchange")
     adapter = futures_registry.get(body.exchange)
     if not cred.enabled:
         # Kill switch: spegnibile senza toccare le chiavi — vale anche per
@@ -4019,16 +4020,16 @@ async def place_manual_futures_order(body: FuturesOrderRequest, user: User = Dep
         # lo diceva).
         raise HTTPException(
             status_code=400,
-            detail=f"Esecuzione futures disattivata per {adapter.name} — attivala col toggle \"Attivo\" sulla sua card qui sopra, oppure premi \"Attiva ora\" qui sotto.",
+            detail=f"Futures execution disabled for {adapter.name} — turn it on with the \"Active\" toggle on its card above, or press \"Enable now\" below.",
         )
     api_key, api_secret, passphrase = auth.get_decrypted_futures_credential(user, body.exchange)
     if not api_key or not api_secret:
-        raise HTTPException(status_code=400, detail="API key o secret mancanti")
+        raise HTTPException(status_code=400, detail="API key or secret missing")
     if adapter.needs_passphrase and not passphrase:
-        raise HTTPException(status_code=400, detail=f"{adapter.name} richiede una passphrase, non ancora salvata")
+        raise HTTPException(status_code=400, detail=f"{adapter.name} requires a passphrase, not saved yet")
     max_lev = min(MAX_FUTURES_LEVERAGE, adapter.max_leverage)
     if not (1 <= body.leverage <= max_lev):
-        raise HTTPException(status_code=400, detail=f"Leva {body.leverage}x fuori dal limite di {adapter.name} (1-{max_lev}x)")
+        raise HTTPException(status_code=400, detail=f"Leverage {body.leverage}x outside {adapter.name}'s limit (1-{max_lev}x)")
 
     symbol = body.symbol.strip().upper()
     creds = FuturesCreds(api_key=api_key, api_secret=api_secret, passphrase=passphrase)
@@ -4060,7 +4061,7 @@ async def place_manual_futures_order(body: FuturesOrderRequest, user: User = Dep
     if margin_needed > available:
         raise HTTPException(
             status_code=400,
-            detail=f"Margine insufficiente: servono {margin_needed:.2f} USDT, disponibili {available:.2f} USDT",
+            detail=f"Insufficient margin: {margin_needed:.2f} USDT needed, {available:.2f} USDT available",
         )
 
     from app.models import StrategySignal
@@ -4098,12 +4099,12 @@ async def close_manual_futures_position(body: ClosePositionRequest, user: User =
     leva quella distanza si paga.
     """
     if not body.confirm:
-        raise HTTPException(status_code=400, detail="Conferma richiesta per chiudere una posizione")
+        raise HTTPException(status_code=400, detail="Confirmation required to close a position")
     if body.exchange not in SUPPORTED_FUTURES_EXCHANGES_ORDERED:
-        raise HTTPException(status_code=400, detail=f"Futures non supportati per questo exchange: {body.exchange}")
+        raise HTTPException(status_code=400, detail=f"Futures not supported for this exchange: {body.exchange}")
     cred = user.futures_credentials.get(body.exchange)
     if not cred:
-        raise HTTPException(status_code=400, detail="Credenziali futures non configurate per questo exchange")
+        raise HTTPException(status_code=400, detail="No futures credentials configured for this exchange")
     adapter = futures_registry.get(body.exchange)
     # Nessun controllo su cred.enabled, a differenza dell'apertura: il kill
     # switch esiste per impedire NUOVA esposizione, e una chiusura la riduce
@@ -4112,9 +4113,9 @@ async def close_manual_futures_position(body: ClosePositionRequest, user: User =
     # una posizione a leva — il contrario di cio' per cui quel toggle c'e'.
     api_key, api_secret, passphrase = auth.get_decrypted_futures_credential(user, body.exchange)
     if not api_key or not api_secret:
-        raise HTTPException(status_code=400, detail="API key o secret mancanti")
+        raise HTTPException(status_code=400, detail="API key or secret missing")
     if adapter.needs_passphrase and not passphrase:
-        raise HTTPException(status_code=400, detail=f"{adapter.name} richiede una passphrase, non ancora salvata")
+        raise HTTPException(status_code=400, detail=f"{adapter.name} requires a passphrase, not saved yet")
 
     symbol = body.symbol.strip().upper()
     creds = FuturesCreds(api_key=api_key, api_secret=api_secret, passphrase=passphrase)
@@ -4134,7 +4135,7 @@ async def close_manual_futures_position(body: ClosePositionRequest, user: User =
     # chiuso.
     if result is None:
         return {"ok": True, "closed": False, "symbol": symbol,
-                "detail": f"Nessuna posizione aperta su {symbol} da chiudere."}
+                "detail": f"No open position on {symbol} to close."}
     trading_log.record(
         user.id, symbol=symbol, exchange=body.exchange,
         strategy_name="chiusura manuale futures", signal_type="exit",
@@ -4157,10 +4158,10 @@ async def set_trading_halt(body: HaltRequest, user: User = Depends(auth.get_curr
     """
     allowed_emails = {e.strip().lower() for e in settings.registration_allowed_emails.split(",") if e.strip()}
     if user.email.lower() not in allowed_emails:
-        raise HTTPException(status_code=403, detail="Non autorizzato")
+        raise HTTPException(status_code=403, detail="Not authorized")
     settings.trading_halt = body.halt
-    state = "in pausa" if body.halt else "attiva"
-    return {"ok": True, "trading_halt": body.halt, "detail": f"Esecuzione automatica {state}"}
+    state = "paused" if body.halt else "active"
+    return {"ok": True, "trading_halt": body.halt, "detail": f"Auto-execution {state}"}
 
 
 @app.get("/api/trading/halt")
@@ -4168,14 +4169,14 @@ async def get_trading_halt(user: User = Depends(auth.get_current_user)):
     """Stato corrente del kill switch."""
     allowed_emails = {e.strip().lower() for e in settings.registration_allowed_emails.split(",") if e.strip()}
     if user.email.lower() not in allowed_emails:
-        raise HTTPException(status_code=403, detail="Non autorizzato")
+        raise HTTPException(status_code=403, detail="Not authorized")
     return {"trading_halt": settings.trading_halt}
 
 
 @app.get("/api/balances")
 async def get_balances(user: User = Depends(auth.get_current_user)) -> dict:
     if not _balance_visible(user):
-        raise HTTPException(status_code=403, detail="Non disponibile per questo account")
+        raise HTTPException(status_code=403, detail="Not available for this account")
 
     async def _safe(fetch_fn, configured: bool):
         if not configured:
@@ -4199,7 +4200,7 @@ async def get_balances(user: User = Depends(auth.get_current_user)) -> dict:
 def _owned_entry_or_404(entry_id: str, user: User) -> WatchlistEntry:
     entry = watchlist_store.get_entry(entry_id)
     if entry is None or entry.owner_id != user.id:
-        raise HTTPException(status_code=404, detail="Voce non trovata")
+        raise HTTPException(status_code=404, detail="Entry not found")
     return entry
 
 
@@ -4244,7 +4245,7 @@ async def add_watchlist_entry(
 ) -> WatchlistEntry:
     symbol = req.symbol.strip()
     if not symbol:
-        raise HTTPException(status_code=400, detail="Ticker mancante")
+        raise HTTPException(status_code=400, detail="Ticker missing")
 
     # Re-verify the pair actually resolves on this exchange before storing
     # it — the frontend already confirms this via the suggestions list, but
@@ -4255,10 +4256,10 @@ async def add_watchlist_entry(
         probe = await provider.fetch_ohlcv(symbol, "1d", 2)
     except ProviderError as exc:
         raise HTTPException(
-            status_code=400, detail=f"Ticker non trovato su questo exchange: {exc}"
+            status_code=400, detail=f"Ticker not found on this exchange: {exc}"
         ) from exc
     if probe.empty:
-        raise HTTPException(status_code=400, detail="Ticker non trovato su questo exchange.")
+        raise HTTPException(status_code=400, detail="Ticker not found on this exchange.")
 
     return watchlist_store.add_entry(
         user.id, symbol, req.asset_type, exchange=req.exchange, interval=req.interval, on_close=req.on_close,
@@ -4295,7 +4296,7 @@ async def toggle_watchlist_strategy(
     entry_id: str, req: WatchlistStrategyToggleRequest, user: User = Depends(auth.get_current_user)
 ) -> WatchlistEntry:
     if req.strategy_name not in AVAILABLE_STRATEGIES:
-        raise HTTPException(status_code=400, detail=f"Strategia sconosciuta: {req.strategy_name}")
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {req.strategy_name}")
     before = _owned_entry_or_404(entry_id, user)
     was_enabled = req.strategy_name in before.strategies
     entry = watchlist_store.set_strategy_enabled(entry_id, req.strategy_name, req.enabled)
@@ -4361,7 +4362,7 @@ async def set_watchlist_strategy_params(
     entry_id: str, req: WatchlistStrategyParamsRequest, user: User = Depends(auth.get_current_user)
 ) -> WatchlistEntry:
     if req.strategy_name not in AVAILABLE_STRATEGIES:
-        raise HTTPException(status_code=400, detail=f"Strategia sconosciuta: {req.strategy_name}")
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {req.strategy_name}")
     _owned_entry_or_404(entry_id, user)
     return watchlist_store.set_strategy_params(entry_id, req.strategy_name, req.params)
 
@@ -4389,7 +4390,7 @@ async def set_watchlist_auto_trade(
     entry_id: str, req: WatchlistAutoTradeRequest, user: User = Depends(auth.get_current_user)
 ) -> WatchlistEntry:
     if req.strategy_name not in AVAILABLE_STRATEGIES:
-        raise HTTPException(status_code=400, detail=f"Strategia sconosciuta: {req.strategy_name}")
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {req.strategy_name}")
     _owned_entry_or_404(entry_id, user)
     return watchlist_store.set_auto_trade(entry_id, req.strategy_name, req.enabled)
 
@@ -4404,9 +4405,9 @@ async def set_watchlist_size_cap(
     entry_id: str, req: WatchlistSizeCapRequest, user: User = Depends(auth.get_current_user)
 ) -> WatchlistEntry:
     if req.strategy_name not in AVAILABLE_STRATEGIES:
-        raise HTTPException(status_code=400, detail=f"Strategia sconosciuta: {req.strategy_name}")
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {req.strategy_name}")
     if req.cap_usdt < 0:
-        raise HTTPException(status_code=400, detail="Il tetto non puo' essere negativo")
+        raise HTTPException(status_code=400, detail="The cap can't be negative")
     _owned_entry_or_404(entry_id, user)
     return watchlist_store.set_size_cap(entry_id, req.strategy_name, req.cap_usdt)
 
@@ -4421,12 +4422,12 @@ async def set_watchlist_market(
     entry_id: str, req: WatchlistMarketRequest, user: User = Depends(auth.get_current_user)
 ) -> WatchlistEntry:
     if req.strategy_name not in AVAILABLE_STRATEGIES:
-        raise HTTPException(status_code=400, detail=f"Strategia sconosciuta: {req.strategy_name}")
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {req.strategy_name}")
     entry = _owned_entry_or_404(entry_id, user)
     if req.market == "futures" and entry.exchange not in futures_registry.SUPPORTED_FUTURES_EXCHANGES:
         raise HTTPException(
             status_code=400,
-            detail=f"{entry.exchange} non ha un adattatore futures registrato",
+            detail=f"{entry.exchange} has no registered futures adapter",
         )
     return watchlist_store.set_market(entry_id, req.strategy_name, req.market)
 
@@ -4461,10 +4462,10 @@ async def test_watchlist_alert(
     """Fetch current candles, run the strategy, send the most recent signal as a test."""
     strategy_name = body.get("strategy_name", "")
     if strategy_name not in AVAILABLE_STRATEGIES:
-        raise HTTPException(status_code=400, detail=f"Strategia sconosciuta: {strategy_name}")
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {strategy_name}")
     entry = _owned_entry_or_404(entry_id, user)
     if not user.telegram_chat_id:
-        raise HTTPException(status_code=400, detail="Nessun Telegram chat_id configurato")
+        raise HTTPException(status_code=400, detail="No Telegram chat_id configured")
     provider = get_provider(entry.asset_type, entry.exchange)
     interval = entry.strategy_intervals.get(strategy_name, entry.interval)
     try:
@@ -4474,7 +4475,7 @@ async def test_watchlist_alert(
     except ProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     if df.empty:
-        raise HTTPException(status_code=502, detail="Nessun dato disponibile")
+        raise HTTPException(status_code=502, detail="No data available")
     params = entry.strategy_params.get(strategy_name) or None
     strategy = build_strategy_state(strategy_name, df, params=params)
     if not strategy.signals:
@@ -4528,7 +4529,7 @@ async def create_price_alert(
 ) -> PriceAlert:
     symbol = req.symbol.strip().upper()
     if not symbol:
-        raise HTTPException(status_code=400, detail="Ticker mancante")
+        raise HTTPException(status_code=400, detail="Ticker missing")
     return price_alerts_store.add_alert(
         user.id, symbol, req.asset_type, req.exchange,
         req.condition, req.price, req.note, req.once_only,
@@ -4539,7 +4540,7 @@ async def create_price_alert(
 async def delete_price_alert(alert_id: str, user: User = Depends(auth.get_current_user)) -> dict:
     a = price_alerts_store.get_alert(alert_id)
     if a is None or a.owner_id != user.id:
-        raise HTTPException(status_code=404, detail="Alert non trovato")
+        raise HTTPException(status_code=404, detail="Alert not found")
     price_alerts_store.remove_alert(alert_id)
     return {"ok": True}
 
@@ -4554,14 +4555,14 @@ async def set_price_alert_active(
 ) -> PriceAlert:
     a = price_alerts_store.get_alert(alert_id)
     if a is None or a.owner_id != user.id:
-        raise HTTPException(status_code=404, detail="Alert non trovato")
+        raise HTTPException(status_code=404, detail="Alert not found")
     return price_alerts_store.set_active(alert_id, req.active)
 
 
 def _owned_favorite_or_404(entry_id: str, user: User) -> FavoriteEntry:
     entry = favorites_store.get_entry(entry_id)
     if entry is None or entry.owner_id != user.id:
-        raise HTTPException(status_code=404, detail="Voce non trovata")
+        raise HTTPException(status_code=404, detail="Entry not found")
     return entry
 
 
@@ -4582,17 +4583,17 @@ async def add_favorite_entry(
 ) -> FavoriteEntry:
     symbol = req.symbol.strip()
     if not symbol:
-        raise HTTPException(status_code=400, detail="Ticker mancante")
+        raise HTTPException(status_code=400, detail="Ticker missing")
 
     provider = get_provider(req.asset_type, req.exchange)
     try:
         probe = await provider.fetch_ohlcv(symbol, "1d", 2)
     except ProviderError as exc:
         raise HTTPException(
-            status_code=400, detail=f"Ticker non trovato su questo exchange: {exc}"
+            status_code=400, detail=f"Ticker not found on this exchange: {exc}"
         ) from exc
     if probe.empty:
-        raise HTTPException(status_code=400, detail="Ticker non trovato su questo exchange.")
+        raise HTTPException(status_code=400, detail="Ticker not found on this exchange.")
 
     return favorites_store.add_entry(user.id, symbol, req.asset_type, exchange=req.exchange)
 
@@ -4655,9 +4656,9 @@ async def analyze(
 ) -> AnalysisResponse:
     symbol = symbol.strip()
     if not symbol:
-        raise HTTPException(status_code=400, detail="Ticker mancante")
+        raise HTTPException(status_code=400, detail="Ticker missing")
     if strategy_name not in AVAILABLE_STRATEGIES:
-        raise HTTPException(status_code=400, detail=f"Strategia sconosciuta: {strategy_name}")
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {strategy_name}")
 
     strategy_params_dict = strategy_params.model_dump()
     backtest_params_dict = backtest_params.model_dump()
@@ -4683,7 +4684,7 @@ async def analyze(
     backtests: dict[str, object] = {}
     for tf_key, df in fetched:
         if df.empty:
-            raise HTTPException(status_code=502, detail=f"Nessun dato per {symbol} su timeframe {tf_key}")
+            raise HTTPException(status_code=502, detail=f"No data for {symbol} on timeframe {tf_key}")
 
         swings = compute_swings(df, tf_key)
         levels = compute_levels(df, swings)
@@ -4790,7 +4791,7 @@ def _slice_to_period(df, symbol: str, start_date: str | None, end_date: str | No
     if df.empty:
         raise HTTPException(
             status_code=400,
-            detail=f"Nessuna candela per {symbol} nel periodo richiesto — prova un intervallo piu' ampio.",
+            detail=f"No candles for {symbol} in the requested period — try a wider range.",
         )
     return df
 
@@ -4804,8 +4805,8 @@ async def deep_backtest(
     strategy_name: str = Query(DEFAULT_STRATEGY),
     strategy_params: StrategyParamsQuery = Depends(),
     backtest_params: BacktestParamsQuery = Depends(),
-    start_date: str | None = Query(None, description="YYYY-MM-DD, incluso — ritaglia la serie prima del backtest"),
-    end_date: str | None = Query(None, description="YYYY-MM-DD, incluso — ritaglia la serie prima del backtest"),
+    start_date: str | None = Query(None, description="YYYY-MM-DD, inclusive — trims the series before the backtest"),
+    end_date: str | None = Query(None, description="YYYY-MM-DD, inclusive — trims the series before the backtest"),
 ) -> BacktestResult:
     """The backtest's own, deliberately coarser fetch (see
     backtest_interval_for) instead of the ltf df the chart uses — reaches
@@ -4818,9 +4819,9 @@ async def deep_backtest(
     this resolves."""
     symbol = symbol.strip()
     if not symbol:
-        raise HTTPException(status_code=400, detail="Ticker mancante")
+        raise HTTPException(status_code=400, detail="Ticker missing")
     if strategy_name not in AVAILABLE_STRATEGIES:
-        raise HTTPException(status_code=400, detail=f"Strategia sconosciuta: {strategy_name}")
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {strategy_name}")
 
     provider = get_provider(asset_type, exchange)
     backtest_interval = backtest_interval_for(ltf_interval)
@@ -4840,7 +4841,7 @@ async def deep_backtest(
         except ProviderError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
     if df.empty:
-        raise HTTPException(status_code=502, detail=f"Nessun dato per {symbol}")
+        raise HTTPException(status_code=502, detail=f"No data for {symbol}")
 
     df = _slice_to_period(df, symbol, start_date, end_date)
 
@@ -4997,12 +4998,12 @@ async def _optimize_payload(
         chart_interval=ltf_interval,
         differs_from_chart=backtest_interval != ltf_interval,
         note=(
-            f"Ottimizzato su {len(df)} candele a {backtest_interval}, non sul "
-            f"timeframe {ltf_interval} del grafico. Per riprodurre a mano questo "
-            f"risultato imposta il grafico su {backtest_interval}."
+            f"Optimized on {len(df)} {backtest_interval} candles, not on the chart's "
+            f"{ltf_interval} timeframe. To reproduce this result by hand, "
+            f"set the chart to {backtest_interval}."
             if backtest_interval != ltf_interval
-            else f"Ottimizzato su {len(df)} candele a {backtest_interval}, "
-                 f"lo stesso timeframe del grafico."
+            else f"Optimized on {len(df)} {backtest_interval} candles, "
+                 f"the same timeframe as the chart."
         ),
     )
 
@@ -5130,9 +5131,9 @@ async def export_backtest(
     """
     symbol = symbol.strip()
     if not symbol:
-        raise HTTPException(status_code=400, detail="Ticker mancante")
+        raise HTTPException(status_code=400, detail="Ticker missing")
     if strategy_name not in AVAILABLE_STRATEGIES:
-        raise HTTPException(status_code=400, detail=f"Strategia sconosciuta: {strategy_name}")
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {strategy_name}")
 
     provider = get_provider(asset_type, exchange)
     backtest_interval = backtest_interval_for(ltf_interval)
@@ -5144,7 +5145,7 @@ async def export_backtest(
     except ProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     if df.empty:
-        raise HTTPException(status_code=502, detail=f"Nessun dato per {symbol}")
+        raise HTTPException(status_code=502, detail=f"No data for {symbol}")
 
     sp = strategy_params.model_dump()
     bp = backtest_params.model_dump()
@@ -5194,9 +5195,9 @@ def _inizia_lavoro_pesante(owner_id: str) -> None:
         raise HTTPException(
             status_code=429,
             detail=(
-                f"Hai gia' una ricerca in corso da {da_quanto // 60} min {da_quanto % 60} s. "
-                "Aspetta che finisca: due ricerche insieme non vanno piu' veloci, "
-                "si rubano il processore a vicenda."
+                f"You already have a search running for {da_quanto // 60} min {da_quanto % 60} s. "
+                "Wait for it to finish: two searches at once aren't faster, "
+                "they just steal CPU from each other."
             ),
         )
     _ricerche_in_corso[owner_id] = adesso
@@ -5222,8 +5223,8 @@ async def optimize_strategy_endpoint(
     min_losing_trades: int | None = Query(None, ge=0, le=1000),
     max_losing_trades: int | None = Query(None, ge=0, le=1000),
     max_drawdown_pct: float | None = Query(None, ge=0.0, le=100.0),
-    start_date: str | None = Query(None, description="YYYY-MM-DD, incluso — stesso periodo del backtest"),
-    end_date: str | None = Query(None, description="YYYY-MM-DD, incluso — stesso periodo del backtest"),
+    start_date: str | None = Query(None, description="YYYY-MM-DD, inclusive — same period as the backtest"),
+    end_date: str | None = Query(None, description="YYYY-MM-DD, inclusive — same period as the backtest"),
     user: User = Depends(auth.get_current_user),
 ) -> OptimizeResult:
     """Random-search parameter tuning for any strategy in the registry —
@@ -5264,9 +5265,9 @@ async def _optimize_body(
     `finally` avvolto attorno a duecento righe non si legge."""
     symbol = symbol.strip()
     if not symbol:
-        raise HTTPException(status_code=400, detail="Ticker mancante")
+        raise HTTPException(status_code=400, detail="Ticker missing")
     if not is_optimizable(strategy_name):
-        raise HTTPException(status_code=400, detail=f"Ottimizzazione non disponibile per {strategy_name}")
+        raise HTTPException(status_code=400, detail=f"Optimization not available for {strategy_name}")
 
     provider = get_provider(asset_type, exchange)
     backtest_interval = backtest_interval_for(ltf_interval)
@@ -5284,7 +5285,7 @@ async def _optimize_body(
         except ProviderError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
     if df.empty:
-        raise HTTPException(status_code=502, detail=f"Nessun dato per {symbol}")
+        raise HTTPException(status_code=502, detail=f"No data for {symbol}")
     df = _slice_to_period(df, symbol, start_date, end_date)
 
     constraints = Constraints(
@@ -5325,7 +5326,7 @@ def _archive_optimizer_result(owner_id: str, symbol: str, asset_type: str,
         owner_id=owner_id, symbol=symbol, asset_type=asset_type, exchange=exchange,
         interval=ltf_interval, strategy_name=strategy_name, params=body.params,
         backtest_params={}, source="ottimizzazione",
-        note=f"Ricerca {_MODE_LABEL.get(mode, mode)}",
+        note=f"{_MODE_LABEL_EN.get(mode, mode)} search",
         optimizer={
             "mode": mode,
             "evaluations": body.trials_evaluated,
@@ -5357,6 +5358,7 @@ def _archive_optimizer_result(owner_id: str, symbol: str, asset_type: str,
 
 
 _MODE_LABEL = {"random": "rapida", "grid": "griglia", "plateau": "stabile"}
+_MODE_LABEL_EN = {"random": "Quick", "grid": "Grid", "plateau": "Stable"}
 
 
 def _optimizer_summary(symbol: str, strategy_name: str, mode: str,
@@ -5408,15 +5410,15 @@ async def start_optimize(
     min_losing_trades: int | None = Query(None, ge=0, le=1000),
     max_losing_trades: int | None = Query(None, ge=0, le=1000),
     max_drawdown_pct: float | None = Query(None, ge=0.0, le=100.0),
-    start_date: str | None = Query(None, description="YYYY-MM-DD, incluso — stesso periodo del backtest"),
-    end_date: str | None = Query(None, description="YYYY-MM-DD, incluso — stesso periodo del backtest"),
+    start_date: str | None = Query(None, description="YYYY-MM-DD, inclusive — same period as the backtest"),
+    end_date: str | None = Query(None, description="YYYY-MM-DD, inclusive — same period as the backtest"),
     user: User | None = Depends(auth.get_current_user_optional),
 ) -> dict:
     symbol = symbol.strip()
     if not symbol:
-        raise HTTPException(status_code=400, detail="Ticker mancante")
+        raise HTTPException(status_code=400, detail="Ticker missing")
     if not is_optimizable(strategy_name):
-        raise HTTPException(status_code=400, detail=f"Ottimizzazione non disponibile per {strategy_name}")
+        raise HTTPException(status_code=400, detail=f"Optimization not available for {strategy_name}")
 
     owner_id = user.id if user else ""
     job_id = jobs_store.create(owner_id, "optimize", f"{symbol.upper()} · {strategy_name} · {mode}")
@@ -5429,7 +5431,7 @@ async def start_optimize(
 
     async def _run() -> None:
         try:
-            jobs_store.log(job_id, f"scarico i dati di {symbol.upper()}…")
+            jobs_store.log(job_id, f"downloading {symbol.upper()} data…")
             provider = get_provider(asset_type, exchange)
             backtest_interval = backtest_interval_for(ltf_interval)
             if start_date:
@@ -5442,7 +5444,7 @@ async def start_optimize(
                 df = await _fetch_cached(cache_key, provider, symbol, backtest_interval,
                                          settings.backtest_candles)
             if df.empty:
-                jobs_store.fail(job_id, f"Nessun dato per {symbol}")
+                jobs_store.fail(job_id, f"No data for {symbol}")
                 return
             if start_date or end_date:
                 try:
@@ -5452,7 +5454,7 @@ async def start_optimize(
                     # e' gia' partito e il suo unico canale e' il proprio log.
                     jobs_store.fail(job_id, exc.detail)
                     return
-                jobs_store.log(job_id, f"periodo {start_date or 'inizio'} → {end_date or 'fine'}")
+                jobs_store.log(job_id, f"period {start_date or 'start'} → {end_date or 'end'}")
             jobs_store.log(job_id, f"{len(df)} candele a {backtest_interval}")
 
             def say(message: str) -> None:
@@ -5474,20 +5476,20 @@ async def start_optimize(
                 archived = _archive_optimizer_result(owner_id, symbol, asset_type,
                                                      exchange, ltf_interval, strategy_name,
                                                      mode, body)
-                jobs_store.log(job_id, f"salvata in archivio ({archived['id']})")
+                jobs_store.log(job_id, f"saved to archive ({archived['id']})")
                 user_now = auth.get_user(owner_id)
                 if user_now and user_now.telegram_chat_id and _telegram_allowed(user_now):
                     await telegram.send_to(user_now.telegram_chat_id,
                                            _optimizer_summary(symbol, strategy_name, mode, body))
-                    jobs_store.log(job_id, "riepilogo mandato su Telegram")
+                    jobs_store.log(job_id, "summary sent to Telegram")
             jobs_store.log(job_id, "fatto")
         except SearchCancelled:
-            jobs_store.log(job_id, "fermata su richiesta")
+            jobs_store.log(job_id, "stopped on request")
             jobs_store.cancelled(job_id)
         except NoCandidateMeetsConstraints as exc:
             jobs_store.fail(job_id, str(exc))
         except ProviderError as exc:
-            jobs_store.fail(job_id, f"Dati non disponibili: {exc}")
+            jobs_store.fail(job_id, f"Data not available: {exc}")
         except Exception as exc:  # noqa: BLE001
             # Ampio di proposito: gira staccato dalla richiesta, quindi
             # un'eccezione non intercettata qui non raggiunge nessuno e il
@@ -5516,7 +5518,7 @@ async def cancel_job(
     quindi si ferma entro una frazione di secondo invece che a fase finita.
     """
     if not jobs_store.request_cancel(job_id, owner_id=user.id if user else None):
-        raise HTTPException(status_code=404, detail="Lavoro non trovato o scaduto")
+        raise HTTPException(status_code=404, detail="Job not found or expired")
     return {"ok": True}
 
 
@@ -5528,7 +5530,7 @@ async def job_status(
 ) -> dict:
     job = jobs_store.get(job_id, owner_id=user.id if user else None, since=since)
     if job is None:
-        raise HTTPException(status_code=404, detail="Lavoro non trovato o scaduto")
+        raise HTTPException(status_code=404, detail="Job not found or expired")
     return job
 
 
@@ -5591,7 +5593,7 @@ async def _run_archive_backtest(entry_id: str, symbol: str, asset_type: str,
         df = await _fetch_cached(cache_key, provider, symbol, backtest_interval,
                                  settings.backtest_candles)
         if df.empty:
-            archive_store.attach_error(entry_id, f"Nessun dato per {symbol}")
+            archive_store.attach_error(entry_id, f"No data for {symbol}")
             return
         bt = await asyncio.to_thread(
             partial(run_backtest, df, params, backtest_params, strategy_name=strategy_name)
@@ -5629,10 +5631,10 @@ async def add_archive_entry(
     req: ArchiveIn, user: User = Depends(auth.get_current_user)
 ) -> dict:
     if req.strategy_name not in AVAILABLE_STRATEGIES:
-        raise HTTPException(status_code=400, detail=f"Strategia sconosciuta: {req.strategy_name}")
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {req.strategy_name}")
     symbol = req.symbol.strip()
     if not symbol:
-        raise HTTPException(status_code=400, detail="Ticker mancante")
+        raise HTTPException(status_code=400, detail="Ticker missing")
     entry = archive_store.create(
         owner_id=user.id, symbol=symbol, asset_type=req.asset_type,
         exchange=req.exchange, interval=req.ltf_interval,
@@ -5656,7 +5658,7 @@ async def export_archive_entry(entry_id: str, user: User = Depends(auth.get_curr
     da disegnare o da poter sbagliare."""
     entry = archive_store.get(entry_id, user.id)
     if entry is None:
-        raise HTTPException(status_code=404, detail="Voce d'archivio non trovata")
+        raise HTTPException(status_code=404, detail="Archive entry not found")
     return {
         "liquidity_engine_archive_export": 1,
         "symbol": entry["symbol"], "asset_type": entry["asset_type"],
@@ -5693,11 +5695,11 @@ async def import_archive_entry(req: ArchiveImportIn, user: User = Depends(auth.g
     nota lo dice esplicitamente, e chi vuole un numero suo puo' sempre
     riapplicare la voce e rigirare il backtest."""
     if req.strategy_name not in AVAILABLE_STRATEGIES:
-        raise HTTPException(status_code=400, detail=f"Strategia sconosciuta: {req.strategy_name}")
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {req.strategy_name}")
     symbol = req.symbol.strip()
     if not symbol:
-        raise HTTPException(status_code=400, detail="Ticker mancante")
-    note = f"Importata da un altro account{': ' + req.note if req.note else ''} — metriche non verificate qui"
+        raise HTTPException(status_code=400, detail="Ticker missing")
+    note = f"Imported from another account{': ' + req.note if req.note else ''} — metrics not verified here"
     entry = archive_store.create(
         owner_id=user.id, symbol=symbol, asset_type=req.asset_type,
         exchange=req.exchange, interval=req.interval,
@@ -5708,7 +5710,7 @@ async def import_archive_entry(req: ArchiveImportIn, user: User = Depends(auth.g
     if req.metrics:
         archive_store.attach_result(entry["id"], req.metrics)
     else:
-        archive_store.attach_error(entry["id"], "Nessuna metrica nel file importato")
+        archive_store.attach_error(entry["id"], "No metrics in the imported file")
     return archive_store.get(entry["id"], user.id)
 
 
@@ -5737,10 +5739,10 @@ async def apply_archive_entry_to_alert(
     """
     entry = archive_store.get(entry_id, user.id)
     if entry is None:
-        raise HTTPException(status_code=404, detail="Voce d'archivio non trovata")
+        raise HTTPException(status_code=404, detail="Archive entry not found")
     strategy_name = entry.get("strategy_name", "")
     if strategy_name not in AVAILABLE_STRATEGIES:
-        raise HTTPException(status_code=400, detail=f"Strategia sconosciuta: {strategy_name}")
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {strategy_name}")
 
     watch = watchlist_store.add_entry(
         user.id, entry["symbol"], entry["asset_type"],
@@ -5763,7 +5765,7 @@ async def apply_archive_entry_to_alert(
             if watch.exchange not in futures_registry.SUPPORTED_FUTURES_EXCHANGES:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"{watch.exchange} non ha un adattatore futures registrato",
+                    detail=f"{watch.exchange} has no registered futures adapter",
                 )
             updated = watchlist_store.set_market(watch.id, strategy_name, "futures")
     return {
@@ -5781,7 +5783,7 @@ async def update_archive_note(
 ) -> dict:
     entry = archive_store.set_note(entry_id, user.id, req.note)
     if entry is None:
-        raise HTTPException(status_code=404, detail="Voce non trovata")
+        raise HTTPException(status_code=404, detail="Entry not found")
     return entry
 
 
@@ -5790,7 +5792,7 @@ async def delete_archive_entry(
     entry_id: str, user: User = Depends(auth.get_current_user)
 ) -> dict:
     if not archive_store.remove(entry_id, user.id):
-        raise HTTPException(status_code=404, detail="Voce non trovata")
+        raise HTTPException(status_code=404, detail="Entry not found")
     return {"ok": True}
 
 
@@ -5825,7 +5827,7 @@ async def reply_to_issue(
     issue_id: str, req: IssueReplyIn, user: User = Depends(auth.get_current_user)
 ) -> dict:
     if not any(i["id"] == issue_id for i in issues_store.list_issues()):
-        raise HTTPException(status_code=404, detail="Segnalazione non trovata")
+        raise HTTPException(status_code=404, detail="Report not found")
     try:
         return issues_store.add_reply(issue_id, req.text, author=user.email,
                                       reopen=req.reopen)
@@ -5868,14 +5870,14 @@ async def patch_issue(issue_id: str, body: IssuePatch,
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if updated is None:
-        raise HTTPException(status_code=404, detail="Segnalazione non trovata")
+        raise HTTPException(status_code=404, detail="Report not found")
     return updated
 
 
 @app.delete("/api/issues/{issue_id}")
 async def remove_issue(issue_id: str, user: User = Depends(auth.get_current_user)) -> dict:
     if not issues_store.delete_issue(issue_id):
-        raise HTTPException(status_code=404, detail="Segnalazione non trovata")
+        raise HTTPException(status_code=404, detail="Report not found")
     return {"deleted": issue_id}
 
 
@@ -5886,7 +5888,7 @@ async def sniper_candidates(
     min_liq: float = Query(0.0, ge=0, description="Minimum liquidity_usd"),
     max_mc: float = Query(0.0, ge=0, description="Maximum market_cap (0 = no limit)"),
     exclude_cex: bool = Query(False, description="Exclude CEX-listed tokens"),
-    serious_only: bool = Query(True, description="Solo progetti seri: esclude le meme coin"),
+    serious_only: bool = Query(True, description="Serious projects only: excludes meme coins"),
     limit: int = Query(0, ge=0, description="Max results (0 = all)"),
 ) -> dict:
     from app.sniper import cache as sniper_cache
@@ -6113,8 +6115,8 @@ async def sniper_research_auto(token_address: str) -> dict:
             "chain_id": None,
             "token_address": token_address,
             "research_score": 0,
-            "description": "Token non trovato su DexScreener — verifica l'indirizzo.",
-            "checks": [{"label": "Non trovato su DexScreener", "passed": False}],
+            "description": "Token not found on DexScreener — check the address.",
+            "checks": [{"label": "Not found on DexScreener", "passed": False}],
             "links": [],
         }
 
@@ -6149,7 +6151,7 @@ async def sniper_research(chain_id: str, token_address: str) -> dict:
 
         if cg_data:
             research_score += 2
-            checks.append({"label": "Trovato su CoinGecko", "passed": True, "note": cg_data.get("name", "")})
+            checks.append({"label": "Found on CoinGecko", "passed": True, "note": cg_data.get("name", "")})
 
             description = (cg_data.get("description") or {}).get("en", "")
             if description and len(description) > 400:
@@ -6160,7 +6162,7 @@ async def sniper_research(chain_id: str, token_address: str) -> dict:
             mc = (md.get("market_cap") or {}).get("usd")
             if mc and mc > 0:
                 research_score += 1
-                checks.append({"label": "Market cap on-chain verificato", "passed": True, "note": f"${mc:,.0f}"})
+                checks.append({"label": "On-chain market cap verified", "passed": True, "note": f"${mc:,.0f}"})
 
             # community / social
             comm = cg_data.get("community_data") or {}
@@ -6168,30 +6170,30 @@ async def sniper_research(chain_id: str, token_address: str) -> dict:
             tg = comm.get("telegram_channel_user_count", 0) or 0
             if tw > 1000:
                 research_score += 1
-                checks.append({"label": "Twitter attivo", "passed": True, "note": f"{tw:,} follower"})
+                checks.append({"label": "Active Twitter", "passed": True, "note": f"{tw:,} followers"})
             elif tw > 0:
-                checks.append({"label": "Twitter presente", "warning": True, "note": f"{tw:,} follower"})
+                checks.append({"label": "Twitter present", "warning": True, "note": f"{tw:,} followers"})
             if tg > 500:
                 research_score += 1
-                checks.append({"label": "Telegram attivo", "passed": True, "note": f"{tg:,} membri"})
+                checks.append({"label": "Active Telegram", "passed": True, "note": f"{tg:,} members"})
             elif tg > 0:
-                checks.append({"label": "Telegram presente", "warning": True, "note": f"{tg:,} membri"})
+                checks.append({"label": "Telegram present", "warning": True, "note": f"{tg:,} members"})
 
             # dev activity
             dev = cg_data.get("developer_data") or {}
             commits = (dev.get("commit_count_4_weeks") or 0)
             if commits > 5:
                 research_score += 1
-                checks.append({"label": "Attività GitHub recente", "passed": True, "note": f"{commits} commit/4wk"})
+                checks.append({"label": "Recent GitHub activity", "passed": True, "note": f"{commits} commit/4wk"})
             elif commits > 0:
-                checks.append({"label": "Repository GitHub", "warning": True, "note": f"{commits} commit/4wk"})
+                checks.append({"label": "GitHub repository", "warning": True, "note": f"{commits} commit/4wk"})
 
             # links
             lnks = cg_data.get("links") or {}
             if lnks.get("homepage"):
                 for h in (lnks["homepage"] or []):
                     if h:
-                        links.append({"label": "Sito ufficiale", "url": h})
+                        links.append({"label": "Official website", "url": h})
                         break
             if lnks.get("twitter_screen_name"):
                 links.append({"label": "Twitter", "url": f"https://twitter.com/{lnks['twitter_screen_name']}"})
@@ -6202,12 +6204,12 @@ async def sniper_research(chain_id: str, token_address: str) -> dict:
             tickers = cg_data.get("tickers") or []
             cex_names = [t["market"]["name"] for t in tickers if t.get("market", {}).get("identifier", "") in _CEX_IDS]
             if cex_names:
-                checks.append({"label": f"Listato su {cex_names[0]}", "warning": True, "note": "già su CEX"})
+                checks.append({"label": f"Listed on {cex_names[0]}", "warning": True, "note": "already on a CEX"})
             else:
                 research_score += 1
-                checks.append({"label": "Non ancora su CEX", "passed": True, "note": "opportunità early"})
+                checks.append({"label": "Not on a CEX yet", "passed": True, "note": "early opportunity"})
         else:
-            checks.append({"label": "Non trovato su CoinGecko", "passed": False, "note": "token non indicizzato"})
+            checks.append({"label": "Not found on CoinGecko", "passed": False, "note": "token not indexed"})
 
         # ── DexScreener pair check ──
         try:
@@ -6222,14 +6224,14 @@ async def sniper_research(chain_id: str, token_address: str) -> dict:
                     vol = float((best.get("volume") or {}).get("h24", 0) or 0)
                     if liq >= 10_000:
                         research_score += 1
-                        checks.append({"label": "Liquidità solida su DEX", "passed": True, "note": f"${liq:,.0f}"})
+                        checks.append({"label": "Solid DEX liquidity", "passed": True, "note": f"${liq:,.0f}"})
                     elif liq >= 1_000:
-                        checks.append({"label": "Liquidità bassa su DEX", "warning": True, "note": f"${liq:,.0f}"})
+                        checks.append({"label": "Low DEX liquidity", "warning": True, "note": f"${liq:,.0f}"})
                     else:
-                        checks.append({"label": "Liquidità molto bassa", "passed": False, "note": f"${liq:,.0f}"})
+                        checks.append({"label": "Very low liquidity", "passed": False, "note": f"${liq:,.0f}"})
                     if liq > 0 and vol / liq > 0.05:
                         research_score += 1
-                        checks.append({"label": "Volume reale (>5% liq)", "passed": True, "note": f"${vol:,.0f}/24h"})
+                        checks.append({"label": "Real volume (>5% liq)", "passed": True, "note": f"${vol:,.0f}/24h"})
                     if best.get("pairUrl"):
                         links.append({"label": "DexScreener", "url": best["pairUrl"]})
         except Exception:

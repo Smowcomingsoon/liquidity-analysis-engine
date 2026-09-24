@@ -58,7 +58,7 @@ def test_a_missing_timestamp_is_empty_not_1970():
 
 def test_the_three_sheets_are_there(book):
     _bt, wb = book
-    assert wb.sheetnames[:3] == ["Riepilogo", "Trade", "Equity"]
+    assert wb.sheetnames[:3] == ["Summary", "Trade", "Equity"]
 
 
 def test_every_trade_has_a_row(book):
@@ -88,7 +88,7 @@ def test_the_summary_reads_from_the_trades_sheet(book):
     """Un riepilogo che resta fermo mentre le righe cambiano è peggio di uno
     assente, perché sembra ancora giusto."""
     _bt, wb = book
-    ws = wb["Riepilogo"]
+    ws = wb["Summary"]
     formulas = [ws.cell(r, 2).value for r in range(1, ws.max_row + 1)]
     text = " ".join(str(f) for f in formulas if isinstance(f, str))
     assert "Trade!" in text
@@ -114,7 +114,7 @@ def test_the_drawdown_column_recomputes_the_peak(book):
 
 def test_the_parameters_travel_with_the_file(book):
     _bt, wb = book
-    ws = wb["Riepilogo"]
+    ws = wb["Summary"]
     labels = [ws.cell(r, 1).value for r in range(1, ws.max_row + 1)]
     assert "len" in labels and "average" in labels
 

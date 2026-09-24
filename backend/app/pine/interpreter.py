@@ -51,7 +51,7 @@ def literal_value(expr: ast.Expr) -> Any:
         return expr.name
     if isinstance(expr, ast.Unary) and expr.op == "-" and isinstance(expr.operand, ast.NumberLit):
         return -expr.operand.value
-    raise PineUnsupportedError("atteso un valore costante qui")
+    raise PineUnsupportedError("expected a constant value here")
 
 
 def _iter_calls_in_expr(expr: ast.Expr):
@@ -194,7 +194,7 @@ class PineInterpreter:
         for c in calls:
             if c.func_name == "strategy.exit":
                 raise PineUnsupportedError(
-                    "strategy.exit (stop/limit) non è supportato — usa strategy.close() con una condizione esplicita",
+                    "strategy.exit (stop/limit) is not supported — use strategy.close() with an explicit condition",
                     c.line_no,
                 )
             if c.func_name == "strategy.entry":
@@ -234,7 +234,7 @@ class PineInterpreter:
             val = self.eval_expr(s.expr)
             if not isinstance(val, tuple):
                 raise PineUnsupportedError(
-                    "assegnazione multipla richiede una funzione che ritorna una tupla (es. ta.macd)", s.line_no
+                    "multiple assignment needs a function that returns a tuple (e.g. ta.macd)", s.line_no
                 )
             for name, v in zip(s.names, val):
                 self.inprogress[name] = v
@@ -291,7 +291,7 @@ class PineInterpreter:
             return self.eval_expr(expr.if_true) if truthy(self.eval_expr(expr.cond)) else self.eval_expr(expr.if_false)
         if isinstance(expr, ast.Call):
             return self.eval_call(expr)
-        raise PineUnsupportedError(f"nodo espressione non supportato: {type(expr).__name__}")
+        raise PineUnsupportedError(f"unsupported expression node: {type(expr).__name__}")
 
     def _eval_binary(self, expr: ast.Binary) -> Any:
         left = self.eval_expr(expr.left)
@@ -325,18 +325,18 @@ class PineInterpreter:
             return left / right if right != 0 else None
         if op == "%":
             return left % right if right != 0 else None
-        raise PineUnsupportedError(f"operatore non supportato: {op}")
+        raise PineUnsupportedError(f"unsupported operator: {op}")
 
     def eval_identifier(self, name: str) -> Any:
         if name in _BUILTIN_SERIES or name in ("strategy.long", "strategy.short"):
             return self._eval_base(name, 0)
         if name in self.inprogress:
             return self.inprogress[name]
-        raise PineUnsupportedError(f"variabile non definita: {name}")
+        raise PineUnsupportedError(f"undefined variable: {name}")
 
     def eval_history(self, base: ast.Expr, offset: ast.Expr) -> Any:
         if not isinstance(base, ast.Identifier):
-            raise PineUnsupportedError("indicizzazione storica supportata solo su identificatori semplici (es. close[1])")
+            raise PineUnsupportedError("history indexing is only supported on plain identifiers (e.g. close[1])")
         name = base.name
         off_val = self.eval_expr(offset)
         k = int(off_val) if off_val is not None else 0
@@ -345,7 +345,7 @@ class PineInterpreter:
         if k == 0:
             return self.eval_identifier(name)
         if name not in self.series and name not in self.inprogress:
-            raise PineUnsupportedError(f"variabile non definita: {name}")
+            raise PineUnsupportedError(f"undefined variable: {name}")
         lst = self.series.get(name, [])
         idx = len(lst) - k
         return lst[idx] if 0 <= idx < len(lst) else None
@@ -401,9 +401,9 @@ class PineInterpreter:
             return self._eval_strategy(fn, node)
         if fn.startswith("input."):
             raise PineUnsupportedError(
-                "input.* è supportato solo come assegnazione diretta: nome = input.xxx(...)", node.line_no
+                "input.* is only supported as a direct assignment: name = input.xxx(...)", node.line_no
             )
-        raise PineUnsupportedError(f"funzione non supportata: {fn}", node.line_no)
+        raise PineUnsupportedError(f"unsupported function: {fn}", node.line_no)
 
     def _eval_math(self, fn: str, node: ast.Call) -> Any:
         vals = [self.eval_expr(a) for a in node.args]
@@ -428,7 +428,7 @@ class PineInterpreter:
             return float(np.floor(vals[0]))
         if name == "ceil":
             return float(np.ceil(vals[0]))
-        raise PineUnsupportedError(f"math.{name} non supportata", node.line_no)
+        raise PineUnsupportedError(f"math.{name} not supported", node.line_no)
 
     def _eval_ta(self, fn: str, node: ast.Call) -> Any:
         name = fn.split(".", 1)[1]
@@ -506,7 +506,7 @@ class PineInterpreter:
             return state.update(src_val)
         if name == "change":
             if not isinstance(node.args[0], ast.Identifier):
-                raise PineUnsupportedError("ta.change richiede una variabile semplice come argomento", node.line_no)
+                raise PineUnsupportedError("ta.change needs a plain variable as its argument", node.line_no)
             now = self.eval_expr(node.args[0])
             prev = self.eval_history(node.args[0], ast.NumberLit(1))
             if now is None or prev is None:
@@ -514,7 +514,7 @@ class PineInterpreter:
             return now - prev
         if name in ("crossover", "crossunder", "cross"):
             return self._eval_cross(name, node)
-        raise PineUnsupportedError(f"ta.{name} non supportata", node.line_no)
+        raise PineUnsupportedError(f"ta.{name} not supported", node.line_no)
 
     def _cross_now_prev(self, expr: ast.Expr, node: ast.Call, kind: str) -> tuple[Any, Any]:
         # A bare numeric constant acts as a flat reference line (e.g. ta.crossover(rsi, 30)):
@@ -527,7 +527,7 @@ class PineInterpreter:
         if isinstance(expr, ast.Identifier):
             return self.eval_expr(expr), self.eval_history(expr, ast.NumberLit(1))
         raise PineUnsupportedError(
-            f"ta.{kind} richiede variabili già assegnate o costanti numeriche, es. ta.crossover(fastMA, slowMA) o ta.crossover(rsi, 30)",
+            f"ta.{kind} needs already-assigned variables or numeric constants, e.g. ta.crossover(fastMA, slowMA) or ta.crossover(rsi, 30)",
             node.line_no,
         )
 
@@ -573,4 +573,4 @@ class PineInterpreter:
             self.flags["exit_long"] = True
             self.flags["exit_short"] = True
             return None
-        raise PineUnsupportedError(f"strategy.{name} non supportata", node.line_no)
+        raise PineUnsupportedError(f"strategy.{name} not supported", node.line_no)

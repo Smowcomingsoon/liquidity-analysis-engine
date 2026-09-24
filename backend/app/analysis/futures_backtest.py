@@ -70,7 +70,7 @@ def run_futures_backtest(
     # significava non poter piu' osservare una liquidazione.
     if leverage < 1 or leverage > MAX_SIMULATED_LEVERAGE:
         raise InvalidLeverageError(
-            f"Leva {leverage}x fuori dal limite simulabile (1-{MAX_SIMULATED_LEVERAGE}x)"
+            f"Leverage {leverage}x outside the simulatable range (1-{MAX_SIMULATED_LEVERAGE}x)"
         )
     maint_rate = bp["maintenance_margin_rate"]
     funding_rate_8h = bp["funding_rate_8h"]

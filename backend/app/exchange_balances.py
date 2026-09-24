@@ -39,9 +39,9 @@ async def fetch_mexc_balances() -> list[dict]:
     try:
         data = resp.json()
     except ValueError as exc:
-        raise BalanceFetchError("Risposta non valida da MEXC") from exc
+        raise BalanceFetchError("Invalid response from MEXC") from exc
     if resp.status_code != 200:
-        raise BalanceFetchError(data.get("msg") or f"Errore MEXC ({resp.status_code})")
+        raise BalanceFetchError(data.get("msg") or f"MEXC error ({resp.status_code})")
 
     out = []
     for b in data.get("balances", []):
@@ -79,9 +79,9 @@ async def fetch_kucoin_balances() -> list[dict]:
     try:
         data = resp.json()
     except ValueError as exc:
-        raise BalanceFetchError("Risposta non valida da KuCoin") from exc
+        raise BalanceFetchError("Invalid response from KuCoin") from exc
     if data.get("code") != "200000":
-        raise BalanceFetchError(data.get("msg") or "Errore KuCoin")
+        raise BalanceFetchError(data.get("msg") or "KuCoin error")
 
     totals: dict[str, float] = {}
     for a in data.get("data", []):

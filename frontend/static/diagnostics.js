@@ -32,13 +32,13 @@
   async function api(path, opts) {
     const resp = await fetch(path, Object.assign({ headers: { "Content-Type": "application/json" } }, opts || {}));
     if (resp.status === 401) {
-      const err = new Error("Devi accedere per usare la Diagnosi.");
+      const err = new Error("Sign in to use Diagnostics.");
       err.needsAuth = true;
       throw err;
     }
     let body = null;
     try { body = await resp.json(); } catch (_e) { /* nessun corpo */ }
-    if (!resp.ok) throw new Error((body && body.detail) ? body.detail : `Errore ${resp.status}`);
+    if (!resp.ok) throw new Error((body && body.detail) ? body.detail : `Error ${resp.status}`);
     return body;
   }
 
@@ -83,10 +83,10 @@
       <div class="diag-overlay">
         <div class="diag-panel">
           <div class="diag-head">
-            <h2>Diagnosi <span class="risk-badge">denaro reale</span></h2>
-            <button type="button" class="diag-close" id="diag-close-btn" title="Chiudi">✕</button>
+            <h2>Diagnostics <span class="risk-badge">real money</span></h2>
+            <button type="button" class="diag-close" id="diag-close-btn" title="Close">✕</button>
           </div>
-          <p class="panel-hint">Prova una chiave prima di fidartene: qui si legge solo il saldo, non si piazza mai un ordine senza che tu prema apposta "Esegui" qui sotto. Le chiavi salvate restano quelle di Trading — questa sezione non ne crea di nuove.</p>
+          <p class="panel-hint">Test a key before you trust it: this only reads the balance and never places an order unless you explicitly press "Execute" below. Saved keys stay the ones in Trading — this section never creates new ones.</p>
 
           <div class="diag-mode-row">
             <button type="button" class="wl-mode-btn ${!isFutures ? "active" : ""}" id="diag-mode-spot">Spot</button>
@@ -94,33 +94,33 @@
           </div>
 
           <div class="diag-section">
-            <div class="section-title-row"><span class="section-eyebrow">1 · Test di connessione</span></div>
+            <div class="section-title-row"><span class="section-eyebrow">1 · Connection test</span></div>
             <div class="mo-row">
               <div class="mo-field">
                 <label class="mo-label" for="diag-exchange">Exchange</label>
                 <select id="diag-exchange" class="mo-select">${exchangeOptions}</select>
               </div>
             </div>
-            <p class="panel-hint">Lascia i campi vuoti per provare la chiave gia' salvata, oppure incollane una nuova qui sotto solo per il test — non viene salvata.</p>
+            <p class="panel-hint">Leave the fields empty to test the saved key, or paste a new one below just for the test — it is not saved.</p>
             <div class="mo-row">
-              <input type="text" id="diag-api-key" class="mo-input" placeholder="API Key (opzionale)" autocomplete="off" />
-              <input type="password" id="diag-api-secret" class="mo-input" placeholder="API Secret (opzionale)" autocomplete="off" />
+              <input type="text" id="diag-api-key" class="mo-input" placeholder="API Key (optional)" autocomplete="off" />
+              <input type="password" id="diag-api-secret" class="mo-input" placeholder="API Secret (optional)" autocomplete="off" />
             </div>
             ${needsPass ? `<div class="mo-row"><input type="password" id="diag-passphrase" class="mo-input" placeholder="Passphrase" autocomplete="off" /></div>` : ""}
-            <button type="button" class="wl-activate-btn" id="diag-test-btn">Testa connessione</button>
+            <button type="button" class="wl-activate-btn" id="diag-test-btn">Test connection</button>
             <div id="diag-test-result"></div>
           </div>
 
           <div class="diag-section" id="diag-order-section">
-            <div class="section-title-row"><span class="section-eyebrow">2 · Ordine di prova (solo spot)</span></div>
+            <div class="section-title-row"><span class="section-eyebrow">2 · Test order (spot only)</span></div>
             <p class="panel-hint">${isFutures
-              ? "Per i futures usa il form completo in Trading — leva e margine hanno bisogno dell'anteprima di liquidazione, non riprodotta qui apposta."
-              : "Richiede una chiave gia' salvata e abilitata in Trading (non basta la chiave provata sopra al volo)."}</p>
+              ? "For futures use the full form in Trading — leverage and margin need the liquidation preview, which is deliberately not reproduced here."
+              : "Requires a key already saved and enabled in Trading (the key tested on the fly above is not enough)."}</p>
             ${isFutures ? "" : `
             <div class="mo-row">
               <div class="mo-field mo-field-grow">
                 <label class="mo-label" for="diag-order-symbol">Pair</label>
-                <input type="text" id="diag-order-symbol" class="mo-input" placeholder="es. BTCUSDT" autocomplete="off" />
+                <input type="text" id="diag-order-symbol" class="mo-input" placeholder="e.g. BTCUSDT" autocomplete="off" />
               </div>
             </div>
             <div class="mo-side-tabs">
@@ -129,15 +129,15 @@
             </div>
             <div class="mo-row">
               <div class="mo-field">
-                <label class="mo-label" for="diag-order-usdt">USDT (fisso)</label>
+                <label class="mo-label" for="diag-order-usdt">USDT (fixed)</label>
                 <input type="number" id="diag-order-usdt" class="mo-input" value="10" min="1" step="1" />
               </div>
             </div>
             <label class="futures-confirm">
               <input type="checkbox" id="diag-order-confirm" />
-              <span>Confermo: denaro reale, ordine di prova su <b id="diag-order-confirm-text">${esc(state.exchange)}</b></span>
+              <span>I confirm: real money, test order on <b id="diag-order-confirm-text">${esc(state.exchange)}</b></span>
             </label>
-            <button type="button" class="mo-execute-btn mo-execute-buy" id="diag-order-btn" disabled>ESEGUI ORDINE DI PROVA</button>
+            <button type="button" class="mo-execute-btn mo-execute-buy" id="diag-order-btn" disabled>EXECUTE TEST ORDER</button>
             <div id="diag-order-result"></div>
             `}
           </div>
@@ -159,7 +159,7 @@
       const btn = document.getElementById("diag-test-btn");
       const out = document.getElementById("diag-test-result");
       btn.disabled = true;
-      out.innerHTML = `<p class="panel-hint">Verifico…</p>`;
+      out.innerHTML = `<p class="panel-hint">Checking…</p>`;
       try {
         const res = await api("/api/diagnostics/test-connection", {
           method: "POST",
@@ -174,12 +174,12 @@
         if (!res.ok) {
           out.innerHTML = `<p class="diag-error">✕ ${esc(res.error)}</p>`;
         } else if (res.market === "futures") {
-          out.innerHTML = `<p class="diag-ok">✓ Collegato — margine disponibile: <b>${res.margin_usdt.toFixed(2)} USDT</b></p>`;
+          out.innerHTML = `<p class="diag-ok">✓ Connected — available margin: <b>${res.margin_usdt.toFixed(2)} USDT</b></p>`;
         } else {
           const rows = (res.balances || []);
           out.innerHTML = rows.length
-            ? `<p class="diag-ok">✓ Collegato — saldo:</p><ul class="diag-balances">${rows.map((b) => `<li><span>${esc(b.asset)}</span><span>${b.free.toLocaleString("it-IT", { maximumFractionDigits: 8 })}</span></li>`).join("")}</ul>`
-            : `<p class="diag-ok">✓ Collegato — nessun saldo positivo su questo account.</p>`;
+            ? `<p class="diag-ok">✓ Connected — balance:</p><ul class="diag-balances">${rows.map((b) => `<li><span>${esc(b.asset)}</span><span>${b.free.toLocaleString("en-US", { maximumFractionDigits: 8 })}</span></li>`).join("")}</ul>`
+            : `<p class="diag-ok">✓ Connected — no positive balance on this account.</p>`;
         }
       } catch (err) {
         if (err.needsAuth) { document.getElementById("auth-toggle-btn")?.click(); return; }
@@ -197,7 +197,7 @@
         orderSide = tab.dataset.diagSide;
         document.querySelectorAll("[data-diag-side]").forEach((t) => t.classList.toggle("mo-tab-active", t === tab));
         const execBtn = document.getElementById("diag-order-btn");
-        execBtn.textContent = `ESEGUI ORDINE DI PROVA (${orderSide})`;
+        execBtn.textContent = `EXECUTE TEST ORDER (${orderSide})`;
         execBtn.classList.toggle("mo-execute-buy", orderSide === "BUY");
         execBtn.classList.toggle("mo-execute-sell", orderSide === "SELL");
       });
@@ -210,9 +210,9 @@
     execBtn.addEventListener("click", async () => {
       const out = document.getElementById("diag-order-result");
       const symbol = symbolInput.value.trim().toUpperCase();
-      if (!symbol) { out.innerHTML = `<p class="diag-error">Pair mancante</p>`; return; }
+      if (!symbol) { out.innerHTML = `<p class="diag-error">Missing pair</p>`; return; }
       execBtn.disabled = true;
-      out.innerHTML = `<p class="panel-hint">Invio…</p>`;
+      out.innerHTML = `<p class="panel-hint">Sending…</p>`;
       try {
         const res = await api("/api/trading/order", {
           method: "POST",
@@ -222,7 +222,7 @@
             size_value: parseFloat(document.getElementById("diag-order-usdt").value) || 0,
           }),
         });
-        out.innerHTML = `<p class="diag-ok">✓ Ordine inviato — vedi il diario ordini in Trading per il dettaglio.</p>`;
+        out.innerHTML = `<p class="diag-ok">✓ Order sent — see the order log in Trading for details.</p>`;
         confirmBox.checked = false;
       } catch (err) {
         if (err.needsAuth) { document.getElementById("auth-toggle-btn")?.click(); return; }

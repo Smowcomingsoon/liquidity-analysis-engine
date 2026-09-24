@@ -44,14 +44,14 @@ def test_github_upload_only_repo_is_rejected():
     commits = [_commit(NOW - i * DAY, msg=m) for i, m in
                enumerate(["Add files via upload", "Update README.md", "Create index.html", "Initial commit"])]
     p = depth.judge_github(_repo(commits=commits), now=NOW)
-    assert "caricamenti" in p["fatal"]
+    assert "uploads" in p["fatal"]
 
 
 def test_github_one_day_and_tiny_code_are_rejected():
     same_day = [_commit(NOW - i * 60) for i in range(20)]
-    assert "un giorno" in depth.judge_github(_repo(commits=same_day), now=NOW)["fatal"]
+    assert "single day" in depth.judge_github(_repo(commits=same_day), now=NOW)["fatal"]
     spread = [_commit(NOW - i * DAY) for i in range(20)]
-    assert "codice" in depth.judge_github(_repo(commits=spread, languages={"HTML": 900}), now=NOW)["fatal"]
+    assert "code" in depth.judge_github(_repo(commits=spread, languages={"HTML": 900}), now=NOW)["fatal"]
 
 
 def test_github_fork_and_missing_and_rate_limited():
@@ -64,7 +64,7 @@ def test_github_born_with_token_is_flagged():
     commits = [_commit(NOW - i * 3600 * 4) for i in range(10)]
     created = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(NOW - 2 * DAY))
     p = depth.judge_github(_repo(commits=commits, repo={"created_at": created}), launched_at=NOW - DAY, now=NOW)
-    assert "repository nato col token" in p["flags"]
+    assert "repository born with the token" in p["flags"]
 
 
 def test_github_uses_participation_when_available():
@@ -100,17 +100,17 @@ def test_site_with_something_behind_beats_a_landing_page():
     landing = {**depth.anatomy(landing_html, "https://moon.xyz/"), "url": "https://moon.xyz/", "https": True}
     bad = depth.judge_site(landing, [], NOW - 2 * DAY, launched_at=NOW - DAY, now=NOW)
     assert good["score"] >= 80 and bad["score"] <= 25
-    assert "una pagina sola, niente dietro" in bad["flags"]
-    assert "dominio registrato col token" in bad["flags"]
+    assert "single page, nothing behind it" in bad["flags"]
+    assert "domain registered with the token" in bad["flags"]
 
 
 def test_site_placeholder_and_empty_and_not_own():
     lorem = {**depth.anatomy("<p>Lorem ipsum dolor sit amet " + "x " * 100 + "</p>", "https://a.io/"), "url": "https://a.io/"}
     assert "lorem" in depth.judge_site(lorem, [], None, now=NOW)["fatal"]
     empty = {**depth.anatomy("<h1>Soon</h1>", "https://b.io/"), "url": "https://b.io/"}
-    assert depth.judge_site(empty, [], None, now=NOW)["fatal"] == "pagina vuota"
+    assert depth.judge_site(empty, [], None, now=NOW)["fatal"] == "empty page"
     wiki = {**depth.anatomy(RICH, "https://en.wikipedia.org/wiki/Frogger"), "not_own": "wikipedia.org"}
-    assert "non è il sito" in depth.judge_site(wiki, [], None, now=NOW)["fatal"]
+    assert "not the project's website" in depth.judge_site(wiki, [], None, now=NOW)["fatal"]
 
 
 def test_rdap_registration():
@@ -145,9 +145,9 @@ def test_tokenomics_pools_and_curve_are_not_holders():
 
 
 @pytest.mark.parametrize("kw,needle", [
-    ({"creator": 790_000}, "creatore"),
-    ({"holders": [{"address": "w", "owner": "w", "pct": 35.0}]}, "un solo portafoglio"),
-    ({"holders": [{"address": f"w{i}", "owner": f"w{i}", "pct": 9.0} for i in range(10)]}, "primi 10"),
+    ({"creator": 790_000}, "creator"),
+    ({"holders": [{"address": "w", "owner": "w", "pct": 35.0}]}, "a single wallet"),
+    ({"holders": [{"address": f"w{i}", "owner": f"w{i}", "pct": 9.0} for i in range(10)]}, "top 10"),
     ({"mint": "someone"}, "mint"),
 ])
 def test_tokenomics_scams_are_rejected(kw, needle):
@@ -161,7 +161,7 @@ def test_tokenomics_evm_goplus():
             "is_mintable": "0", "buy_tax": "0", "sell_tax": "0"}
     p = depth.judge_tokenomics_evm(info, "0xPAIR")
     assert p["facts"]["top1_pct"] == 4.0 and p["facts"]["lp_locked_pct"] == 95.0 and not p["fatal"]
-    assert "tassa" in depth.judge_tokenomics_evm({**info, "sell_tax": "0.2"}, "0xpair")["fatal"]
+    assert "tax" in depth.judge_tokenomics_evm({**info, "sell_tax": "0.2"}, "0xpair")["fatal"]
 
 
 def test_overall_fatal_and_pending():
@@ -223,7 +223,7 @@ def test_exception_uses_the_radar_rule():
                                            checks=[weak, checks[1]], report=report))
     assert lb.qualifies(_entry("DREGG", 93, 75, 80, cap=2_500_000, age_days=88, checks=checks,
                                report=report, exception=True)) == ""
-    assert "limiti" in lb.qualifies(_entry("HUGE", 99, 99, 99, cap=50_000_000, age_days=88, checks=checks,
+    assert "limits" in lb.qualifies(_entry("HUGE", 99, 99, 99, cap=50_000_000, age_days=88, checks=checks,
                                            report=report))
     assert lb.board()["entries"][0]["exception"] is True
 
@@ -308,9 +308,9 @@ def test_serious_project_enters_up_to_three_million_and_a_year():
     e = _entry("SER", 80, 70, 65, cap=2_500_000, age_days=90, source="coingecko")
     assert lb.qualifies(e) == ""
     e["market_cap"] = 3_500_000
-    assert "oltre" in lb.qualifies(e)
+    assert "over" in lb.qualifies(e)
     old = _entry("OLD", 80, 70, 65, cap=900_000, age_days=400, source="coingecko")
-    assert "giorni" in lb.qualifies(old)
+    assert "days" in lb.qualifies(old)
 
 
 def test_serious_project_needs_real_code():

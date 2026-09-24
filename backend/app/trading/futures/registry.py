@@ -53,7 +53,7 @@ SUPPORTED_FUTURES_EXCHANGES: tuple[str, ...] = tuple(ADAPTERS)
 def get(slug: str) -> FuturesAdapter:
     adapter = ADAPTERS.get((slug or "").strip().lower())
     if adapter is None:
-        raise ValueError(f"Futures non supportati per questo exchange: {slug}")
+        raise ValueError(f"Futures not supported for this exchange: {slug}")
     return adapter
 
 

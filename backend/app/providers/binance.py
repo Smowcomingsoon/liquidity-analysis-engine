@@ -71,10 +71,10 @@ class BinanceProvider(DataProvider):
                     try:
                         payload = resp.json()
                     except ValueError as exc:
-                        raise ProviderError(f"Risposta non valida da Binance per {formatted_symbol}") from exc
+                        raise ProviderError(f"Invalid response from Binance for {formatted_symbol}") from exc
 
                     if isinstance(payload, dict) and "code" in payload:
-                        raise ProviderError(payload.get("msg", f"Errore Binance per {formatted_symbol}"))
+                        raise ProviderError(payload.get("msg", f"Binance error for {formatted_symbol}"))
                     if not payload:
                         break
 
@@ -88,10 +88,10 @@ class BinanceProvider(DataProvider):
                     end_time = earliest - 1
         except httpx.HTTPError as exc:
             if not rows:
-                raise ProviderUnreachable(f"Binance non raggiungibile per {formatted_symbol}: {exc}") from exc
+                raise ProviderUnreachable(f"Binance unreachable for {formatted_symbol}: {exc}") from exc
 
         if not rows:
-            raise ProviderError(f"Nessun dato disponibile per {formatted_symbol} ({api_interval})")
+            raise ProviderError(f"No data available for {formatted_symbol} ({api_interval})")
 
         # [openTime_ms, open, high, low, close, volume, closeTime_ms, quoteVolume, ...]
         df = pd.DataFrame(rows, columns=range(len(rows[0])))

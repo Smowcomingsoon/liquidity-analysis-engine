@@ -94,7 +94,7 @@ async def uniswap_v2_price_impact(pool_address: str, token_in: str, amount_in: i
 
     reserve_in, reserve_out = (reserve0, reserve1) if token_in.lower() == token0.lower() else (reserve1, reserve0)
     if reserve_in <= 0 or reserve_out <= 0:
-        raise RuntimeError("Pool senza liquidita' — riserve a zero")
+        raise RuntimeError("Pool has no liquidity — reserves are zero")
 
     # x*y=k, senza commissione (0.3% Uniswap v2 ignorata: sovrastima leggera
     # dell'impatto, mai una sottostima — l'errore va nella direzione sicura).
@@ -156,7 +156,7 @@ async def uniswap_v3_quote(token_in: str, token_out: str, fee: int, amount_in: i
     reference_amount = max(amount_in // 1000, 1)
     amount_out, reference_out = await _quote(amount_in), await _quote(reference_amount)
     if reference_out <= 0:
-        raise RuntimeError("Pool senza liquidita' sufficiente per un quote di riferimento")
+        raise RuntimeError("Pool lacks enough liquidity for a reference quote")
 
     spot_price = reference_out / reference_amount
     exec_price = amount_out / amount_in if amount_in else 0

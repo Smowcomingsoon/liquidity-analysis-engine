@@ -150,7 +150,7 @@ def test_an_order_below_one_contract_is_refused_not_rounded(monkeypatch):
     with pytest.raises(FuturesExecutionError) as exc:
         _run(MexcFutures().place_order("BTCUSDT", "BUY", "fixed_usdt", 100.0, 1, CREDS))
     message = str(exc.value)
-    assert "contratti" in message
+    assert "contracts" in message
     # Il numero di contratti da solo non dice cosa fare: il margine minimo
     # in USDT si', perche' e' l'unita' in cui chi legge sta ragionando.
     # 1 contratto = 1 BTC a 50000, leva 1x -> serve almeno 50000 USDT.
@@ -178,7 +178,7 @@ def test_min_vol_above_one_is_respected_not_assumed_to_be_one(monkeypatch):
     with pytest.raises(FuturesExecutionError) as exc:
         _run(MexcFutures().place_order("KASUSDT", "BUY", "fixed_usdt", 70.4, 1, CREDS))
     message = str(exc.value)
-    assert "minimo di 3" in message
+    assert "minimum of 3" in message
 
 
 def test_closing_a_long_uses_the_close_code_and_cannot_open(monkeypatch):
@@ -251,7 +251,7 @@ def test_a_body_that_says_failure_raises_even_on_http_200(monkeypatch):
     with pytest.raises(FuturesExecutionError) as exc:
         _run(MexcFutures().mark_price("BTCUSDT", CREDS))
     # L'errore piu' comune su MEXC va spiegato, non riportato com'e'.
-    assert "abilitata al trading su contratti" in str(exc.value)
+    assert "not enabled for contract trading" in str(exc.value)
 
 
 def test_unknown_symbol_gives_a_specific_message_not_a_bare_not_found(monkeypatch):
@@ -268,7 +268,7 @@ def test_unknown_symbol_gives_a_specific_message_not_a_bare_not_found(monkeypatc
     with pytest.raises(FuturesExecutionError) as exc:
         _run(MexcFutures().mark_price("NOTAREALCOINUSDT", CREDS))
     assert "NOTAREALCOINUSDT" in str(exc.value)
-    assert "sconosciuto" in str(exc.value)
+    assert "unknown" in str(exc.value)
 
 
 def test_positions_are_converted_from_contracts_to_coins(monkeypatch):

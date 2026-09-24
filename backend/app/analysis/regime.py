@@ -338,7 +338,7 @@ def regime_gate(
     if family is None:
         return GateDecision(
             passed=True, family=None,
-            reason=f"Strategia {strategy_name!r} senza famiglia nota — nessun gate applicato.",
+            reason=f"Strategy {strategy_name!r} has no known family — no gate applied.",
             report=rep, warnings=["strategy_not_in_family_map"],
         )
 
@@ -348,8 +348,8 @@ def regime_gate(
         return GateDecision(
             passed=False, family=family, alpha=alpha,
             reason=(
-                f"Storico insufficiente per stabilire il regime "
-                f"({rep.n_obs} rendimenti, ne servono almeno {_MIN_OBS})."
+                f"Not enough history to establish the regime "
+                f"({rep.n_obs} returns, at least {_MIN_OBS} needed)."
             ),
             report=rep,
         )
@@ -363,26 +363,26 @@ def regime_gate(
     if rep.adx is not None and rep.adx > 35 and not wants_persistence:
         warnings.append("adx_alto_mercato_in_trend")
 
-    needed = "persistenza" if wants_persistence else "ritorno alla media"
+    needed = "persistence" if wants_persistence else "mean reversion"
     if direction_ok and significant:
         return GateDecision(
             passed=True, family=family, alpha=alpha,
             reason=(
-                f"Regime compatibile: la serie mostra {needed} "
+                f"Compatible regime: the series shows {needed} "
                 f"(VR={rep.variance_ratio:.3f}, z={rep.vr_z:+.2f}, p={rep.vr_p_one_sided:.4f} < {alpha})."
             ),
             report=rep, warnings=warnings,
         )
 
     if not direction_ok and significant:
-        observed = "persistenza" if rep.vr_z > 0 else "ritorno alla media"
+        observed = "persistence" if rep.vr_z > 0 else "mean reversion"
         return GateDecision(
             passed=False, family=family, alpha=alpha,
             reason=(
-                f"Regime opposto a quello richiesto: la strategia necessita {needed}, "
-                f"ma la serie mostra {observed} in modo statisticamente significativo "
+                f"Regime opposite to the one required: the strategy needs {needed}, "
+                f"but the series shows statistically significant {observed} "
                 f"(VR={rep.variance_ratio:.3f}, z={rep.vr_z:+.2f}). "
-                f"Ottimizzare qui produrrebbe una configurazione adattata al rumore."
+                f"Optimizing here would produce a configuration fitted to noise."
             ),
             report=rep, warnings=warnings,
         )
@@ -390,9 +390,9 @@ def regime_gate(
     return GateDecision(
         passed=False, family=family, alpha=alpha,
         reason=(
-            f"Nessun edge misurabile su questo timeframe: non si può escludere un random walk "
+            f"No measurable edge on this timeframe: a random walk can't be ruled out "
             f"(VR={rep.variance_ratio:.3f}, z={rep.vr_z:+.2f}, p={rep.vr_p_one_sided:.4f} ≥ {alpha}). "
-            f"Qualsiasi risultato dell'ottimizzatore sarebbe adattamento al rumore."
+            f"Any optimizer result would be fitting to noise."
         ),
         report=rep, warnings=warnings,
     )

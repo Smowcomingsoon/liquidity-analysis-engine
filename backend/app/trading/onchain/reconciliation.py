@@ -98,12 +98,12 @@ async def reconcile_pending_orders(owner_id: str, chain: str) -> dict:
             ledger.mark_confirmed_signature_only(key)
             confirmed.append(key)
         elif status == "failed":
-            ledger.mark_failed(key, "transazione fallita on-chain (verificata via RPC)")
+            ledger.mark_failed(key, "transaction failed on-chain (verified via RPC)")
             failed.append(key)
         else:
             age_s = time.time() - order["updated_at"]
             if age_s > STALE_SUBMITTED_S:
-                ledger.mark_failed(key, f"nessuna traccia on-chain dopo {age_s:.0f}s — considerata fallita")
+                ledger.mark_failed(key, f"no on-chain trace after {age_s:.0f}s — treated as failed")
                 failed.append(key)
             else:
                 still_pending.append(key)

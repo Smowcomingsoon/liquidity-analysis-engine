@@ -80,13 +80,13 @@ class MexcProvider(DataProvider):
                     try:
                         payload = resp.json()
                     except ValueError as exc:
-                        raise ProviderError(f"Risposta non valida da MEXC per {formatted_symbol}") from exc
+                        raise ProviderError(f"Invalid response from MEXC for {formatted_symbol}") from exc
 
                     if isinstance(payload, dict) and "code" in payload:
-                        raw = payload.get("msg", "errore sconosciuto")
+                        raw = payload.get("msg", "unknown error")
                         raise ProviderError(
-                            f"MEXC non riconosce {formatted_symbol}: {raw}. "
-                            f"Controlla che sia scritto come lo scrive MEXC, es. BTCUSDT."
+                            f"MEXC does not recognize {formatted_symbol}: {raw}. "
+                            f"Check it is written the way MEXC writes it, e.g. BTCUSDT."
                         )
                     if not payload:
                         break
@@ -101,10 +101,10 @@ class MexcProvider(DataProvider):
                     end_time = earliest - 1
         except httpx.HTTPError as exc:
             if not rows:
-                raise ProviderUnreachable(f"MEXC non raggiungibile per {formatted_symbol}: {exc}") from exc
+                raise ProviderUnreachable(f"MEXC unreachable for {formatted_symbol}: {exc}") from exc
 
         if not rows:
-            raise ProviderError(f"Nessun dato disponibile per {formatted_symbol} ({api_interval})")
+            raise ProviderError(f"No data available for {formatted_symbol} ({api_interval})")
 
         # [openTime_ms, open, high, low, close, volume, closeTime_ms, quoteVolume]
         df = pd.DataFrame(

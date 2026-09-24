@@ -38,9 +38,9 @@ def test_coin_detail_builds_item():
 
 
 def test_coin_detail_rejects_meme_stock_and_missing_contract():
-    assert d.from_coin_detail("robinhood", _coin(categories=["Robinhood Chain Meme"]))[1].startswith("categoria")
-    assert d.from_coin_detail("robinhood", _coin(categories=["Tokenized Stocks"]))[1].startswith("categoria")
-    assert d.from_coin_detail("solana", _coin())[1] == "nessun contratto sulla chain"
+    assert d.from_coin_detail("robinhood", _coin(categories=["Robinhood Chain Meme"]))[1].startswith("category")
+    assert d.from_coin_detail("robinhood", _coin(categories=["Tokenized Stocks"]))[1].startswith("category")
+    assert d.from_coin_detail("solana", _coin())[1] == "no contract on this chain"
 
 
 def test_coin_detail_without_github_goes_to_site_analysis():
@@ -92,7 +92,7 @@ def test_github_of_another_project_is_fatal(monkeypatch):
     out = asyncio.run(depth.analyze_github(["https://github.com/alice/rust-utils"], None, None,
                                            token={"chain": "solana", "token_address": "M", "symbol": "GRID",
                                                   "name": "Grid Protocol"}, website="https://grid.xyz"))
-    assert out["fatal"] == "GitHub non appartiene al progetto"
+    assert out["fatal"] == "GitHub does not belong to the project"
 
 
 class _Resp:

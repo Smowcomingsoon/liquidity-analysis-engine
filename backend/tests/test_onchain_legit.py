@@ -71,7 +71,7 @@ def test_site_on_a_private_address_is_never_fetched():
     async def go():
         async with httpx.AsyncClient() as c:
             return await legit.fetch_site("http://127.0.0.1:8000/admin", c)
-    assert asyncio.run(go())["error"] == "indirizzo non pubblico"
+    assert asyncio.run(go())["error"] == "non-public address"
 
 
 TOKEN = {"chain": "solana", "symbol": "ACME", "name": "Acme Protocol", "token_address": "Mint111",
@@ -124,7 +124,7 @@ def test_serious_project_passes_with_site_github_and_contract_on_the_site():
     assert out["status"] == "ok" and out["website"] == "https://acme.io"
     assert out["github"] == "https://github.com/acme/core"
     checks = {c["key"]: c for c in out["checks"]}
-    assert "cita il contratto" in checks["site"]["detail"] and checks["ai"]["detail"] == "non attivo"
+    assert "cites the contract" in checks["site"]["detail"] and checks["ai"]["detail"] == "not active"
 
 
 def test_meme_name_fails_before_any_request():
@@ -182,7 +182,7 @@ def test_goplus_silent_waits():
 def test_report_card_says_how_well_each_filter_was_passed():
     out = _assess()
     by_key = {c["key"]: c for c in out["checks"]}
-    assert by_key["security"]["score"] == 100 and by_key["security"]["grade"] == "eccellente"
+    assert by_key["security"]["score"] == 100 and by_key["security"]["grade"] == "excellent"
     assert by_key["contract"]["score"] == 100
     gh = by_key["github"]
     assert gh["facts"]["repo"] == "acme/core" and gh["facts"]["active_days"] == 5 and 0 < gh["score"] < 100
@@ -190,7 +190,7 @@ def test_report_card_says_how_well_each_filter_was_passed():
 
 
 def test_grades():
-    assert [legit.grade(s) for s in (95, 75, 60, 20)] == ["eccellente", "buono", "sufficiente", "mediocre"]
+    assert [legit.grade(s) for s in (95, 75, 60, 20)] == ["excellent", "good", "fair", "poor"]
 
 
 def test_above_100k_only_an_excellent_report_passes():
@@ -200,7 +200,7 @@ def test_above_100k_only_an_excellent_report_passes():
     assert small["status"] == "ok"
     big = _assess({**TOKEN, "market_cap": 1_500_000})
     gem = next(c for c in big["checks"] if c["key"] == "gem")
-    assert big["status"] == "fail" and gem["ok"] is False and "sotto 85" in big["reason"]
+    assert big["status"] == "fail" and gem["ok"] is False and "below 85" in big["reason"]
 
 
 def test_gem_shortfall_names_what_is_missing():
@@ -227,11 +227,11 @@ def test_github_exception_measures_depth_like_dregg():
     solo autore, ultimi 100 su 11 giorni."""
     now = 1_800_000_000
     assert legit.github_shortfall(_gh(), now) == ""
-    assert "sotto 75" in legit.github_shortfall(_gh(score=60), now)
-    assert "300 commit in tutto" in legit.github_shortfall(_gh(total=300), now)
-    assert "non letti" in legit.github_shortfall(_gh(total=None), now)
-    assert "3 giorni" in legit.github_shortfall(_gh(days=3), now)
-    assert "fermo da 40" in legit.github_shortfall(_gh(pushed_days_ago=40), now)
+    assert "below 75" in legit.github_shortfall(_gh(score=60), now)
+    assert "300 commits in total" in legit.github_shortfall(_gh(total=300), now)
+    assert "not read" in legit.github_shortfall(_gh(total=None), now)
+    assert "3 days" in legit.github_shortfall(_gh(days=3), now)
+    assert "idle for 40" in legit.github_shortfall(_gh(pushed_days_ago=40), now)
 
 
 def test_a_long_solo_history_counts_like_a_team():
@@ -246,7 +246,7 @@ def test_a_long_solo_history_counts_like_a_team():
 def test_exception_token_fails_without_an_exceptional_github():
     out = _assess({**TOKEN, "market_cap": 2_500_000, "exception": True})
     gem = next(c for c in out["checks"] if c["key"] == "gem")
-    assert out["status"] == "fail" and gem["label"] == "Eccezione GitHub" and gem["ok"] is False
+    assert out["status"] == "fail" and gem["label"] == "GitHub exception" and gem["ok"] is False
 
 
 def test_exception_without_github_fails_at_once():
@@ -264,7 +264,7 @@ def test_exception_without_github_fails_at_once():
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as c:
             return await legit.assess({**TOKEN, "exception": True}, links, c)
     out = asyncio.run(go())
-    assert out["status"] == "fail" and "nessun GitHub" in out["reason"]
+    assert out["status"] == "fail" and "no GitHub" in out["reason"]
 
 
 def test_exception_token_passes_with_an_exceptional_report(monkeypatch):
@@ -294,7 +294,7 @@ def test_someone_elses_repo_fails(monkeypatch):
         return {"full_name": "other/docs", "html_url": "https://github.com/other/docs"}
     monkeypatch.setattr(legit, "github_repo", foreign)
     out = _assess({**TOKEN, "symbol": "VISE", "name": "Vise"})
-    assert out["status"] == "fail" and "non e' del progetto" in out["reason"]
+    assert out["status"] == "fail" and "does not belong to the project" in out["reason"]
 
 
 def test_holder_concentration_ignores_pools_and_fails_whales():
@@ -306,4 +306,4 @@ def test_holder_concentration_ignores_pools_and_fails_whales():
     whale = {**report, "topHolders": report["topHolders"] + [{"owner": "whale", "pct": 22}]}
     assert "22%" in legit.judge_rugcheck(whale)["detail"]
     spread = {**report, "topHolders": [{"owner": f"w{i}", "pct": 5} for i in range(10)]}
-    assert "primi 10" in legit.judge_rugcheck(spread)["detail"]
+    assert "top 10" in legit.judge_rugcheck(spread)["detail"]

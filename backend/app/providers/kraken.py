@@ -82,7 +82,7 @@ class KrakenProvider(DataProvider):
         formatted_symbol = format_symbol(symbol)
         minutes = _CANONICAL_TO_MINUTES.get(interval)
         if minutes is None:
-            raise ProviderError(f"Timeframe {interval} non supportato su Kraken")
+            raise ProviderError(f"Timeframe {interval} not supported on Kraken")
 
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
@@ -93,13 +93,13 @@ class KrakenProvider(DataProvider):
             try:
                 payload = resp.json()
             except ValueError as exc:
-                raise ProviderError(f"Risposta non valida da Kraken per {formatted_symbol}") from exc
+                raise ProviderError(f"Invalid response from Kraken for {formatted_symbol}") from exc
         except httpx.HTTPError as exc:
-            raise ProviderUnreachable(f"Kraken non raggiungibile per {formatted_symbol}: {exc}") from exc
+            raise ProviderUnreachable(f"Kraken unreachable for {formatted_symbol}: {exc}") from exc
 
         errors = payload.get("error") or []
         if errors:
-            raise ProviderError(f"Kraken non riconosce {formatted_symbol}: {'; '.join(errors)}")
+            raise ProviderError(f"Kraken does not recognize {formatted_symbol}: {'; '.join(errors)}")
 
         result = payload.get("result") or {}
         # La chiave del risultato non e' il pair richiesto ma il nome interno
@@ -107,7 +107,7 @@ class KrakenProvider(DataProvider):
         # esattamente una chiave oltre a "last".
         rows = next((v for k, v in result.items() if k != "last"), None)
         if not rows:
-            raise ProviderError(f"Nessun dato disponibile per {formatted_symbol} ({interval})")
+            raise ProviderError(f"No data available for {formatted_symbol} ({interval})")
 
         df = pd.DataFrame(
             rows, columns=["open_time", "open", "high", "low", "close", "vwap", "volume", "count"]

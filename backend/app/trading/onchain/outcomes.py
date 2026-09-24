@@ -89,15 +89,15 @@ CHECK_KEYS = ("name", "security", "contract", "socials", "site", "github", "ai")
 # wallet e i primi 10 (legit.holder_concentration).
 FACT_KEYS = ("top_holder_pct", "top10_pct", "lp_locked_pct")
 RISK_UP = {"top_holder_pct", "top10_pct"}   # qui un numero alto dovrebbe voler dire piu' rug
-CHECK_LABELS = {"top_holder_pct": "Primo wallet %", "top10_pct": "Primi 10 wallet %",
-                "vol_h1": "Volume 1h", "buys_h1": "Acquisti 1h", "sells_h1": "Vendite 1h",
-                "buy_ratio": "Quota acquisti", "chg_h1": "Variazione 1h", "gem": "Pagella da gemma",
-                "memory": "Memoria", "altro": "Altro",
-                "lp_locked_pct": "Liquidità bloccata %",
-                "name": "Nome", "security": "Sicurezza (RugCheck/GoPlus)", "contract": "Contratto (GoPlus)",
-                "socials": "Social", "site": "Sito", "github": "GitHub", "ai": "Claude sul sito",
-                "report": "Pagella complessiva", "mcap": "Capitalizzazione", "liq": "Liquidità",
-                "liq_mcap": "Liquidità / cap", "age_h": "Età"}
+CHECK_LABELS = {"top_holder_pct": "Top wallet %", "top10_pct": "Top 10 wallets %",
+                "vol_h1": "Volume 1h", "buys_h1": "Buys 1h", "sells_h1": "Sells 1h",
+                "buy_ratio": "Buy share", "chg_h1": "Change 1h", "gem": "Gem report card",
+                "memory": "Memory", "altro": "Other",
+                "lp_locked_pct": "Liquidity locked %",
+                "name": "Name", "security": "Security (RugCheck/GoPlus)", "contract": "Contract (GoPlus)",
+                "socials": "Socials", "site": "Website", "github": "GitHub", "ai": "Claude on the site",
+                "report": "Overall report card", "mcap": "Market cap", "liq": "Liquidity",
+                "liq_mcap": "Liquidity / cap", "age_h": "Age"}
 
 _journal: dict[str, dict] = {}
 _model: dict = {"active": False}
@@ -210,7 +210,7 @@ def collect(now: float | None = None) -> int:
     for p in snap.get("proposals") or []:
         added += bool(observe(p, "proposed", p.get("found_at"), p.get("strategy") or "", "radar", now))
     for t in snap.get("tested") or []:
-        added += bool(observe(t, "tested", None, "nessuna strategia", "radar", now))
+        added += bool(observe(t, "tested", None, "no strategy", "radar", now))
     for item in listings.recent():
         added += bool(observe(item, "listed", item.get("found_at"), "", "listing", now))
     for r in listings.rejected():
@@ -251,7 +251,7 @@ def apply_sample(e: dict, price: float | None, liq: float | None, now: float,
         if e["entry"]:
             e["misses"] += 1
             if e["misses"] >= MISSING_TICKS:
-                _mark_rug(e, now, "pool sparito")
+                _mark_rug(e, now, "pool gone")
         return
     e["misses"] = 0
     if not e["entry"]:
@@ -270,9 +270,9 @@ def apply_sample(e: dict, price: float | None, liq: float | None, now: float,
         ratio = liq / entry_liq
         e["min_liq"] = ratio if e["min_liq"] is None else min(e["min_liq"], ratio)
         if ratio <= RUG_LIQ_LEFT:
-            _mark_rug(e, now, f"liquidità scesa al {ratio:.0%}")
+            _mark_rug(e, now, f"liquidity down to {ratio:.0%}")
     if e["rug"] is None and ret <= RUG_DROP:
-        _mark_rug(e, now, f"prezzo {ret:+.0%}")
+        _mark_rug(e, now, f"price {ret:+.0%}")
     if now - e["entry"]["at"] >= HORIZON_S:
         e["closed"] = True
         if e["rug"] is None:
@@ -393,7 +393,7 @@ def replay_candles(e: dict, df) -> None:
     e["last"] = {"price": last, "liq": None, "at": after.index[-1].timestamp(), "ret": round(last / base - 1, 4)}
     if e["min_ret"] <= RUG_DROP:
         low_at = after["low"].idxmin()
-        _mark_rug(e, low_at.timestamp(), f"prezzo {e['min_ret']:+.0%}")
+        _mark_rug(e, low_at.timestamp(), f"price {e['min_ret']:+.0%}")
 
 
 # ------------------------------------------------------------------- lezione
@@ -512,16 +512,16 @@ def train(now: float | None = None) -> dict:
     n, rugs = len(data), sum(y for _, y in data)
     model = {"active": False, "n": n, "rugs": rugs, "cv_auc": None, "why": ""}
     if n < MODEL_MIN_N or rugs < MODEL_MIN_RUGS or n - rugs < MODEL_MIN_RUGS:
-        model["why"] = f"servono {MODEL_MIN_N} esiti con almeno {MODEL_MIN_RUGS} rug (ora {n}, {rugs} rug)"
+        model["why"] = f"needs {MODEL_MIN_N} outcomes with at least {MODEL_MIN_RUGS} rugs (now {n}, {rugs} rugs)"
         _model.clear()
         _model.update(model)
         return model
     cv, w, means = _cv_fit([e["features"] for e, _ in data], [y for _, y in data], MODEL_KEYS)
     model.update(cv_auc=round(cv, 3) if cv is not None else None, weights=w.tolist(), means=means)
     if cv is None or cv < MODEL_MIN_AUC:
-        model["why"] = f"fuori campione separa i rug solo con AUC {cv or 0:.2f} (serve {MODEL_MIN_AUC})"
+        model["why"] = f"out of sample it separates rugs with AUC only {cv or 0:.2f} (needs {MODEL_MIN_AUC})"
     else:
-        model.update(active=True, why=f"separa i rug fuori campione con AUC {cv:.2f} su {n} esiti")
+        model.update(active=True, why=f"separates rugs out of sample with AUC {cv:.2f} over {n} outcomes")
     _model.clear()
     _model.update(model)
     return model
@@ -543,9 +543,9 @@ def judge(token: dict, checks: list[dict], report: dict | None) -> dict | None:
     if p is None:
         return None
     ok = p < BLOCK_RISK
-    detail = (f"somiglia ai rug passati: rischio {p:.0%}" if not ok
-              else f"rischio rug {p:.0%} dagli esiti di {_model['n']} token")
-    return {"key": "memory", "label": "Memoria", "ok": ok, "detail": detail,
+    detail = (f"looks like past rugs: risk {p:.0%}" if not ok
+              else f"rug risk {p:.0%} from the outcomes of {_model['n']} tokens")
+    return {"key": "memory", "label": "Memory", "ok": ok, "detail": detail,
             "score": int(round(100 * (1 - p)))}
 
 
@@ -588,14 +588,14 @@ def signals(now: float | None = None) -> list[dict]:
 
 def _verdict(a: float | None) -> str:
     if a is None:
-        return "nessun rug o nessun non-rug"
+        return "no rugs or no non-rugs"
     if a >= 0.7:
-        return "prevede i rug"
+        return "predicts rugs"
     if a >= 0.6:
-        return "aiuta un po'"
+        return "helps a little"
     if a > 0.4:
-        return "non dice niente"
-    return "inganna: voti alti, piu' rug"
+        return "says nothing"
+    return "misleading: high scores, more rugs"
 
 
 def _brief(e: dict, now: float) -> dict:
@@ -615,11 +615,11 @@ def lessons(now: float | None = None) -> dict:
     sig = signals(now)
     notes = []
     for s in sig[:3]:
-        if s["rug_auc"] is not None and s["verdict"] != "non dice niente":
-            notes.append(f"{s['label']}: {s['verdict']} (AUC {s['rug_auc']:.2f} su {s['n']})")
+        if s["rug_auc"] is not None and s["verdict"] != "says nothing":
+            notes.append(f"{s['label']}: {s['verdict']} (AUC {s['rug_auc']:.2f} over {s['n']})")
     p, r = _rate(passed, now), _rate(rejected, now)
     if p["rug_rate"] is not None and r["rug_rate"] is not None:
-        notes.insert(0, f"Passati dal filtro: {p['rug_rate']:.0%} rug; scartati: {r['rug_rate']:.0%} rug")
+        notes.insert(0, f"Passed the filter: {p['rug_rate']:.0%} rugs; rejected: {r['rug_rate']:.0%} rugs")
     return {
         "tracked": len(entries), "open": sum(not e["closed"] for e in entries),
         "passed": p, "rejected": r,
@@ -654,14 +654,14 @@ def train_winners(now: float | None = None) -> dict:
     n, wins = len(data), sum(y for _, y in data)
     model = {"active": False, "n": n, "winners": wins, "cv_auc": None, "why": ""}
     if n < WIN_MIN_N or wins < WIN_MIN_WINNERS or n - wins < WIN_MIN_WINNERS:
-        model["why"] = f"servono {WIN_MIN_N} esiti con almeno {WIN_MIN_WINNERS} salite vere (ora {n}, {wins})"
+        model["why"] = f"needs {WIN_MIN_N} outcomes with at least {WIN_MIN_WINNERS} real pumps (now {n}, {wins})"
     else:
         cv, w, means = _cv_fit([e["features"] for e, _ in data], [y for _, y in data], WIN_KEYS)
         model.update(cv_auc=round(cv, 3) if cv is not None else None, weights=w.tolist(), means=means)
         if cv is None or cv < WIN_MIN_AUC:
-            model["why"] = f"fuori campione riconosce le salite solo con AUC {cv or 0:.2f} (serve {WIN_MIN_AUC})"
+            model["why"] = f"out of sample it spots pumps with AUC only {cv or 0:.2f} (needs {WIN_MIN_AUC})"
         else:
-            model.update(active=True, why=f"riconosce le salite fuori campione con AUC {cv:.2f} su {n} esiti")
+            model.update(active=True, why=f"spots pumps out of sample with AUC {cv:.2f} over {n} outcomes")
     _wmodel.clear()
     _wmodel.update(model)
     return model
@@ -714,9 +714,10 @@ def study(now: float | None = None) -> dict:
             "model": {k: v for k, v in _wmodel.items() if k not in ("weights", "means")}}
 
 
-_REASON_KEYS = (("Memoria", "memory"), ("meme", "name"), ("RugCheck", "security"), ("GoPlus", "contract"),
-                ("Sicurezza", "security"), ("GitHub", "github"), ("Claude", "ai"), ("sito", "site"),
-                ("social", "socials"), ("pagella", "gem"), ("eccellente", "gem"))
+_REASON_KEYS = (("Memoria", "memory"), ("Memory", "memory"), ("meme", "name"), ("RugCheck", "security"),
+                ("GoPlus", "contract"), ("Sicurezza", "security"), ("Security", "security"), ("GitHub", "github"),
+                ("Claude", "ai"), ("sito", "site"), ("website", "site"), ("social", "socials"),
+                ("pagella", "gem"), ("eccellente", "gem"), ("report card", "gem"))
 
 
 def failed_key(e: dict) -> str:
@@ -778,7 +779,7 @@ def meme_board(now: float | None = None, limit: int = 20) -> dict:
             "safety": e.get("safety"),
         })
     return {"items": items, "model": {k: v for k, v in _wmodel.items() if k not in ("weights", "means")},
-            "warning": "Gioco d'azzardo puro: meme coin senza progetto dietro. Metti solo cio' che puoi perdere.",
+            "warning": "Pure gambling: meme coins with no project behind them. Only put in what you can afford to lose.",
             "rules": {"liq_min_usd": MEME_LIQ_MIN, "max_age_h": MEME_MAX_AGE_S / 3600,
                       "top_holder_max_pct": MEME_TOP_HOLDER_MAX, "exit_liq_min_usd": EXIT_LIQ_MIN}}
 
@@ -798,7 +799,7 @@ async def _meme_safety(client: httpx.AsyncClient, now: float, limit: int = MEME_
                 if report and check["ok"] is not False:
                     top, _top10 = legit.holder_concentration(report)
                     if top > MEME_TOP_HOLDER_MAX:
-                        check = {"ok": False, "detail": f"un wallet ha il {top:.0f}%"}
+                        check = {"ok": False, "detail": f"one wallet holds {top:.0f}%"}
             elif e["chain"] in legit.GOPLUS_CHAIN:
                 check = legit.judge_goplus(await legit.goplus(e["chain"], e["token_address"], client))
             else:
@@ -825,8 +826,8 @@ SHAME_SEED = [
      "token_address": "4vXJMBFT6rcxNHohy2e4UPXGSv8eYpWRZmEQTqi6uRdg",
      "pair_address": "5GUGd9GgUefptTKwe6aAythc6LJNCyBMSxwzFTysqZuc",
      "pair_url": "https://dexscreener.com/solana/5gugd9gguefpttkwe6aaythc6ljncybmsxwzftysqzuc",
-     "rug_at": 1790247060, "rug_why": "-95% in 8 minuti, vendite coordinate",
-     "fooled_by": "un GitHub di pump.fun spacciato per il suo"},
+     "rug_at": 1790247060, "rug_why": "-95% in 8 minutes, coordinated selling",
+     "fooled_by": "a pump.fun GitHub passed off as its own"},
 ]
 
 

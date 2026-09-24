@@ -97,7 +97,7 @@ def _bos_choch_levels(df: pd.DataFrame, swings: pd.DataFrame) -> list[LiquidityL
                 start_time=_ts(df, pos),
                 end_time=_ts_or_none(df, row.get("BrokenIndex")),
                 mitigated=True,
-                label=f"{'BOS' if is_bos else 'CHoCH'} {'rialzista' if direction == 'bullish' else 'ribassista'}",
+                label=f"{'BOS' if is_bos else 'CHoCH'} {'bullish' if direction == 'bullish' else 'bearish'}",
             )
         )
     return out
@@ -118,7 +118,7 @@ def _order_block_levels(df: pd.DataFrame, swings: pd.DataFrame) -> list[Liquidit
                 start_time=_ts(df, pos),
                 end_time=mitigated_ts,
                 mitigated=mitigated_ts is not None,
-                label=f"Order Block {'rialzista' if direction == 'bullish' else 'ribassista'} ({row['Percentage']:.0f}% forza)",
+                label=f"Order Block {'bullish' if direction == 'bullish' else 'bearish'} ({row['Percentage']:.0f}% strength)",
             )
         )
     return out
@@ -149,7 +149,7 @@ def _fvg_levels(df: pd.DataFrame) -> list[LiquidityLevel]:
                 start_time=_ts(df, max(int(pos) - 1, 0)),
                 end_time=mitigated_ts,
                 mitigated=mitigated_ts is not None,
-                label=f"Fair Value Gap {'rialzista' if direction == 'bullish' else 'ribassista'}",
+                label=f"Fair Value Gap {'bullish' if direction == 'bullish' else 'bearish'}",
             )
         )
     return out

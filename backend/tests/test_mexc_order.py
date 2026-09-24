@@ -108,7 +108,7 @@ def test_binance_buy_still_uses_quote_order_qty(monkeypatch):
 
 
 def test_an_unknown_exchange_is_refused_instead_of_treated_as_mexc(monkeypatch):
-    with pytest.raises(RuntimeError, match="non gestito"):
+    with pytest.raises(RuntimeError, match="not handled"):
         asyncio.run(binance_exec.place_order("kraken", "BTCUSDT", "BUY", "fixed_usdt", 50.0, "k", "s"))
 
 
@@ -121,7 +121,7 @@ def test_the_exchange_error_carries_what_to_do_about_it(monkeypatch):
         asyncio.run(binance_exec.place_order("mexc", "BTCUSDT", "BUY", "fixed_usdt", 50.0, "k", "s"))
     message = str(err.value)
     assert "api key required" in message          # il testo dell'exchange resta
-    assert "non e' arrivata all'exchange" in message   # piu' cosa significa
+    assert "never reached the exchange" in message   # piu' cosa significa
 
 
 def test_the_hint_table_does_not_match_words_by_accident():

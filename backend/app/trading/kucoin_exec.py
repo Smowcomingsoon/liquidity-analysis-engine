@@ -82,7 +82,7 @@ async def place_order(
             funds_or_size = min(funds_or_size, max_usdt)
 
         if funds_or_size <= 0:
-            raise RuntimeError("Quantità calcolata zero o negativa — saldo insufficiente")
+            raise RuntimeError("Computed quantity is zero or negative — insufficient balance")
 
         order_path = "/api/v1/orders"
         payload: dict = {

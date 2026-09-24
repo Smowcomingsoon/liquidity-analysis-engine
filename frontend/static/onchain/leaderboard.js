@@ -17,9 +17,9 @@ import { escapeHtml } from "@onchain/format.js";
 const ROOT = document.getElementById("onchain-embed") ?? document;
 const POLL_MS = 10_000;
 const MOVE_SHOWN_S = 15 * 60;
-const PILLARS = [["github", "GitHub", "G"], ["site", "Sito", "S"], ["tokenomics", "Tokenomics", "T"]];
+const PILLARS = [["github", "GitHub", "G"], ["site", "Website", "S"], ["tokenomics", "Tokenomics", "T"]];
 const CHAINS = { solana: "Solana", robinhood: "Robinhood" };
-const PLACES = ["primo", "secondo", "terzo"];
+const PLACES = ["First", "Second", "Third"];
 
 let root = null;
 let data = null;
@@ -34,10 +34,10 @@ const since = (ts) => {
   if (!ts) return "—";
   const s = Math.max(0, Date.now() / 1000 - ts);
   return s < 3600 ? `${Math.max(1, Math.round(s / 60))} min` : s < 172_800 ? `${Math.round(s / 3600)} h`
-    : s < 86_400 * 60 ? `${Math.round(s / 86_400)} g` : `${Math.round(s / (86_400 * 30))} mesi`;
+    : s < 86_400 * 60 ? `${Math.round(s / 86_400)} d` : `${Math.round(s / (86_400 * 30))} mo`;
 };
 const score = (v) => (v == null ? "—" : Math.round(v));
-const yes = (v) => (v ? "sì" : "no");
+const yes = (v) => (v ? "yes" : "no");
 
 export function mountLeaderboard() {
   root = ROOT.querySelector("#board");
@@ -121,7 +121,7 @@ function slide(before) {
 
 function move(e) {
   if (!e.moved_at || Date.now() / 1000 - e.moved_at > MOVE_SHOWN_S) return "";
-  if (e.rank_before == null) return `<i class="bd-move" data-dir="new">nuovo</i>`;
+  if (e.rank_before == null) return `<i class="bd-move" data-dir="new">new</i>`;
   const d = e.rank_before - e.rank;
   if (!d) return "";
   return `<i class="bd-move" data-dir="${d > 0 ? "up" : "down"}">${d > 0 ? "▲" : "▼"}${Math.abs(d)}</i>`;
@@ -136,9 +136,9 @@ function bars(e) {
 
 function badges(e) {
   const out = [];
-  if (e.benchmark) out.push(`<em data-tone="gold">riferimento</em>`);
+  if (e.benchmark) out.push(`<em data-tone="gold">benchmark</em>`);
   else if (e.similarity?.score >= 25) out.push(`<em class="bd-sim">≈ DREGG ${e.similarity.score}%</em>`);
-  if (e.exception) out.push(`<em data-tone="gold">eccezione</em>`);
+  if (e.exception) out.push(`<em data-tone="gold">exception</em>`);
   if (e.bonding) out.push(`<em>pump.fun</em>`);
   return out.join("");
 }
@@ -146,14 +146,14 @@ function badges(e) {
 function podiumCard(e, i) {
   const k = key(e);
   return `<li data-place="${i + 1}"${open === k ? ' aria-expanded="true"' : ""}>
-    <button type="button" data-board="${escapeHtml(k)}" aria-label="${PLACES[i]} posto, ${escapeHtml(e.symbol)}">
+    <button type="button" data-board="${escapeHtml(k)}" aria-label="${PLACES[i]} place, ${escapeHtml(e.symbol)}">
       <span class="bd-medal" aria-hidden="true">${i + 1}</span>
       <span class="bd-sym"><b>${escapeHtml(e.symbol)}</b>${move(e)}</span>
       <span class="bd-total">${score(e.score)}</span>
       ${bars(e)}
       <small><span data-age="${e.launched_at ?? ""}">${since(e.launched_at)}</span> · ${usd(e.market_cap)}</small>
       <span class="bd-tags">${badges(e)}</span>
-      ${e.benchmark ? `<p class="bd-honor">Menzione d'onore</p>` : ""}
+      ${e.benchmark ? `<p class="bd-honor">Honorable mention</p>` : ""}
     </button>
   </li>`;
 }
@@ -164,7 +164,7 @@ function row(e) {
     <button type="button" data-board="${escapeHtml(k)}">
       <span class="bd-rank">${e.rank}</span>
       <span class="tk-name"><b>${escapeHtml(e.symbol)} ${move(e)}</b>
-        <small>uscito <span data-age="${e.launched_at ?? ""}">${since(e.launched_at)}</span> fa · ${usd(e.market_cap)} · ${CHAINS[e.chain] ?? e.chain} ${badges(e)}</small></span>
+        <small>launched <span data-age="${e.launched_at ?? ""}">${since(e.launched_at)}</span> ago · ${usd(e.market_cap)} · ${CHAINS[e.chain] ?? e.chain} ${badges(e)}</small></span>
       ${bars(e)}
       <span class="bd-total">${score(e.score)}</span>
     </button>
@@ -181,24 +181,24 @@ function pillarBlock(e, k, label) {
   let rows = "";
   if (k === "github") {
     rows = fact("Repository", f.url ? `<a href="${escapeHtml(f.url)}" target="_blank" rel="noopener">${escapeHtml(f.repo)}</a>` : null)
-      + fact("Commit 90 giorni", f.commits_90d) + fact("Settimane attive su 12", f.active_weeks_12)
-      + fact("Autori", Math.max(f.authors ?? 0, f.contributors ?? 0)) + fact("Ultimo commit", f.last_commit_days == null ? null : `${f.last_commit_days} g fa`)
-      + fact("Codice", f.code_kb == null ? null : `${f.code_kb} KB · ${(f.languages ?? []).join(", ")}`)
-      + fact("Test · CI", `${yes(f.tests)} · ${yes(f.ci)}`) + fact("Commit banali", f.trivial_pct == null ? null : `${f.trivial_pct}%`)
-      + fact("Stelle", f.stars);
+      + fact("Commits, 90 days", f.commits_90d) + fact("Active weeks (of 12)", f.active_weeks_12)
+      + fact("Authors", Math.max(f.authors ?? 0, f.contributors ?? 0)) + fact("Last commit", f.last_commit_days == null ? null : `${f.last_commit_days} d ago`)
+      + fact("Code", f.code_kb == null ? null : `${f.code_kb} KB · ${(f.languages ?? []).join(", ")}`)
+      + fact("Test · CI", `${yes(f.tests)} · ${yes(f.ci)}`) + fact("Trivial commits", f.trivial_pct == null ? null : `${f.trivial_pct}%`)
+      + fact("Stars", f.stars);
   } else if (k === "site") {
-    rows = fact("Sito", f.url ? `<a href="${escapeHtml(f.url)}" target="_blank" rel="noopener">${escapeHtml(new URL(f.url).hostname)}</a>` : null)
-      + fact("Parole", f.words) + fact("Pagine interne", f.internal_pages == null ? null : `${f.internal_pages} · ${f.pages_ok ?? 0} aperte e piene`)
-      + fact("Documentazione", f.docs == null ? null : f.docs_ok ? "sì, raggiungibile" : f.docs ? "linkata, vuota" : "no")
-      + fact("App", f.app == null ? null : f.app_ok ? "sì, risponde" : f.app ? "linkata, non risponde" : "no")
-      + fact("Sezioni", (f.sections ?? []).join(", ") || null)
-      + fact("Dominio", f.domain_days == null ? null : `registrato ${f.domain_days} g fa`);
+    rows = fact("Website", f.url ? `<a href="${escapeHtml(f.url)}" target="_blank" rel="noopener">${escapeHtml(new URL(f.url).hostname)}</a>` : null)
+      + fact("Words", f.words) + fact("Internal pages", f.internal_pages == null ? null : `${f.internal_pages} · ${f.pages_ok ?? 0} load with content`)
+      + fact("Docs", f.docs == null ? null : f.docs_ok ? "yes, reachable" : f.docs ? "linked, empty" : "no")
+      + fact("App", f.app == null ? null : f.app_ok ? "yes, responds" : f.app ? "linked, not responding" : "no")
+      + fact("Sections", (f.sections ?? []).join(", ") || null)
+      + fact("Domain", f.domain_days == null ? null : `registered ${f.domain_days} d ago`);
   } else {
-    rows = fact("Primo portafoglio", f.top1_pct == null ? null : `${f.top1_pct}%`) + fact("Primi 10", f.top10_pct == null ? null : `${f.top10_pct}%`)
-      + fact("Creatore", f.creator_pct == null ? null : `${f.creator_pct}%`) + fact("Holder", f.holders)
-      + fact("Liquidità bloccata", f.lp_locked_pct == null ? null : `${f.lp_locked_pct}%`)
-      + fact("Mint · freeze", f.mint == null ? null : `${f.mint ? "attivo" : "revocato"} · ${f.freeze ? "attivo" : "revocato"}`)
-      + fact("Tassa", f.tax_pct == null ? null : `${f.tax_pct}%`);
+    rows = fact("Top wallet", f.top1_pct == null ? null : `${f.top1_pct}%`) + fact("Top 10", f.top10_pct == null ? null : `${f.top10_pct}%`)
+      + fact("Creator", f.creator_pct == null ? null : `${f.creator_pct}%`) + fact("Holder", f.holders)
+      + fact("Locked liquidity", f.lp_locked_pct == null ? null : `${f.lp_locked_pct}%`)
+      + fact("Mint · freeze", f.mint == null ? null : `${f.mint ? "active" : "revoked"} · ${f.freeze ? "active" : "revoked"}`)
+      + fact("Tax", f.tax_pct == null ? null : `${f.tax_pct}%`);
   }
   const flags = (p.flags ?? []).map((x) => `<li>${escapeHtml(x)}</li>`).join("");
   return `<section style="--v:${p.score ?? 0}"><h5>${label}<b>${score(p.score)}</b></h5><dl>${rows}</dl>
@@ -206,10 +206,10 @@ function pillarBlock(e, k, label) {
 }
 
 function details(e) {
-  const chart = e.pair_url ? `<a href="${escapeHtml(e.pair_url)}" target="_blank" rel="noopener">Grafico</a>` : "";
-  const scan = e.scan_url ? `<a href="${escapeHtml(e.scan_url)}" target="_blank" rel="noopener">Report sicurezza</a>` : "";
+  const chart = e.pair_url ? `<a href="${escapeHtml(e.pair_url)}" target="_blank" rel="noopener">Chart</a>` : "";
+  const scan = e.scan_url ? `<a href="${escapeHtml(e.scan_url)}" target="_blank" rel="noopener">Security report</a>` : "";
   return `<header><b>${escapeHtml(e.name ?? e.symbol)}</b>
-      <small>${CHAINS[e.chain] ?? e.chain} · uscito ${since(e.launched_at)} fa · liquidità ${usd(e.liquidity_usd)}${e.change_24h != null ? ` · 24h ${e.change_24h > 0 ? "+" : ""}${e.change_24h}%` : ""}</small>
+      <small>${CHAINS[e.chain] ?? e.chain} · launched ${since(e.launched_at)} ago · liquidity ${usd(e.liquidity_usd)}${e.change_24h != null ? ` · 24h ${e.change_24h > 0 ? "+" : ""}${e.change_24h}%` : ""}</small>
       <span>${chart}${scan}</span></header>
     ${e.honor ? `<p class="bd-honor" style="text-align:start;margin:0 0 12px">${escapeHtml(e.honor)}</p>` : ""}
     ${traits(e)}
@@ -219,7 +219,7 @@ function details(e) {
 function traits(e) {
   const t = e.similarity?.traits ?? [];
   if (!t.length) return "";
-  const head = e.benchmark ? "Il metro di paragone" : `Somiglianza tecnica a DREGG · ${e.similarity.score}%`;
+  const head = e.benchmark ? "The benchmark" : `Technical similarity to DREGG · ${e.similarity.score}%`;
   return `<p class="bd-honor" style="text-align:start;margin:0 0 6px">${head}</p><ul class="bd-traits">${t.map((x) =>
     `<li data-got="${x.got >= 1 ? "1" : x.got > 0 ? "half" : "0"}">${escapeHtml(x.label)}</li>`).join("")}</ul>`;
 }
@@ -235,12 +235,12 @@ function paintAges() {
 function paintMeta() {
   const meta = root.querySelector("[data-board-meta]");
   const d = data ?? {};
-  meta.textContent = `${d.examined ?? 0} esaminati${d.analyzing ? ` · ${d.analyzing} in analisi` : ""}`;
+  meta.textContent = `${d.examined ?? 0} examined${d.analyzing ? ` · ${d.analyzing} under analysis` : ""}`;
 }
 
 function emptyText() {
   const d = data ?? {};
   return d.waiting
-    ? `Nessun progetto ha ancora superato l'analisi completa. ${d.waiting} in attesa di un dato (GitHub, RugCheck o sito).`
-    : "Nessun progetto ha ancora superato l'analisi di GitHub, sito e tokenomics.";
+    ? `No project has passed the full analysis yet. ${d.waiting} waiting on data (GitHub, RugCheck or website).`
+    : "No project has passed the GitHub, website and tokenomics checks yet.";
 }

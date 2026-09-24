@@ -67,7 +67,7 @@ async def simulate_order(
     idempotency_key = f"sim-{uuid.uuid4().hex}"
     reserved = ledger.reserve(idempotency_key, owner_id, chain, token, strategy_name, side, "simulated", notional_usd)
     if not reserved:
-        return {"accepted": False, "reason": "chiave duplicata, riprova", "idempotency_key": None,
+        return {"accepted": False, "reason": "duplicate key, try again", "idempotency_key": None,
                 "correlation_id": correlation_id}
 
     executed_qty = notional_usd / price_usd if price_usd > 0 else 0.0

@@ -59,26 +59,26 @@ export const setMessage = (text, tone = "") =>
 export function openReceive() {
   const { label, unit, suffix } = chainInfo();
   const address = state.wallets[state.chain]?.address ?? readCache(state.chain)?.address ?? "";
-  open("Ricevi", `Indirizzo ${label}${suffix}. Manda solo asset di questa chain: un invio da un'altra rete e' perso.`);
+  open("Receive", `${label}${suffix} address. Only send assets on this chain: anything sent from another network is gone.`);
   setBody(`
     <p class="address-block">${escapeHtml(address)}</p>
     <dl class="kv">
       <div><dt>Chain</dt><dd>${escapeHtml(label)}${escapeHtml(suffix)}</dd></div>
-      <div><dt>Asset nativo</dt><dd>${escapeHtml(unit)}</dd></div>
+      <div><dt>Native asset</dt><dd>${escapeHtml(unit)}</dd></div>
     </dl>
-    <button type="button" class="btn-quiet" data-copy>Copia indirizzo</button>
+    <button type="button" class="btn-quiet" data-copy>Copy address</button>
   `);
   bodyEl.querySelector("[data-copy]").addEventListener("click", async (event) => {
     await navigator.clipboard?.writeText(address);
-    event.currentTarget.textContent = "Copiato";
+    event.currentTarget.textContent = "Copied";
   });
 }
 
 /* ---------------------------------------------------------------- Limiti */
 
 export async function openRisk(onChange) {
-  open("Limiti & sicurezza", "I tetti valgono su ogni ordine, simulato o reale. Il circuit breaker si riarma solo a mano.");
-  setMessage("Leggo lo stato…");
+  open("Limits & safety", "Caps apply to every order, simulated or live. The circuit breaker only re-arms manually.");
+  setMessage("Loading status…");
   await renderRisk(onChange);
 }
 
@@ -90,27 +90,27 @@ async function renderRisk(onChange) {
 
     setBody(`
       <dl class="kv">
-        <div><dt>Per ordine</dt><dd>${formatUsd(data.per_trade_cap_usd)}</dd></div>
-        <div><dt>Concentrazione max</dt><dd>${data.concentration_cap_pct}%</dd></div>
-        <div><dt>Esecuzione reale</dt><dd>${data.execution_enabled ? "attiva" : "spenta"}</dd></div>
+        <div><dt>Per order</dt><dd>${formatUsd(data.per_trade_cap_usd)}</dd></div>
+        <div><dt>Max concentration</dt><dd>${data.concentration_cap_pct}%</dd></div>
+        <div><dt>Live execution</dt><dd>${data.execution_enabled ? "on" : "off"}</dd></div>
       </dl>
 
       <div class="meter" style="--fill:${(spentRatio * 100).toFixed(1)}%">
-        <div class="meter-head"><span>Speso oggi</span>
-          <b>${formatUsd(data.daily_spent_usd)} di ${formatUsd(data.daily_cap_usd)}</b></div>
+        <div class="meter-head"><span>Spent today</span>
+          <b>${formatUsd(data.daily_spent_usd)} of ${formatUsd(data.daily_cap_usd)}</b></div>
         <div class="meter-track"><div class="meter-bar"></div></div>
       </div>
 
       <p class="breaker" data-tripped="${breaker.tripped}">
         <span class="breaker-dot"></span>
         ${breaker.tripped
-          ? `Circuit breaker scattato — ${breaker.consecutive_losses} perdite di fila`
-          : "Circuit breaker a riposo"}
+          ? `Circuit breaker tripped — ${breaker.consecutive_losses} losses in a row`
+          : "Circuit breaker idle"}
       </p>
-      ${breaker.tripped ? '<button type="button" class="btn-quiet" data-reset>Riattiva manualmente</button>' : ""}
+      ${breaker.tripped ? '<button type="button" class="btn-quiet" data-reset>Re-arm manually</button>' : ""}
 
       <div class="switch-row">
-        <span><b>Wallet attivo</b><small>spento resta visibile, ma nessuna operazione lo tocca</small></span>
+        <span><b>Wallet active</b><small>when off it stays visible, but nothing touches it</small></span>
         <button type="button" class="switch" role="switch" data-toggle></button>
       </div>
     `);
@@ -156,29 +156,29 @@ function wireWalletSwitch(button) {
 /* ------------------------------------------------------------- Simulazione */
 
 export function openSimulate({ onAccepted } = {}) {
-  open("Simulazione", "Gli stessi guardrail dell'ordine reale, senza chiave e senza transazione: serve a vedere se passerebbe.");
+  open("Simulation", "Same guardrails as a live order, no key and no transaction: just checks whether it would pass.");
   setBody(`
     <form class="form" id="simulate-form">
       <label for="sim-token">Token</label>
-      <input id="sim-token" name="token" type="text" placeholder="simbolo o indirizzo" required autocomplete="off" />
+      <input id="sim-token" name="token" type="text" placeholder="symbol or address" required autocomplete="off" />
 
-      <label for="sim-side">Lato</label>
+      <label for="sim-side">Side</label>
       <select id="sim-side" name="side">
-        <option value="buy">Compra</option>
-        <option value="sell">Vendi</option>
+        <option value="buy">Buy</option>
+        <option value="sell">Sell</option>
       </select>
 
       <div class="form-pair">
         <span><label for="sim-notional">Size (USD)</label>
           <input id="sim-notional" name="notional" type="number" min="0" step="0.01" value="10" required /></span>
-        <span><label for="sim-price">Prezzo (USD)</label>
+        <span><label for="sim-price">Price (USD)</label>
           <input id="sim-price" name="price" type="number" min="0" step="0.000001" value="1" required /></span>
       </div>
 
-      <label for="sim-impact">Price impact stimato (%)</label>
+      <label for="sim-impact">Estimated price impact (%)</label>
       <input id="sim-impact" name="impact" type="number" min="0" step="0.01" value="0.5" required />
 
-      <button type="submit" class="btn-primary">Simula</button>
+      <button type="submit" class="btn-primary">Simulate</button>
     </form>
     <output class="outcome" id="simulate-outcome" hidden></output>
   `);
@@ -193,7 +193,7 @@ export function openSimulate({ onAccepted } = {}) {
     button.disabled = true;
     outcome.hidden = false;
     outcome.dataset.tone = "";
-    outcome.textContent = "Simulo…";
+    outcome.textContent = "Simulating…";
     try {
       const result = await api.simulateOrder({
         chain: state.chain,
@@ -205,7 +205,7 @@ export function openSimulate({ onAccepted } = {}) {
         price_usd: Number(fields.get("price")),
       });
       outcome.dataset.tone = result.accepted ? "ok" : "no";
-      outcome.textContent = result.accepted ? "Passa tutti i guardrail." : result.reason;
+      outcome.textContent = result.accepted ? "Passes every guardrail." : result.reason;
       if (result.accepted) onAccepted?.();
     } catch (error) {
       outcome.dataset.tone = "no";
@@ -219,13 +219,13 @@ export function openSimulate({ onAccepted } = {}) {
 /* ------------------------------------------------------------ Chiave privata */
 
 export function openKey({ onStart }) {
-  open("Rivela chiave privata", "Serve il riconoscimento sul tuo telefono — Face ID, Touch ID o password. La sola sessione del browser non basta.");
+  open("Reveal private key", "Needs verification on your phone — Face ID, Touch ID or password. A browser session alone isn't enough.");
   setBody(`
     <dl class="kv">
-      <div><dt>Verifica</dt><dd>QR + WebAuthn o password</dd></div>
-      <div><dt>Validita' del QR</dt><dd>2 minuti</dd></div>
+      <div><dt>Verification</dt><dd>QR + WebAuthn or password</dd></div>
+      <div><dt>QR valid for</dt><dd>2 minutes</dd></div>
     </dl>
-    <button type="button" class="btn-danger" data-start>Rivela ora</button>
+    <button type="button" class="btn-danger" data-start>Reveal now</button>
   `);
   bodyEl.querySelector("[data-start]").addEventListener("click", () => { dialog.close(); onStart(); });
 }
@@ -238,7 +238,7 @@ export function positionRow(position) {
       <span class="asset-mark is-token">${escapeHtml(position.token.slice(0, 1).toUpperCase())}</span>
       <span class="asset-name"><b>${escapeHtml(position.token)}</b>
         <small>${formatToken(position.quantity)} ${escapeHtml(position.token)}</small></span>
-      <span class="asset-value"><b>${formatUsd(position.cost_usd)}</b><small>costo</small></span>
+      <span class="asset-value"><b>${formatUsd(position.cost_usd)}</b><small>cost</small></span>
     </li>`;
 }
 
@@ -280,7 +280,7 @@ function avatar(token) {
     icon ? `<img src="${escapeHtml(icon)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : ""}<span>${letter}</span></span>`;
 }
 
-const VERIFIED_MARK = `<svg class="tok-check" viewBox="0 0 16 16" aria-label="verificato"><path d="M8 1.5l1.7 1.2 2.1-.1.7 2 1.7 1.2-.6 2 .6 2-1.7 1.2-.7 2-2.1-.1L8 14.5l-1.7-1.2-2.1.1-.7-2L1.8 10.2l.6-2-.6-2 1.7-1.2.7-2 2.1.1z"/><path class="tick" d="M5.4 8.2l1.8 1.8 3.4-3.6"/></svg>`;
+const VERIFIED_MARK = `<svg class="tok-check" viewBox="0 0 16 16" aria-label="verified"><path d="M8 1.5l1.7 1.2 2.1-.1.7 2 1.7 1.2-.6 2 .6 2-1.7 1.2-.7 2-2.1-.1L8 14.5l-1.7-1.2-2.1.1-.7-2L1.8 10.2l.6-2-.6-2 1.7-1.2.7-2 2.1.1z"/><path class="tick" d="M5.4 8.2l1.8 1.8 3.4-3.6"/></svg>`;
 
 function tokenRow(token, side) {
   return `
@@ -306,7 +306,7 @@ function wireAvatars(list) {
   });
 }
 
-export function openTokenPicker(chain, { onPick, title = "Scegli token" } = {}) {
+export function openTokenPicker(chain, { onPick, title = "Pick token" } = {}) {
   pickerDialog.querySelector(".sheet-title").textContent = title;
   pickerDialog.setAttribute("aria-label", title);
   pickerBody.innerHTML = `
@@ -315,18 +315,18 @@ export function openTokenPicker(chain, { onPick, title = "Scegli token" } = {}) 
       <div class="picker-search">
         <label class="picker-field">
           <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5L17 17"/></svg>
-          <input type="search" id="picker-query" name="search" placeholder="Cerca per nome o ticker"
-            aria-label="Cerca token" autocomplete="off" autocorrect="off" autocapitalize="off"
+          <input type="search" id="picker-query" name="search" placeholder="Search name or ticker"
+            aria-label="Search tokens" autocomplete="off" autocorrect="off" autocapitalize="off"
             spellcheck="false" enterkeyhint="search" data-1p-ignore data-lpignore="true" data-form-type="other" />
         </label>
-        <button type="button" class="picker-cancel">Annulla</button>
+        <button type="button" class="picker-cancel">Cancel</button>
       </div>
     </div>
     <div class="picker-scroll">
-      <p class="picker-label" id="picker-label">I tuoi token</p>
+      <p class="picker-label" id="picker-label">Your tokens</p>
       <ul id="picker-held" class="picker-list">${skeleton(2)}</ul>
       <ul id="picker-results" class="picker-list" hidden></ul>
-      <p class="picker-hint">Non lo trovi? Incolla il contratto del token nel campo in alto.</p>
+      <p class="picker-hint">Can't find it? Paste the token contract in the field up top.</p>
     </div>
   `;
   // Da telefono la tastiera della ricerca sposta la pagina sotto il foglio,
@@ -372,14 +372,14 @@ export function openTokenPicker(chain, { onPick, title = "Scegli token" } = {}) 
       ]);
       const rows = [];
       if (balance) {
-        rows.push({ address: NATIVE_ADDRESS[chain], symbol: unit, name: "Nativo · paga il gas", amount: balance.native_balance, verified: true });
+        rows.push({ address: NATIVE_ADDRESS[chain], symbol: unit, name: "Native · pays gas", amount: balance.native_balance, verified: true });
       }
       for (const h of portfolio.holdings) {
         if (h.amount > 0) rows.push({ address: h.address, symbol: h.symbol, name: h.name || "", amount: h.amount });
       }
       held.innerHTML = rows.length
         ? rows.map((r) => tokenRow(r, `<b>${formatToken(r.amount)}</b>`)).join("")
-        : note("Nessun token con saldo in questo wallet.");
+        : note("No tokens with a balance in this wallet.");
       wirePicks(held);
     } catch (error) {
       held.innerHTML = note(error.message);
@@ -389,7 +389,7 @@ export function openTokenPicker(chain, { onPick, title = "Scegli token" } = {}) 
   const showHeld = (yes) => {
     held.hidden = !yes;
     results.hidden = yes;
-    label.textContent = yes ? "I tuoi token" : "Risultati";
+    label.textContent = yes ? "Your tokens" : "Results";
   };
 
   input.addEventListener("input", () => {
@@ -400,7 +400,7 @@ export function openTokenPicker(chain, { onPick, title = "Scegli token" } = {}) 
     // Un indirizzo incollato si usa cosi' com'e': niente ricerca per
     // ticker, niente secondo campo nascosto in un "non lo trovi?".
     if (looksLikeAddress(q)) {
-      results.innerHTML = tokenRow({ address: q, symbol: "Contratto incollato", name: shortAddress(q) }, "Usa ›");
+      results.innerHTML = tokenRow({ address: q, symbol: "Pasted contract", name: shortAddress(q) }, "Use ›");
       wirePicks(results);
       return;
     }
@@ -409,11 +409,11 @@ export function openTokenPicker(chain, { onPick, title = "Scegli token" } = {}) 
       try {
         const found = await api.searchTokens(chain, q);
         if (input.value.trim() !== q) return;
-        if (!found.length) { results.innerHTML = note("Nessun token con questo nome su questa rete."); return; }
+        if (!found.length) { results.innerHTML = note("No token by that name on this network."); return; }
         for (const t of found) if (t.icon) iconCache.set(t.address.toLowerCase(), t.icon);
         results.innerHTML = found.map((t) => tokenRow(t, `${
           t.liquidity_usd ? `<span>liq. ${compactUsd.format(t.liquidity_usd)}</span>` : ""}${
-          t.verified ? "" : "<i>non verificato</i>"}`)).join("");
+          t.verified ? "" : "<i>unverified</i>"}`)).join("");
         wirePicks(results);
       } catch (error) {
         results.innerHTML = note(error.message);

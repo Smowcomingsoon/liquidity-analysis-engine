@@ -74,7 +74,7 @@ async def build_signed_solana_tip_tx(private_key_hex: str, tip_account: str, tip
         resp = await client.post("https://api.mainnet-beta.solana.com", json=payload)
     data = resp.json()
     if "error" in data:
-        raise RuntimeError(f"getLatestBlockhash fallito: {data['error']}")
+        raise RuntimeError(f"getLatestBlockhash failed: {data['error']}")
     blockhash = Hash.from_string(data["result"]["value"]["blockhash"])
     ix = transfer(TransferParams(
         from_pubkey=kp.pubkey(), to_pubkey=Pubkey.from_string(tip_account), lamports=tip_lamports,
@@ -237,7 +237,7 @@ async def send_signed_solana_tx(signed_tx_bytes: bytes) -> str:
         resp = await client.post("https://api.mainnet-beta.solana.com", json=payload)
     data = resp.json()
     if "error" in data:
-        raise RuntimeError(f"Invio Solana fallito: {data['error']}")
+        raise RuntimeError(f"Solana send failed: {data['error']}")
     return data["result"]  # signature
 
 
@@ -283,7 +283,7 @@ async def send_signed_evm_tx(raw_tx_bytes: bytes) -> str:
         resp = await client.post(ROBINHOOD_RPC, json=payload)
     data = resp.json()
     if "error" in data:
-        raise RuntimeError(f"Invio Robinhood Chain fallito: {data['error']}")
+        raise RuntimeError(f"Robinhood Chain send failed: {data['error']}")
     return data["result"]  # tx hash
 
 

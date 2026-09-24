@@ -71,9 +71,9 @@ def check_liquidity_minimum(
     e' un guardrail di sicurezza (allowlist), non una feature opzionale come
     la size dinamica: qui un dato mancante non deve mai valere "via libera"."""
     if liquidity_usd is None:
-        return False, "liquidita' del pool non verificabile (nessun dato da DexScreener) — rifiuto per sicurezza"
+        return False, "pool liquidity cannot be verified (no DexScreener data) — rejected for safety"
     if liquidity_usd < minimum_usd:
-        return False, f"liquidita' del pool {liquidity_usd:.0f} USD sotto il minimo richiesto ({minimum_usd:.0f} USD)"
+        return False, f"pool liquidity {liquidity_usd:.0f} USD below the required minimum ({minimum_usd:.0f} USD)"
     return True, ""
 
 
@@ -83,10 +83,10 @@ def check_pool_age(
     """Stesso fail-closed di check_liquidity_minimum: niente snipe su pool
     la cui eta' non si riesce a verificare."""
     if created_at is None:
-        return False, "eta' del pool non verificabile (nessun dato da DexScreener) — rifiuto per sicurezza"
+        return False, "pool age cannot be verified (no DexScreener data) — rejected for safety"
     age_minutes = (time.time() - created_at) / 60.0
     if age_minutes < minimum_minutes:
-        return False, f"pool creato {age_minutes:.0f} minuti fa, sotto l'eta' minima richiesta ({minimum_minutes:.0f} minuti)"
+        return False, f"pool created {age_minutes:.0f} minutes ago, below the required minimum age ({minimum_minutes:.0f} minutes)"
     return True, ""
 
 
@@ -106,7 +106,7 @@ def check_liquidity_drop(
     drop_pct = (1 - current_liquidity_usd / reference_max_usd) * 100
     if drop_pct > max_drop_pct:
         return False, (
-            f"liquidita' del pool scesa del {drop_pct:.0f}% nell'ultima ora "
-            f"(da {reference_max_usd:.0f} a {current_liquidity_usd:.0f} USD)"
+            f"pool liquidity down {drop_pct:.0f}% in the last hour "
+            f"(from {reference_max_usd:.0f} to {current_liquidity_usd:.0f} USD)"
         )
     return True, ""

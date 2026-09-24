@@ -273,36 +273,36 @@ def test_every_axis_reports_its_own_partition():
     risultato cambia davvero."""
     res, lines = _run_with_log()
     for part in res.partitions:
-        assert any(f"asse {part.name}:" in line for line in lines), f"asse muto: {part.name}"
+        assert any(f"axis {part.name}:" in line for line in lines), f"silent axis: {part.name}"
 
 
 def test_the_grid_size_is_stated_before_the_cells_are_tried():
     res, lines = _run_with_log()
-    grid = next(i for i, line in enumerate(lines) if line.startswith("griglia:"))
-    cells = next(i for i, line in enumerate(lines) if line.startswith("provo il centro"))
+    grid = next(i for i, line in enumerate(lines) if line.startswith("grid:"))
+    cells = next(i for i, line in enumerate(lines) if line.startswith("trying the center"))
     assert grid < cells
-    assert f"= {res.grid_cells} celle" in lines[grid]
+    assert f"= {res.grid_cells} cells" in lines[grid]
 
 
 def test_the_progress_through_the_cells_is_reported():
     _res, lines = _run_with_log()
-    assert any(line.startswith("celle ") and "configurazioni distinte" in line
+    assert any(line.startswith("cells ") and "distinct configurations" in line
                for line in lines)
 
 
 def test_the_shake_test_says_how_often_each_finalist_holds():
     """Il numero che decide la classifica: quante volte su quante regge."""
     _res, lines = _run_with_log()
-    shaken = [line for line in lines if line.startswith("finalista ")]
+    shaken = [line for line in lines if line.startswith("finalist ")]
     assert shaken, "nessun finalista raccontato"
-    assert all("regge" in line and "su" in line for line in shaken)
+    assert all("holds" in line and "out of" in line for line in shaken)
 
 
 def test_the_winner_is_announced_with_its_stability():
     res, lines = _run_with_log()
     if not res.candidates:
         pytest.skip("nessun candidato su questa serie")
-    assert any(line.startswith("scelto:") and "stabile" in line for line in lines)
+    assert any(line.startswith("picked:") and "stable" in line for line in lines)
 
 
 def test_guided_expansion_instead_of_enumerating_is_said_out_loud():
@@ -310,9 +310,9 @@ def test_guided_expansion_instead_of_enumerating_is_said_out_loud():
     l'espansione guidata non sorteggia più, e il log dice cosa fa davvero."""
     res, lines = _run_with_log(max_grid_evals=8)
     assert not res.enumerated
-    assert any("per ordine di promessa" in line for line in lines)
-    assert any("espansione guidata" in line for line in lines)
-    assert not any("riproducibile" in line for line in lines)
+    assert any("in order of promise" in line for line in lines)
+    assert any("guided expansion" in line for line in lines)
+    assert not any("reproducible" in line for line in lines)
 
 
 def test_without_a_callback_the_search_is_silent_and_unchanged():
