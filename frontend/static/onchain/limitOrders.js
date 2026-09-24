@@ -196,7 +196,7 @@ export async function mountOpenOrders(container) {
 
 // Un pannello solo, non tre: "Storico" (transazioni RPC grezze) e
 // "Diario" (ordini di questo sito) sembravano fare la stessa cosa da due
-// bottoni diversi — Lorenzo: "una copia delle transazioni per capire cosa
+// bottoni diversi — Richiesta: "una copia delle transazioni per capire cosa
 // e' accaduto in passato". Due viste dentro lo stesso pannello, non due
 // pannelli, e ora sempre in vista nel pannello inferiore a tab.
 export async function mountHistory(container) {

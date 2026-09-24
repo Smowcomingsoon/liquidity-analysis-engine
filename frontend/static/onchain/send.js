@@ -1,6 +1,6 @@
 /**
  * Invia — prelievo: manda crypto (nativo o un token) a un indirizzo
- * qualsiasi, non uno swap (nessun altro token in cambio). Lorenzo:
+ * qualsiasi, non uno swap (nessun altro token in cambio). Richiesta:
  * "aggiungi funzione anche per prelevare le crypto e inviarle ad
  * indirizzi". Resta un dialog (non un pannello sempre visibile come
  * Swap/Limite): un'azione rara e ad alto rischio (un indirizzo sbagliato

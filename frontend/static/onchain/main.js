@@ -95,7 +95,7 @@ function paintChainStatic() {
     view.empty.querySelector("[data-chain-name]").textContent = label;
     view.spark.hidden = true;
     if (view.holdings) view.holdings.hidden = true;
-    if (view.shell.dataset.view !== "home") setView("home");
+    if (!["entry", "gems", "meme"].includes(view.shell.dataset.view)) setView("gems");
     return;
   }
 
@@ -117,7 +117,7 @@ function sparkFormatter() {
 }
 
 // Un tocco sulla cifra cambia unita': nativa (SOL/ETH), dollari, BTC, e
-// si ricomincia. Lorenzo: "se clicco su ETH mi switchi la visualizzazione
+// si ricomincia. Richiesta: "se clicco su ETH mi switchi la visualizzazione
 // in dollari, in Bitcoin e basta". Le viste senza prezzo si saltano, mai
 // un valore inventato; la scelta resta fra una visita e l'altra.
 const BALANCE_MODES = ["native", "usd", "btc"];
@@ -212,28 +212,28 @@ function paintHoldings(force = false) {
   });
 }
 
-// Ponte sniper -> Lorenzo (2026-09-23): la card in alto dice quanti token
-// della watchlist girano ora con Lorenzo in auto-trade su questa chain, e
+// Ponte sniper -> trend EMA (2026-09-23): la card in alto dice quanti token
+// della watchlist girano ora in auto-trade trend EMA su questa chain, e
 // quali; l'interruttore sta nel pannello ordine. Tutti gli elementi sono
 // opzionali: la copia del wallet dentro la tab Trading (index.html) non
 // li ha, e un null qui fermerebbe l'intero modulo.
-const LORENZO = "Lorenzo (trend-follower)";
+const TREND_EMA = "Lorenzo (trend-follower)";
 
 function parseChainFromSymbol(symbol) {
   const m = /^.+@([a-z]+):.+$/.exec(symbol);
   return m ? m[1] : null;
 }
 
-async function lorenzoAutoEntries(chain) {
+async function trendAutoEntries(chain) {
   const entries = await api.getWatchlist();
-  return entries.filter((e) => parseChainFromSymbol(e.symbol) === chain && e.auto_trade?.[LORENZO]);
+  return entries.filter((e) => parseChainFromSymbol(e.symbol) === chain && e.auto_trade?.[TREND_EMA]);
 }
 
 async function refreshSniperCard() {
   if (!view.sniperCard && !view.sniperToggle) return;
   const chain = state.chain;
   try {
-    const [{ chains }, active] = await Promise.all([api.getSniperAutotrade(), lorenzoAutoEntries(chain)]);
+    const [{ chains }, active] = await Promise.all([api.getSniperAutotrade(), trendAutoEntries(chain)]);
     if (chain !== state.chain) return;
     paintSniperCard(chains.includes(chain), active);
   } catch { /* resta lo stato di default, spento */ }
@@ -276,18 +276,18 @@ view.sniperToggle?.addEventListener("click", async () => {
 });
 
 // Tab "Sniper" del pannello ordine: i token che il ponte ha gia' messo in
-// watchlist con Lorenzo in auto-trade su questa chain — sola lettura, lo
+// watchlist in auto-trade trend EMA su questa chain — sola lettura, lo
 // spegnimento per token resta nel tab Strategie.
 async function mountSniperTab(container) {
   container.innerHTML = "<p class='sheet-note'>Leggo i token dello sniper…</p>";
   const chain = state.chain;
   try {
-    const active = await lorenzoAutoEntries(chain);
+    const active = await trendAutoEntries(chain);
     if (chain !== state.chain) return;
     container.innerHTML = active.length
       ? `<ul class="tx-list">${active.map((e) => `
-          <li><span><b>${escapeHtml(e.symbol.split("@")[0])}</b></span><span class="strategy-tag">Lorenzo · auto</span></li>`).join("")}</ul>`
-      : "<p class='sheet-note'>Nessun token in auto-trade con Lorenzo su questa chain. Accendi lo sniper qui sotto: i nuovi token con liquidità oltre $3k e meno di 72h entrano da soli.</p>";
+          <li><span><b>${escapeHtml(e.symbol.split("@")[0])}</b></span><span class="strategy-tag">Trend EMA · auto</span></li>`).join("")}</ul>`
+      : "<p class='sheet-note'>Nessun token in auto-trade su questa rete. Accendi lo sniper qui sotto: i nuovi token con liquidità oltre $3k e meno di 72h entrano da soli.</p>";
   } catch (error) {
     container.innerHTML = `<p class="sheet-note is-error">${escapeHtml(error instanceof ApiError ? error.message : "Errore inatteso.")}</p>`;
   }
@@ -345,7 +345,7 @@ let currentOrderTab = "swap";
 // Un token si sceglie una volta sola: quello scelto sul grafico diventa
 // l'altra gamba di swap e limite, e quello scelto nel pannello ordine
 // sposta il grafico. Prima erano due scelte separate, e da telefono il
-// pannello ordine sta due schermate sotto il grafico — Lorenzo: "se
+// pannello ordine sta due schermate sotto il grafico — Richiesta: "se
 // seleziono un token si aprono troppe schermate".
 let presetToken = null;
 let presetSeq = 0;
@@ -491,14 +491,14 @@ view.reveal.addEventListener("click", () => sheets.openKey({ onStart: startRevea
 // foglio) o fuori dal pannello.
 view.more?.addEventListener("click", () => view.moreSheet.showModal());
 
-// Quattro viste, come un DEX. Prima pagina: classifica e scansioni del
-// radar (Lorenzo: "la cosa centrale e' avere la leaderboard"). Poi Scambia,
-// Pilota (l'automazione, in una sezione sua) e Portafoglio (saldo, monete,
-// ordini, storico). Le cambia la barra in basso.
-const VIEWS = ["home", "manual", "auto", "wallet"];
+// Two sections chosen at the door, each with its own purpose: Progetti
+// (a round-the-clock scan of serious low/micro caps, ranked) and Meme
+// (the sniper radar plus its autopilot). Then Scambia and Portafoglio.
+// "entry" is the door itself; the dock hides there.
+const VIEWS = ["gems", "meme", "manual", "wallet"];
 
 function setView(name) {
-  if (!VIEWS.includes(name)) return;
+  if (!VIEWS.includes(name) && name !== "entry") return;
   const from = view.shell.dataset.view;
   const paint = () => {
     view.shell.dataset.view = name;
@@ -506,14 +506,14 @@ function setView(name) {
       if (b.dataset.go === name) b.setAttribute("aria-current", "page");
       else b.removeAttribute("aria-current");
     });
-    if (view.dock) view.dock.dataset.at = String(VIEWS.indexOf(name));
+    if (view.dock && name !== "entry") view.dock.dataset.at = String(VIEWS.indexOf(name));
     window.scrollTo({ top: 0 });
   };
   if (from !== name && document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
     view.shell.dataset.dir = VIEWS.indexOf(name) > VIEWS.indexOf(from) ? "fwd" : "back";
     document.startViewTransition(paint);
   } else paint();
-  if (name === "auto") refreshPilot();
+  if (name === "meme") refreshPilot();
   if (name === "wallet" && !view.bottomPanel.hidden) mountBottomTab(currentBottomTab);
   paintHoldings();
 }
@@ -529,10 +529,12 @@ function placeDock() {
 placeDock();
 wide.addEventListener("change", placeDock);
 
-view.dock?.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-go]");
-  if (button) setView(button.dataset.go);
-});
+for (const el of [view.dock, view.shell]) {
+  el?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-go]");
+    if (button) setView(button.dataset.go);
+  });
+}
 
 mountPilot({ toast, onChange: refreshSniperCard });
 mountRadar({ toast });

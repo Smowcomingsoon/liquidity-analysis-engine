@@ -1,5 +1,5 @@
 /**
- * La riga "cosa hai" sotto il saldo. Lorenzo: "non e' chiaro che moneta io
+ * La riga "cosa hai" sotto il saldo. Richiesta: "non e' chiaro che moneta io
  * abbia nel portafoglio [...] devo sapere subito cosa ho disponibile".
  *
  * Stessi dati e stesso aspetto della riga sopra lo swap (swap.js): la

@@ -68,6 +68,15 @@ imparare dai segnali; da cosa effettivamente succede, e migliorare il sistema".
 
 Resta: eventuale ritaratura automatica delle soglie di legit (oggi solo misurate).
 
+## Due porte: Gemme e Meme, niente nomi personali — `seed-0115` — 2026-09-24
+
+Lorenzo: "rendilo privacy centrico [...] non ci deve essere scritto Lorenzo", "due sezioni distinte [...] prima di poter entrare", "deve essere chiaro che e' estremamente gambling la sezione meme", "revisione in ottica degen [...] i dettagli che non servono non ci devono essere".
+
+- `onchain-app.html` si apre su `data-view="entry"`: due card, **Gemme nascoste** (lime, calma, porta a `gems` = `#board`) e **Sniper meme** (rosa/ambra, righe diagonali, porta a `meme` = `#radar` + `#pilot`, con banner "Zona degen"). Barra: Gemme, Meme, Scambia, Portafoglio (il Pilota sta dentro Meme). Nella porta la barra e' nascosta.
+- Strategie: i nomi restano chiavi sul backend (watchlist, auto_trade, API). A schermo passano da `strategyLabel()` (`static/onchain/format.js`; per il sito principale un helper uguale in `app.js`): Trend EMA, Trend HF, RSI+BB Reversal, RSI+BB Long/Short. Non rinominare le chiavi: romperebbe dati salvati.
+- I commenti del frontend (pubblici, si leggono dal sorgente) non citano piu' nomi: "Richiesta:" o "l'utente". Nei nuovi commenti del frontend niente nomi.
+- La ricerca piu' ampia di progetti seri (Robinhood Chain e Solana, fino a pochi milioni di cap) e' del thread Classifica.
+
 ## Wallet come un DEX: barra in basso, niente "⋯" — `seed-0105`, PR #91
 
 Lorenzo: "voglio che l'esperienza su questo sito sia paragonabile a un DEX
@@ -3178,3 +3187,8 @@ riepilogo settimanale tagliava a 170 e mostrava al massimo 12/15 voci.
 Ora niente tagli: `telegram._deliver` spezza oltre 4096 caratteri a fine
 riga e, se Telegram rifiuta l'HTML (400), rimanda come testo semplice.
 Radar e pilota non toccati.
+
+**2026-09-24 — Lorenzo: "rendilo privacy centrico [...] due sezioni distinte, una meme gambling e una seria per trovare gemme [...] in ottica degen".**
+Ingresso con due porte (Gemme / Meme), sezione meme dichiaratamente
+gambling, etichette strategie neutre, niente nomi nel sorgente pubblico.
+Vedi `seed-0115`.

@@ -27,7 +27,7 @@
 @layer tokens {
   :root {
     /* Tema scuro fisso, non piu' light-dark(): proposta grafica alla
-       Uniswap validata da Lorenzo su screenshot ("falla uguale la UI") —
+       Uniswap validata dall'utente su screenshot ("falla uguale la UI") —
        lo sfondo quasi nero e i gradienti viola/menta sono la firma
        visiva scelta, non una preferenza di sistema da rispettare. */
     color-scheme: dark;
@@ -41,7 +41,7 @@
     --ink-faint: #5f6672;
 
     /* Rosa/violetto: la firma visiva delle DEX (Uniswap in testa) —
-       Lorenzo: "esperienza grafica alla DEX". */
+       Richiesta: "esperienza grafica alla DEX". */
     --accent:     #d84dfc;
     --accent-2:   #7c4dff;
     --accent-ink: #ffffff;
@@ -122,7 +122,7 @@
     margin-inline: auto;
     /* Da desktop la pagina e' un dashboard largo, non piu' una colonna da
        telefono allargata: proposta grafica alla Uniswap validata da
-       Lorenzo su screenshot ("falla identica a questa foto"). Il salto e'
+       l'utente su screenshot ("falla identica a questa foto"). Il salto e'
        sulla FINESTRA (@media), perche' e' la pagina intera a doversi
        allargare — il layout a due colonne che segue e' invece sul
        CONTENITORE (@container), cosi' la stessa regola vale anche quando
@@ -537,7 +537,7 @@
     & a { color: var(--accent); }
   }
 
-  /* --- striscia di stato: saldo, sniper/Lorenzo, sicurezza -------------
+  /* --- striscia di stato: saldo, sniper/trend, sicurezza -------------
      Tre card pari, non una nella pagina e due sepolte in un tab: e' lo
      stato che decide cosa succede da solo (auto-trade sniper) a fianco di
      quanto vale il wallet, non un dettaglio da scoprire altrove. */
@@ -701,7 +701,7 @@
 }
 
 /* ============================================================
-   Layout del mockup approvato da Lorenzo ("tutto deve essere
+   Layout del mockup approvato dall'utente ("tutto deve essere
    identico a questa screenshot"). Blocco unico in coda allo
    strato components, cosi' vince sulle regole piu' generiche
    sopra (che restano per la copia del wallet nella tab Trading).
@@ -907,7 +907,7 @@
 }
 
 /* ============================================================
-   Scelta del token. Lorenzo: "se seleziono un token si aprono troppe
+   Scelta del token. Richiesta: "se seleziono un token si aprono troppe
    schermate". Un foglio solo, ricerca in cima, un risultato per
    ticker con l'etichetta verificato / non verificato.
    ============================================================ */
@@ -1141,7 +1141,7 @@
 }
 
 /* ============================================================
-   Minimal. Lorenzo: "rendere l'app completamente minimal e mega
+   Minimal. Richiesta: "rendere l'app completamente minimal e mega
    moderna? troppi tasti" e "pochi clic, pochi cambi di schermata,
    niente scorrimenti eccessivi". Sempre a schermo resta solo cio'
    che serve a ogni visita (saldo, grafico, ordine, posizioni); il
@@ -1195,7 +1195,7 @@
   .order-panel:not(:has([data-order-tab="sniper"].mo-tab-active)) .sniper-box { display: none; }
 
   /* ------------------------------------------------------------------
-     Telefono. Lorenzo: "rendi l'app da mobile un'esperienza
+     Telefono. Richiesta: "rendi l'app da mobile un'esperienza
      SEMPLICISSIMA, persino guidata se serve [...] non voglio tasti".
      A schermo: marchio + indirizzo, saldo, la vista scelta dalla barra
      in basso. Rete e filtri del grafico restano nascosti.
@@ -1268,7 +1268,7 @@
 }
 
 /* ============================================================
-   Pilota. Lorenzo, dopo il concept: "PROCEDI, E' PERFETTO".
+   Pilota. Richiesta, dopo il concept: "PROCEDI, E' PERFETTO".
    Nero pieno, un solo colore vivo (--live) che vuol dire "sta
    lavorando", niente gradienti viola; Geist per il testo e Geist
    Mono per i numeri. I token sotto ridefiniscono quelli in cima,
@@ -1730,18 +1730,19 @@
   @media (prefers-reduced-motion: reduce) { .splash { display: none; } }
 }
 
-/* =====================================================   Tre viste e una barra, come un DEX. Lorenzo: "ci sono tanti
+/* =====================================================   Tre viste e una barra, come un DEX. Richiesta: "ci sono tanti
    menu, tanti tasti che potrebbero essere ridotti". Il "⋯" con
    tredici voci e' diventato: barra in basso (Radar, Scambia,
    Portafoglio) + indirizzo in alto (ricevi, invia, limiti, chiave).
    ============================================================ */
 @layer components {
-  /* Lorenzo: "la cosa centrale e' avere la leaderboard [...] e le
+  /* Richiesta: "la cosa centrale e' avere la leaderboard [...] e le
      scansioni"; il saldo non in cima; l'automazione in una sezione sua.
      Ogni sezione vive in una vista sola. */
-  #app-shell:not([data-view="home"]) :is(#board, #radar),
+  #app-shell:not([data-view="entry"]) #entry,
+  #app-shell:not([data-view="gems"]) #board,
+  #app-shell:not([data-view="meme"]) :is(#radar, #pilot),
   #app-shell:not([data-view="manual"]) #market-order-row,
-  #app-shell:not([data-view="auto"]) #pilot,
   #app-shell:not([data-view="wallet"]) :is(.status-strip, #wallet-view) { display: none !important; }
 
   /* In Scambia le monete le mostra lo swap stesso, sopra l'importo. */
@@ -1960,12 +1961,12 @@
     & li { font-size: 11.5px; padding: 3px 8px; border-radius: 99px; background: var(--raised); color: var(--ink-faint); }
     & li[data-got="1"] { color: var(--live); background: color-mix(in oklch, var(--live) 12%, transparent); }
     & li[data-got="half"] { color: var(--ink-dim); } }
-  /* Lorenzo: "vedere le scritte delle cose scartate non mi interessa". */
+  /* Richiesta: "vedere le scritte delle cose scartate non mi interessa". */
   .radar-rejected { display: none !important; }
 }
 
 /* ============================================================
-   Da computer. Lorenzo: "sul desktop c'e' un po' di confusione
+   Da computer. Richiesta: "sul desktop c'e' un po' di confusione
    come layout, andrebbe rivisto completamente". Una griglia vera:
    la barra sta nella testata; in Radar la classifica e' una
    striscia compatta in cima, sotto a sinistra le liste del radar e
@@ -1991,16 +1992,17 @@
     #app-shell:not([hidden]) { padding-block-end: 40px; }
 
     /* --- Radar: classifica in alto, liste a sinistra, dettaglio a destra */
-    #app-shell[data-view="home"] {
+    #app-shell[data-view="meme"] {
       display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); column-gap: 28px; row-gap: 14px;
       align-items: start;
     }
-    #app-shell[data-view="home"] :is(#radar, .radar-grid) { display: contents; }
-    #app-shell[data-view="home"] #board { grid-column: 1 / -1; grid-row: 1; margin: 0 0 10px; }
-    #app-shell[data-view="home"] #radar > header { grid-column: 1; grid-row: 2; margin: 0; }
-    #app-shell[data-view="home"] .radar-col { grid-column: 1; grid-row: 3; }
-    #app-shell[data-view="home"] .radar-rejected { grid-column: 1; grid-row: 4; margin: 0; }
-    #app-shell[data-view="home"] .radar-stage {
+    #app-shell[data-view="meme"] :is(#radar, .radar-grid) { display: contents; }
+    #app-shell[data-view="meme"] .risk-banner { grid-column: 1 / -1; grid-row: 1; margin: 0; }
+    #app-shell[data-view="meme"] #radar > header { grid-column: 1; grid-row: 2; margin: 0; }
+    #app-shell[data-view="meme"] .radar-col { grid-column: 1; grid-row: 3; }
+    #app-shell[data-view="meme"] #pilot { grid-column: 1; grid-row: 4; margin: 0; }
+    #app-shell[data-view="meme"] .radar-rejected { display: none; }
+    #app-shell[data-view="meme"] .radar-stage {
       grid-column: 2; grid-row: 2 / span 3; position: sticky; inset-block-start: 76px;
       max-block-size: calc(100dvh - 96px); overflow-y: auto; scrollbar-width: thin;
     }
@@ -2033,7 +2035,7 @@
   }
 }
 
-/* La prima pagina non e' mai vuota. Lorenzo: "sta pagina rimane vuota":
+/* La prima pagina non e' mai vuota. Richiesta: "sta pagina rimane vuota":
    classifica e radar restavano nascosti finche' i loro dati non
    arrivavano, e senza il saldo in cima non restava nulla a schermo.
    Ora si vedono subito, con un segnaposto che pulsa. */
@@ -2048,6 +2050,62 @@
   #radar [data-radar-list]:empty { min-block-size: 56px; list-style: none; }
   @keyframes skel { to { background-position: -150% 0; } }
   @media (prefers-reduced-motion: reduce) { :is(#board .board-podium, #radar [data-radar-list], #radar .radar-stage):empty { animation: none; } }
+}
+
+/* Two sections, two moods. Progetti reads as research (calm, lime);
+   Meme reads as a casino floor (hot pink and amber, a risk banner). */
+@layer components {
+  :root:has(#app-shell[data-view="entry"]) #dock { display: none !important; }
+  #app-shell[data-view="entry"] { padding-block-end: 24px; }
+  .entry {
+    display: grid; gap: 18px; padding-block: clamp(12px, 5vh, 56px) 8px; max-inline-size: 980px; margin-inline: auto;
+    & h1 { margin: 0; font-size: clamp(28px, 5vw, 46px); line-height: 1.05; letter-spacing: -.03em; font-weight: 650; }
+    & .entry-sub { margin: 0; color: var(--ink-dim); font-size: 15px; max-inline-size: 52ch; }
+  }
+  .entry-cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+  .entry-card {
+    --tone: var(--live);
+    position: relative; overflow: hidden; display: grid; gap: 10px; align-content: start; text-align: start;
+    padding: 22px 22px 20px; min-block-size: 230px; border-radius: 22px; cursor: pointer; color: var(--ink);
+    border: 1px solid color-mix(in oklch, var(--tone) 30%, var(--line));
+    background:
+      radial-gradient(120% 90% at 100% 0%, color-mix(in oklch, var(--tone) 22%, transparent), transparent 60%),
+      var(--panel);
+    transition: translate .25s cubic-bezier(.3, 1.4, .5, 1), border-color .25s;
+    & .entry-tag { font-size: 11.5px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--tone); }
+    & b { font-size: 26px; letter-spacing: -.02em; font-weight: 650; }
+    & p { margin: 0; color: var(--ink-dim); font-size: 14px; line-height: 1.5; }
+    & .entry-go { margin-block-start: 6px; font-size: 13.5px; font-weight: 600; color: var(--tone); }
+    & .entry-go::after { content: " →"; display: inline-block; transition: translate .25s; }
+    &:hover { translate: 0 -3px; border-color: var(--tone); }
+    &:hover .entry-go::after { translate: 4px 0; }
+    &:active { scale: .985; }
+  }
+  .entry-card[data-kind="meme"] {
+    --tone: #ff4fa3;
+    background:
+      radial-gradient(120% 90% at 100% 0%, rgb(255 79 163 / .28), transparent 60%),
+      radial-gradient(80% 70% at 0% 100%, rgb(255 182 72 / .18), transparent 60%),
+      repeating-linear-gradient(135deg, rgb(255 255 255 / .025) 0 10px, transparent 10px 20px),
+      var(--panel);
+  }
+
+  #app-shell[data-view="meme"] { --live: #ff4fa3; }
+  #app-shell[data-view="meme"] #radar > header h3 { color: #ff8cc4; }
+  :root:has(#app-shell[data-view="meme"]) .dock button[aria-current] svg { stroke: #ff4fa3; }
+  .risk-banner {
+    margin: 0 0 12px; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.45; color: var(--ink-dim);
+    background: linear-gradient(90deg, rgb(255 79 163 / .14), rgb(255 182 72 / .10));
+    border: 1px solid rgb(255 79 163 / .35);
+    & b { color: #ffb648; }
+  }
+  .gem-banner {
+    margin: 0 0 12px; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.45; color: var(--ink-dim);
+    background: color-mix(in oklch, var(--live) 7%, var(--panel)); border: 1px solid color-mix(in oklch, var(--live) 22%, var(--line));
+    & b { color: var(--live); }
+  }
+  @media (width >= 1100px) { .topbar .topbar-right { grid-column: 3; } }
+  @media (prefers-reduced-motion: reduce) { .entry-card, .entry-card .entry-go::after { transition: none; } }
 }
 </style>
 <!--onchain-importmap-->
@@ -2091,7 +2149,25 @@
       </form>
     </section>
 
-    <div id="app-shell" class="stack" data-view="home" hidden>
+    <div id="app-shell" class="stack" data-view="entry" hidden>
+      <section class="entry" id="entry" aria-labelledby="entry-title">
+        <h1 id="entry-title">Trovali prima.<br>Cavalcali meglio.</h1>
+        <p class="entry-sub">Due tavoli. Uno per chi studia, uno per chi scommette.</p>
+        <div class="entry-cards">
+          <button type="button" class="entry-card" data-go="gems" data-kind="gems">
+            <span class="entry-tag">Gemme · ricerca</span>
+            <b>Gemme nascoste</b>
+            <p>Progetti veri a micro e low cap su Solana e Robinhood Chain. Codice, tokenomics e holder passati al setaccio, h24. I migliori salgono in classifica.</p>
+            <span class="entry-go">Vai alla classifica</span>
+          </button>
+          <button type="button" class="entry-card" data-go="meme" data-kind="meme">
+            <span class="entry-tag">Meme · casinò</span>
+            <b>Sniper meme</b>
+            <p>Token nati da minuti, filtrati contro i rug e testati sulle strategie. È gioco d'azzardo puro: metti solo quello che sei pronto a bruciare.</p>
+            <span class="entry-go">Entra nel casinò</span>
+          </button>
+        </div>
+      </section>
       <div class="status-strip">
         <section class="status-card balance-card">
           <p class="label">Saldo</p>
@@ -2100,7 +2176,7 @@
             <button type="button" class="addr" id="address" title="Copia l'indirizzo"></button>
             <span class="live"><span class="dot" id="live-dot"></span><span id="fresh"></span></span>
           </div>
-          <!-- Cosa hai, a colpo d'occhio: Lorenzo, "non e' chiaro che moneta
+          <!-- Cosa hai, a colpo d'occhio: l'utente, "non e' chiaro che moneta
                io abbia nel portafoglio". Una riga, mai a capo, per non
                spingere giu' il radar. Tocco = apre lo scambio. -->
           <div class="holdings" id="holdings" hidden></div>
@@ -2120,10 +2196,10 @@
           </div>
         </section>
 
-        <!-- Ponte sniper -> Lorenzo: quanti token girano ora con la
+        <!-- Ponte sniper -> trend EMA: quanti token girano ora con la
              strategia in auto-trade su questa chain, e quali. -->
         <section class="status-card sniper-card" id="sniper-card" hidden>
-          <p class="label">Auto-trade sniper · Lorenzo</p>
+          <p class="label">Auto-trade sniper · Trend EMA</p>
           <p class="sniper-state"><span class="pulse" id="sniper-pulse" hidden></span><span id="sniper-state-text">Spento</span></p>
           <div class="sniper-tags" id="sniper-tags"><span>soglia liquidità $3k</span></div>
         </section>
@@ -2135,19 +2211,20 @@
         </section>
       </div>
 
-      <!-- La classifica, subito sotto il saldo. Lorenzo: "leaderboard che
+      <!-- La classifica, subito sotto il saldo. Richiesta: "leaderboard che
            come posizione deve essere piu' in risalto [...] e' l'unica cosa
            che conta". DREGG sta primo come metro di paragone. La disegna
            static/onchain/leaderboard.js. -->
       <section class="board" id="board" data-loading>
-        <header><h3>Classifica · progetti migliori</h3><span data-board-meta></span></header>
+        <p class="gem-banner" role="note"><b>Ricerca h24.</b> Progetti con codice, sito e tokenomics veri, a micro e low cap. Il punteggio è un filtro, non un consiglio: studia prima di comprare.</p>
+        <header><h3>Gemme · classifica</h3><span data-board-meta></span></header>
         <ol class="board-podium" data-board-podium></ol>
         <div class="board-detail" data-board-detail hidden></div>
         <ol class="board-list" data-board-list></ol>
         <p class="board-empty" data-board-empty hidden></p>
       </section>
 
-      <!-- La prima pagina. Lorenzo: "vorrei che la prima pagina quando entro
+      <!-- La prima pagina. Richiesta: "vorrei che la prima pagina quando entro
            sia proprio questa qui: i pop-up che vanno in una lista e
            rimangono, e il grafico". A sinistra gli avvisi (ognuno con il suo
            backtest), a destra il palco: grafico dal vivo del token scelto
@@ -2155,7 +2232,8 @@
            static/onchain/radar.js. Sopra c'e' solo il saldo ("il saldo va
            bene inserirlo in cima, il resto poi"). -->
       <section class="radar" id="radar" data-loading>
-        <header><h3><span class="radar-dot" aria-hidden="true"></span>Radar · token nuovi</h3><span data-radar-clock></span></header>
+        <p class="risk-banner" role="note"><b>Zona degen.</b> Token nati da minuti, liquidità sottile, rug dietro l'angolo. Gioca solo soldi che puoi bruciare.</p>
+        <header><h3><span class="radar-dot" aria-hidden="true"></span>Meme · appena nati</h3><span data-radar-clock></span></header>
         <div class="radar-grid">
           <div class="radar-col">
             <div class="radar-new" data-radar-new>
@@ -2186,7 +2264,7 @@
           <p class="radar-foot" data-memory-line></p>
           <ul></ul>
         </div>
-        <!-- Lorenzo: "crea sezione ironica dove ci andranno a finire tutte le
+        <!-- Richiesta: "crea sezione ironica dove ci andranno a finire tutte le
              inculate subite". I rug passati dal filtro (outcomes.shame). -->
         <div class="radar-log radar-shame" data-radar-shame hidden>
           <h4 class="radar-sub">Muro delle inculate <span data-shame-count></span></h4>
@@ -2194,7 +2272,7 @@
           <ul></ul>
         </div>
       </section>
-      <!-- Il pilota: la vista di partenza. Lorenzo: "voglio sapere cosa sta
+      <!-- Il pilota: la vista di partenza. Richiesta: "voglio sapere cosa sta
            monitorando, voglio vedere cosa sta scansionando [...] pochi
            tasti". Un interruttore, una riga di stato, i token che segue.
            Il contenuto lo disegna static/onchain/pilot.js. -->
@@ -2207,7 +2285,7 @@
           </button>
           <div class="pilot-intro" hidden>
             <h2>Il pilota compra solo quando la strategia lo dice.</h2>
-            <p>Cerca i token nuovi, li segue con la strategia di Lorenzo e ti mostra ogni decisione. Questi sono i suoi limiti:</p>
+            <p>Cerca i token nuovi, li segue con la strategia Trend EMA e ti mostra ogni decisione. Questi sono i suoi limiti:</p>
             <ul class="pilot-rules" data-rules></ul>
           </div>
         </div>
@@ -2241,7 +2319,7 @@
 
           <div class="sniper-box">
             <div class="head">
-              <b>Sniper → Lorenzo (trend-follower)</b>
+              <b>Sniper → Trend EMA (trend-following)</b>
               <button type="button" class="switch" id="sniper-toggle" role="switch" aria-checked="false" aria-label="Attiva l'auto-trade sniper su questa chain"></button>
             </div>
             <p>Ogni nuovo token scoperto su questa chain con liquidità &gt; $3.000 ed età &lt; 72h entra in watchlist con la strategia attiva. L'esecuzione resta soggetta ai tetti di rischio e al circuit breaker.</p>
@@ -2278,9 +2356,9 @@
        il menu "⋯" che passava da una vista all'altra. -->
   <nav class="dock" id="dock" aria-label="Sezioni" hidden>
     <span class="dock-thumb" aria-hidden="true"></span>
-    <button type="button" data-go="home" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18 6"/></svg><span>Radar</span></button>
+    <button type="button" data-go="gems"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4h11L21 9l-9 11L3 9z"/><path d="M3 9h18M9.5 4 12 20M14.5 4 12 20"/></svg><span>Gemme</span></button>
+    <button type="button" data-go="meme"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18 6"/></svg><span>Meme</span></button>
     <button type="button" data-go="manual"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v15M3.5 15.5 7 19l3.5-3.5M17 20V5m-3.5 3.5L17 5l3.5 3.5"/></svg><span>Scambia</span></button>
-    <button type="button" data-go="auto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></svg><span>Pilota</span></button>
     <button type="button" data-go="wallet"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6" width="17" height="13" rx="3"/><path d="M3.5 10h17M16 14.5h1.5"/></svg><span>Portafoglio</span></button>
   </nav>
   <div class="toast" id="toast" role="status" hidden>
@@ -2299,7 +2377,7 @@
 
   <!-- Menu "⋯": le azioni che non servono a ogni visita (ricevi, invia,
        limiti, simula, chiave) stanno qui invece che sempre a schermo.
-       Lorenzo: "rendere l'app completamente minimal e mega moderna? troppi tasti". -->
+       Richiesta: "rendere l'app completamente minimal e mega moderna? troppi tasti". -->
   <dialog class="sheet more-sheet" id="more" aria-label="Altre azioni">
     <div class="grip" aria-hidden="true"></div>
     <div class="menu-list" id="actions" hidden>

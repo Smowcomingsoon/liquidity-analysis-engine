@@ -1,5 +1,5 @@
 /**
- * Attivare le strategie dell'archivio (Lorenzo, Gabriele, Accumulo/
+ * Attivare le strategie dell'archivio (trend, RSI+BB, Accumulo/
  * Distribuzione) sui token di questo wallet — non un secondo motore:
  * stessa Watchlist, stessa API, stesso trading automatico on-chain che
  * gia' sa comprare e vendere da questa sessione. Sempre visibile nel

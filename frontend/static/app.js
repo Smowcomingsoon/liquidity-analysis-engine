@@ -82,6 +82,24 @@
   // restava ferma sul suo stato vuoto senza che nulla si inizializzasse.
   const el = (id) => document.getElementById(id);
 
+  // Strategy names are storage/API keys ("Lorenzo (trend-follower)", ...):
+  // they never change, but what the user reads is a neutral label. Any
+  // suffix after " · " (e.g. a timeframe) is kept as is.
+  function strategyLabel(name) {
+    if (name == null) return "";
+    const s = String(name);
+    const i = s.indexOf(" · ");
+    const head = i < 0 ? s : s.slice(0, i);
+    const tail = i < 0 ? "" : s.slice(i);
+    let label = head;
+    if (/^Lorenzo HF\b/.test(head)) label = "Trend HF";
+    else if (/^Lorenzo\b/.test(head)) label = "Trend EMA";
+    else if (/^Gabriele 2\b/.test(head)) label = "RSI+BB Long/Short";
+    else if (/^Gabriele\b/.test(head)) label = "RSI+BB Reversal";
+    return label + tail;
+  }
+  window.strategyLabel = strategyLabel;
+
   // `applyTheme` gira subito, prima che il resto del file sia valutato: senza
   // questa bandiera `repaintCharts` toccherebbe `mainChart`, dichiarato con
   // `let` settecento righe piu' sotto, e cadrebbe nella stessa temporal dead
@@ -182,7 +200,7 @@
       { key: "slope_threshold_sigma", label: "Soglia pendenza (σ)", type: "number", min: 0, max: 3, step: 0.1, default: 0 },
       { key: "slope_sigma_length", label: "Finestra σ pendenza", type: "number", min: 10, default: 100 },
     ],
-    // Lorenzo sulle candele da un minuto dei token on-chain: stesso incrocio
+    // l'utente sulle candele da un minuto dei token on-chain: stesso incrocio
     // sulla pendenza, filtri pensati per un token di poche ore (VWAP dal
     // lancio al posto della EMA lunga, regime per token, trailing stop).
     "Lorenzo HF (minuti on-chain)": [
@@ -1089,7 +1107,7 @@
     strategies.forEach((name) => {
       const opt = document.createElement("option");
       opt.value = name;
-      opt.textContent = name;
+      opt.textContent = strategyLabel(name);
       select.appendChild(opt);
     });
     renderStrategyParamsFields();
@@ -1790,7 +1808,7 @@
 
   // Stesso principio del pair manuale spot (vedi MANUAL_PAIR_EXCHANGES piu'
   // sopra): niente autocomplete non e' una conferma, e' silenzio. Qui il
-  // campo restava muto per ogni exchange futures — bug segnalato da Lorenzo
+  // campo restava muto per ogni exchange futures — bug segnalato da l'utente
   // su MEXC ("non trova nessun pair" scrivendo BTCUSDT). /api/symbols copre
   // mexc, binance, kucoin e kraken fra i provider crypto; fra i futures mexc,
   // binance e kraken sono anche exchange futures registrati (kucoin no),
@@ -2793,7 +2811,7 @@
         // non solo il rendimento, tutto cio' che serve per giudicare se
         // fidarsi: trade, drawdown, profit factor, sharpe, quante candele.
         card.innerHTML = `
-          <div class="wl-archive-head"><b>${it.strategy_name}</b><span class="wl-archive-ret ${m.total_return_pct > 0 ? "up" : m.total_return_pct < 0 ? "down" : ""}">${fmtPct(m.total_return_pct)}</span></div>
+          <div class="wl-archive-head"><b>${escapeHtml(strategyLabel(it.strategy_name))}</b><span class="wl-archive-ret ${m.total_return_pct > 0 ? "up" : m.total_return_pct < 0 ? "down" : ""}">${fmtPct(m.total_return_pct)}</span></div>
           <div class="wl-archive-stats">
             <span>${m.num_trades ?? "—"} trade</span>
             <span>win ${m.win_rate_pct != null ? m.win_rate_pct.toFixed(0) + "%" : "—"}</span>
@@ -2860,7 +2878,7 @@
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "wl-archive-pick";
-        btn.textContent = name;
+        btn.textContent = strategyLabel(name);
         btn.addEventListener("click", async () => {
           btn.disabled = true;
           try {
@@ -2910,7 +2928,7 @@
 
     // Un ticker appena aggiunto chiede subito la strategia, senza dover
     // prima aprire la riga e poi cliccare "+ Attiva" — due clic in meno
-    // esattamente dove Lorenzo si aspettava la domanda.
+    // esattamente dove l'utente si aspettava la domanda.
     if (autoOpen) {
       box.classList.remove("hidden");
       stepMode();
@@ -2965,7 +2983,7 @@
       `;
       // La x sulla riga chiusa toglie l'intero ticker senza dover prima
       // aprirla — quella dentro la riga aperta ("Rimuovi ticker" in fondo)
-      // restava l'unica strada, e Lorenzo l'ha chiesta qui perché non si vede
+      // restava l'unica strada, e l'utente l'ha chiesta qui perché non si vede
       // finché non espandi.
       head.querySelector(".wl-head-remove").addEventListener("click", async (e) => {
         e.stopPropagation();
@@ -3049,7 +3067,7 @@
         row.className = "strat-row";
         const label = document.createElement("span");
         label.className = "strat-name";
-        label.textContent = name;
+        label.textContent = strategyLabel(name);
         row.appendChild(label);
 
         let paramsPanel = null;
@@ -3384,7 +3402,7 @@
         <li class="arch-card${badge === "best" ? " arch-best" : ""}" data-id="${e.id}">
           <div class="arch-head">
             ${badgeHtml}
-            <span class="arch-strat">${escapeHtml(e.strategy_name)}</span>
+            <span class="arch-strat">${escapeHtml(strategyLabel(e.strategy_name))}</span>
             <span class="arch-src">${e.source === "alert" ? "da alert" : "salvata a mano"}</span>
             <span class="arch-date">${when(e.created_at)}</span>
           </div>
@@ -3457,8 +3475,8 @@
         bestId: allFlagged ? null : best.entry.id,
         leastBadId: allFlagged ? best.entry.id : null,
         html: allFlagged
-          ? `<div class="arch-recommend arch-recommend-warn">Nessuna voce di ${escapeHtml(best.entry.symbol)} supera tutti i controlli — trattale come esplorative, non come segnale operativo. Quella che regge meglio: <b>${escapeHtml(best.entry.strategy_name)}</b> (${bits.map(escapeHtml).join(" · ")}).</div>`
-          : `<div class="arch-recommend">★ Consigliata: <b>${escapeHtml(best.entry.strategy_name)}</b> — ${bits.map(escapeHtml).join(" · ")}</div>`,
+          ? `<div class="arch-recommend arch-recommend-warn">Nessuna voce di ${escapeHtml(best.entry.symbol)} supera tutti i controlli — trattale come esplorative, non come segnale operativo. Quella che regge meglio: <b>${escapeHtml(strategyLabel(best.entry.strategy_name))}</b> (${bits.map(escapeHtml).join(" · ")}).</div>`
+          : `<div class="arch-recommend">★ Consigliata: <b>${escapeHtml(strategyLabel(best.entry.strategy_name))}</b> — ${bits.map(escapeHtml).join(" · ")}</div>`,
       };
     };
 
@@ -3515,7 +3533,7 @@
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `${data.symbol}-${data.strategy_name}.json`.replace(/[^\w.\-]+/g, "_");
+          a.download = `${data.symbol}-${strategyLabel(data.strategy_name)}.json`.replace(/[^\w.\-]+/g, "_");
           a.click();
           URL.revokeObjectURL(url);
         } catch (err) {
@@ -3580,7 +3598,7 @@
           }
           const n = Object.keys(data.params || {}).length;
           say(`✓ Alert attivo su ${entry ? entry.symbol : ""} (${data.interval || ""}) — `
-              + `${data.strategy_name}, ${n ? n + " parametri archiviati applicati" : "parametri di default"}`, "ok");
+              + `${strategyLabel(data.strategy_name)}, ${n ? n + " parametri archiviati applicati" : "parametri di default"}`, "ok");
           loadWatchlist();
         } catch (err) {
           // readJson() alza un errore che nomina stato e corpo della risposta
@@ -4502,7 +4520,7 @@
         <span class="jr-mark">${mark[e.outcome] || "·"}</span>
         <span class="jr-body">
           <span class="jr-head">${escapeHtml(e.symbol)} · ${escapeHtml(e.signal_type)} · ${escapeHtml(e.exchange)} <span class="jr-price">${priceLabel(e)}</span>${pnlLabel(e)}</span>
-          <span class="jr-detail">${escapeHtml(e.strategy_name)}${e.detail ? " — " + escapeHtml(e.detail) : ""}</span>
+          <span class="jr-detail">${escapeHtml(strategyLabel(e.strategy_name))}${e.detail ? " — " + escapeHtml(e.detail) : ""}</span>
         </span>
         <span class="jr-when">${when(e.ts)}</span>
       </li>`).join("");
@@ -4554,7 +4572,7 @@
         <span class="al-icon ${cls(e.signal_type)}">${icon(e.signal_type)}</span>
         <span class="al-body">
           <span class="al-symbol">${e.symbol}</span>
-          <span class="al-strat">${e.strategy_name} · ${e.interval}</span>
+          <span class="al-strat">${escapeHtml(strategyLabel(e.strategy_name))} · ${e.interval}</span>
           <span class="al-label">${e.label}</span>
         </span>
         <span class="al-time">${fmtTs(e.ts)}</span>
@@ -4588,7 +4606,7 @@
           fresh.forEach(e => {
             try {
               new Notification(`${e.symbol} — ${e.label}`, {
-                body: `${e.strategy_name} · ${e.interval}`,
+                body: `${strategyLabel(e.strategy_name)} · ${e.interval}`,
                 icon: "/favicon.ico",
               });
             } catch { /* ignore */ }
@@ -4604,7 +4622,7 @@
     const toast = document.createElement("div");
     const isBull = e.signal_type.includes("long") || e.signal_type.includes("above");
     toast.className = `alert-toast ${isBull ? "bull" : "bear"}`;
-    toast.innerHTML = `<b>${e.symbol}</b> ${e.label}<span class="toast-strat">${e.strategy_name}</span>`;
+    toast.innerHTML = `<b>${e.symbol}</b> ${e.label}<span class="toast-strat">${escapeHtml(strategyLabel(e.strategy_name))}</span>`;
     container.appendChild(toast);
     setTimeout(() => toast.classList.add("fade-out"), 4500);
     setTimeout(() => toast.remove(), 5000);
@@ -7269,7 +7287,7 @@
     // Abbreviate long names so the pill stays compact on small screens.
     const pill = el("mobile-strategy-pill");
     const stratName = el("active-strategy-select").value || "—";
-    const stratAbbr = stratName.replace("(trend-follower)", "").replace("(long-term)", "").replace("(RSI+BB reversal)", "").trim();
+    const stratAbbr = strategyLabel(stratName).replace("(long-term)", "").trim();
     pill.textContent = stratAbbr;
     strip.classList.remove("hidden");
     tools.classList.toggle("hidden", !onChartScreen);
@@ -7705,7 +7723,7 @@
           shape: isBuy ? "arrowUp" : "arrowDown",
           // L'etichetta dice sempre da dove viene l'ordine: automatico dalla
           // strategia, oppure premuto a mano.
-          text: `● ${auto ? o.strategy_name : "manuale"}${price}`,
+          text: `● ${auto ? strategyLabel(o.strategy_name) : "manuale"}${price}`,
         };
       })
       .filter(Boolean);
@@ -7874,7 +7892,7 @@
         "Notification" in window &&
         Notification.permission === "granted"
       ) {
-        new Notification(`${state.data.symbol} [${sig.tf.toUpperCase()}] Lorenzo`, {
+        new Notification(`${state.data.symbol} [${sig.tf.toUpperCase()}] Trend EMA`, {
           body: `${sig.label} @ ${sig.price}`,
         });
       }
@@ -7997,7 +8015,7 @@
   // Rebuilds the "Strategia" fieldset's fields for whichever strategy is
   // currently active — each one has its own differently-shaped parameter
   // set (STRATEGY_PARAM_FIELDS), so this is what actually makes them
-  // visible/editable instead of only ever showing Lorenzo's.
+  // visible/editable instead of only ever showing l'utente's.
   function renderStrategyParamsFields() {
     const strategyName = el("active-strategy-select").value;
     const fields = STRATEGY_PARAM_FIELDS[strategyName] || [];
@@ -8501,7 +8519,7 @@
       // Il clic sulla riga carica il grafico (comportamento di sempre); la
       // freccia apre/chiude — separata apposta — il pannello dove si decide
       // alert/automatico e si sceglie la strategia. E' il punto di ingresso
-      // unico chiesto da Lorenzo: tutto parte da qui, non da una tab diversa.
+      // unico chiesto da Richiesta: tutto parte da qui, non da una tab diversa.
       const caret = document.createElement("button");
       caret.type = "button";
       caret.className = "wl-row-caret";
@@ -9680,7 +9698,7 @@
   }
 
   // ── Libreria indicatori (pandas-ta, 151 voci) ─────────────────────────────
-  // Modale centrale (non un cassetto laterale): Lorenzo — "vorrei che si
+  // Modale centrale (non un cassetto laterale): l'utente — "vorrei che si
   // aprisse in verticale e non che si aprisse una finestra laterale" —
   // colonna categorie a sinistra (con Preferiti), ricerca e risultati a
   // destra. Elenco completo con la spiegazione di ciascuno, perche' "non
@@ -9820,7 +9838,7 @@
 
   // Legenda fissa in alto a sinistra sul grafico: senza, un indicatore
   // aggiunto dalla libreria finisce come una linea o un riquadro anonimo —
-  // Lorenzo: "se li attivo finiscono nel grafico ma non so cosa sono e cosa
+  // Richiesta: "se li attivo finiscono nel grafico ma non so cosa sono e cosa
   // ho attivo". Click sul nome apre la spiegazione (stessa riga scritta nel
   // catalogo), click sulla x lo rimuove — stessa lista di sempre,
   // semplicemente resa visibile anche sopra il grafico, non solo in Livelli.
@@ -11076,7 +11094,7 @@
         strategy: labState.strategy,
         mode: optMode,
         title: optMode === "plateau" ? "Ricerca stabile in corso" : "Ottimizzazione in corso",
-        sub: `${labState.displaySymbol || symbol} · ${labState.strategy}`,
+        sub: `${labState.displaySymbol || symbol} · ${strategyLabel(labState.strategy)}`,
         state: "in corso",
         elapsed: 0,
         log: [],
@@ -11121,7 +11139,7 @@
     // Sync exchange selector to match the result's provider — solo se il
     // menu offre davvero quel valore: assegnare un value senza <option>
     // corrispondente lascia il <select> silenziosamente vuoto (segnalato da
-    // Lorenzo su CRVUSDT/Binance: "exchange: valore non ammesso, campo
+    // l'utente su CRVUSDT/Binance: "exchange: valore non ammesso, campo
     // vuoto" — il menu non aveva ancora Binance fra le opzioni).
     const sel = el("lab-exchange-select");
     if (sel && item.provider && [...sel.options].some((o) => o.value === item.provider)) {
@@ -11303,7 +11321,7 @@
         loadWatchlist();
         loadArchive();
 
-        show(`✅ Segnali attivi per ${labState.symbol} (${labState.tf}) — ${labState.strategy}`, false);
+        show(`✅ Segnali attivi per ${labState.symbol} (${labState.tf}) — ${strategyLabel(labState.strategy)}`, false);
         btn.textContent = "✅ Attivo";
       } catch (err) {
         show("Errore di rete: " + err.message, true);
@@ -11316,7 +11334,7 @@
     // Pick the first available strategy
     labState.strategy = strategies[0] || "";
     const sel = labEl("lab-strategy-select");
-    sel.innerHTML = strategies.map((s) => `<option value="${s}">${s}</option>`).join("");
+    sel.innerHTML = strategies.map((s) => `<option value="${escapeHtml(s)}">${escapeHtml(strategyLabel(s))}</option>`).join("");
     labState.strategy = sel.value;
     renderLabParamFields();
     // Default ticker same as chart
@@ -11627,7 +11645,7 @@
       optJobs.set(jobId, {
         id: jobId, symbol, strategy, mode,
         title: title || (mode === "plateau" ? "Ricerca stabile in corso" : "Ottimizzazione in corso"),
-        sub: sub || `${symbol} · ${strategy}`,
+        sub: sub || `${symbol} · ${strategyLabel(strategy)}`,
         state: "in corso", elapsed: 0, log: [], seen: 0, seenDone: false,
       });
       openOptProgress(jobId);

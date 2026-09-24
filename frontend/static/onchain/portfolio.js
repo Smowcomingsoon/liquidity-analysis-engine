@@ -2,7 +2,7 @@
  * Cosa detiene DAVVERO il wallet — saldo nativo (SOL/ETH, quello che paga
  * il gas) PIU' i saldi reali degli altri token letti dalla chain. Sempre
  * visibile nel pannello inferiore a tab ("Posizioni"), non piu' dietro
- * un tap — e mai senza il nativo: Lorenzo, "non visualizzo da nessuna
+ * un tap — e mai senza il nativo: l'utente, "non visualizzo da nessuna
  * parte il mio saldo attuale nel wallet" — era vero, /api/onchain/portfolio
  * elenca solo gli ALTRI token, il nativo va preso a parte e unito qui.
  *

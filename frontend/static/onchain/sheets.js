@@ -244,7 +244,7 @@ export function positionRow(position) {
 
 /* --------------------------------------------------------- Ricerca token */
 // Sostituisce il prompt() del browser: mai un dialog nativo dentro l'app
-// (Lorenzo: "sta cosa va fatta all'interno della web app"). Cerca per
+// (richiesta: "sta cosa va fatta all'interno della web app"). Cerca per
 // ticker sulla stessa fonte del resto del sito — DexScreener, gia' usata
 // per i grafici — non un indirizzo digitato a mano come unica via.
 const pickerDialog = document.querySelector("#picker");
@@ -262,7 +262,7 @@ export const isNativeAddress = (chain, address) =>
 
 // Una schermata sola per scegliere un token, a tutto schermo da telefono:
 // campo in alto con "Annulla" accanto, sotto i token che hai; scrivere
-// sostituisce la lista invece di allungarla. Lorenzo: "quando scelgo un
+// sostituisce la lista invece di allungarla. Richiesta: "quando scelgo un
 // token appare sto casino, serve una schermata immersiva e semplice" e
 // "immersivo, pulito e ben fatto".
 //
@@ -330,7 +330,7 @@ export function openTokenPicker(chain, { onPick, title = "Scegli token" } = {}) 
     </div>
   `;
   // Da telefono la tastiera della ricerca sposta la pagina sotto il foglio,
-  // e chiuso il foglio ci si ritrovava piu' in basso (Lorenzo: "la
+  // e chiuso il foglio ci si ritrovava piu' in basso (richiesta: "la
   // schermata mi va in basso e mi tocca tornare su"). Si torna dov'eri.
   if (!pickerDialog.open) {
     const scrollTop = window.scrollY;
@@ -360,7 +360,7 @@ export function openTokenPicker(chain, { onPick, title = "Scegli token" } = {}) 
   };
 
   // I token che il wallet ha DAVVERO (saldo nativo + portafoglio reale via
-  // RPC), non solo la ricerca per ticker — Lorenzo: "quando seleziono cosa
+  // RPC), non solo la ricerca per ticker — Richiesta: "quando seleziono cosa
   // vendere mi devi far selezionare dalle crypto disponibili nel wallet,
   // qualunque esse siano".
   (async () => {

@@ -1,7 +1,7 @@
 /**
  * Il radar: la prima cosa che si vede entrando in DEGEN.
  *
- * Lorenzo: "vorrei che la prima pagina quando entro sul sito sia proprio
+ * Richiesta: "vorrei che la prima pagina quando entro sul sito sia proprio
  * questa qui [...] i pop-up che poi vanno comunque in una lista e rimangono
  * impressi. E poi il grafico [...] di tutti quelli rilevati quale strategia
  * performerebbe meglio facendo un backtest e voglio vedere in tempo reale
@@ -20,7 +20,7 @@
  * del pilota.
  */
 import * as api from "@onchain/api.js";
-import { escapeHtml } from "@onchain/format.js";
+import { escapeHtml, strategyLabel } from "@onchain/format.js";
 
 const ROOT = document.getElementById("onchain-embed") ?? document;
 const POLL_MS = 60_000;
@@ -54,7 +54,7 @@ const ageShort = (s) => (s < 90 ? `${Math.max(1, Math.round(s))} s` : s < 5400 ?
 // Il timeframe piu' largo che da' ancora 150 candele: come radar.auto_interval.
 const INTERVAL_S = [["4h", 14_400], ["1h", 3_600], ["15m", 900], ["5m", 300], ["1m", 60]];
 const autoInterval = (ageS) => (INTERVAL_S.find(([, s]) => ageS / s >= 150) ?? ["1m"])[0];
-const short = (label) => (label ?? "").split(" · ")[0].split(" (")[0];
+const short = (label) => strategyLabel(label).split(" · ")[0].split(" (")[0];
 
 let toast = null;
 let stream = null;
@@ -176,7 +176,7 @@ function paint() {
   const parts = Object.entries(chains ?? {}).map(([c, info]) => `${CHAINS[c] ?? c} ${info.seen}`);
   const rejected = st.rejected ? ` · ${st.rejected} scartati dal filtro` : "";
   const rules = `cap < ${usd(data.filters.mcap_max_usd)}, sopra $100k solo pagella eccellente · sito, social, GitHub, RugCheck e GoPlus obbligatori${st.ai_review ? " · controllo Claude" : ""}`;
-  // Lorenzo: "qui ci sono troppe scritte". Le regole restano a portata di
+  // Richiesta: "qui ci sono troppe scritte". Le regole restano a portata di
   // dito (tenendo premuto / passandoci sopra), non a schermo.
   const foot = root.querySelector("[data-radar-foot]");
   foot.hidden = true;
@@ -262,7 +262,7 @@ function paintListings(animate) {
 
 /* ------------------------------------------------------------ il battito */
 
-// Lorenzo: "voglio capire che e' una cosa live [...] deve esserci un senso di
+// Richiesta: "voglio capire che e' una cosa live [...] deve esserci un senso di
 // movimento". Il server manda ogni 5 s cosa sta guardando: i pool nuovi
 // comparsi, i token in controllo adesso. I numeri scorrono, i nomi cambiano.
 let lastPulse = null;
@@ -319,7 +319,7 @@ function flashPulse(text) {
 
 /* ------------------------------------------------------------ gli scartati */
 
-// Lorenzo: "scorrendo giu' voglio una sezione che mi faccia vedere tutti
+// Richiesta: "scorrendo giu' voglio una sezione che mi faccia vedere tutti
 // quelli che sono stati scartati". Un tocco apre il perche', controllo per
 // controllo, senza grafico: non serve a nessuno quello di un token scartato.
 const REJECTED_SHOWN = 12;
@@ -379,7 +379,7 @@ function paintShame() {
 
 /* ------------------------------------------------------------ la memoria */
 
-// Lorenzo, dopo VISE: "imparare dai segnali, da cosa effettivamente succede".
+// Richiesta, dopo VISE: "imparare dai segnali, da cosa effettivamente succede".
 // Una riga di numeri e i casi che contano: i rug che il filtro ha lasciato
 // passare e i token scartati che poi sono saliti.
 function paintMemory(m) {
@@ -479,7 +479,7 @@ function links(p) {
 }
 
 // La pagella: quanto bene ha passato ogni filtro, non solo se l'ha passato.
-// Lorenzo: "un bel benchmark che mi faccia capire [...] se in modo
+// Richiesta: "un bel benchmark che mi faccia capire [...] se in modo
 // eccellente oppure [...] mediocri".
 const GRADE_TONE = { eccellente: "top", buono: "good", sufficiente: "mid", mediocre: "low" };
 
@@ -500,7 +500,7 @@ function reportCard(p) {
     return `
       <li>
         <span class="mark" data-tone="${tone(c.ok)}">${mark(c.ok)}</span>
-        <span class="rc-label">${escapeHtml(c.label)}</span>
+        <span class="rc-label">${escapeHtml(strategyLabel(c.label))}</span>
         <span class="rc-detail">${escapeHtml(c.detail ?? "")}</span>
         ${bar}
         ${factsOf(c)}
@@ -694,10 +694,10 @@ function paintStrategies() {
       <li data-shown="${shown}">
         <button type="button" class="rs-show" data-show="${escapeHtml(s.label)}" aria-pressed="${shown}">
           <span class="rs-swatch" style="--c:${colorOf(s.label)}"></span>
-          <span class="tk-name"><b>${escapeHtml(s.label)}${s.label === view.best ? " ★" : ""}</b><small>${escapeHtml(sub)}</small></span>
+          <span class="tk-name"><b>${escapeHtml(strategyLabel(s.label))}${s.label === view.best ? " ★" : ""}</b><small>${escapeHtml(sub)}</small></span>
         </button>
         ${s.excluded ? "" : `<button type="button" class="rs-switch" role="switch" aria-checked="${on}"
-          aria-label="Alert ${escapeHtml(s.label)}" data-follow="${escapeHtml(s.label)}"><span></span></button>`}
+          aria-label="Alert ${escapeHtml(strategyLabel(s.label))}" data-follow="${escapeHtml(s.label)}"><span></span></button>`}
       </li>`;
   }).join("");
 }

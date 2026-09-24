@@ -106,8 +106,8 @@ export const getChart = (chain, address, interval = "15m") =>
   request(`/api/onchain/chart/${chain}/${address}?interval=${interval}`, { timeoutMs: 15000 });
 export const getLivePrice = (chain, address) => request(`/api/onchain/price/${chain}/${address}`, { timeoutMs: 8000 });
 
-// Ponte sniper -> Lorenzo (2026-09-23): il server aggiunge da solo alla
-// watchlist, con la strategia di Lorenzo attiva, i token scoperti dallo
+// Ponte sniper -> trend EMA (2026-09-23): il server aggiunge da solo alla
+// watchlist, con la strategia trend EMA attiva, i token scoperti dallo
 // sniper su questa chain — qui solo l'interruttore per utente/chain.
 export const getSniperAutotrade = () => request("/api/onchain/sniper-autotrade");
 export const getPilot = (chain) => request(`/api/onchain/pilot/${chain}`);

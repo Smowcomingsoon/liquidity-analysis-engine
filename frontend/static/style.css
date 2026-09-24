@@ -3541,7 +3541,7 @@ button.wl-archive-pick:hover { border-color: var(--accent); }
 /* Sotto-sezioni di .opera-advanced (posizioni, futures, trading automatico,
    ordine manuale): ognuna un dettaglio proprio, chiuso finche' non serve —
    invece di scaricare tutto in un'unica colonna, che su un telefono era
-   uno scroll enorme senza punti di riferimento (segnalazione di Lorenzo). */
+   uno scroll enorme senza punti di riferimento (segnalazione di l'utente). */
 .opera-sub { border: 1px solid var(--border); border-radius: 6px; margin-top: 10px; background: var(--bg-panel); }
 .opera-sub > summary { cursor: pointer; list-style: none; padding: .6rem .75rem; font-weight: 600; font-size: .88rem; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .opera-sub > summary::-webkit-details-marker { display: none; }
@@ -4253,7 +4253,7 @@ button.wl-archive-pick:hover { border-color: var(--accent); }
 .toolbar-indicators-btn:hover { color: var(--ink); border-color: var(--ink-dim); background: var(--bg-raised); }
 
 /* Libreria indicatori come modale centrale (non un cassetto laterale):
-   Lorenzo — "vorrei che si aprisse in verticale e non che si aprisse una
+   l'utente — "vorrei che si aprisse in verticale e non che si aprisse una
    finestra laterale" — colonna categorie a sinistra, ricerca e risultati
    a destra, stesso schema di un pannello "aggiungi indicatore" comune ma
    con l'estetica del sito, non quella di una piattaforma di terzi. */

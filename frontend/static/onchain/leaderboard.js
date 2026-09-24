@@ -1,7 +1,7 @@
 /**
  * La classifica: i progetti migliori fra quelli visti dal radar.
  *
- * Lorenzo: "una specie di leaderboard [...] cose estetiche che facciano
+ * Richiesta: "una specie di leaderboard [...] cose estetiche che facciano
  * capire primo posto, secondo posto, terzo posto [...] dinamica [...]
  * aggiornata in tempo reale [...] segnalare anche da quanto e' che sono
  * usciti".

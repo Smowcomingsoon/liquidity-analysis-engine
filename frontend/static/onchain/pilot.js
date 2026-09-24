@@ -1,7 +1,7 @@
 /**
  * Il pilota: la vista principale del wallet.
  *
- * Lorenzo: "voglio sapere cosa sta monitorando, voglio vedere cosa sta
+ * Richiesta: "voglio sapere cosa sta monitorando, voglio vedere cosa sta
  * scansionando [...] poca confusione a schermo, pochi tasti". Un solo
  * comando (l'interruttore), una riga che dice se sta lavorando e quando ha
  * guardato l'ultima volta, e sotto i token che segue, ognuno con il suo
@@ -12,7 +12,7 @@
  */
 import * as api from "@onchain/api.js";
 import { ApiError } from "@onchain/api.js";
-import { escapeHtml, formatUsd } from "@onchain/format.js";
+import { escapeHtml, formatUsd, strategyLabel } from "@onchain/format.js";
 import { chainInfo, state } from "@onchain/store.js";
 
 const ROOT = document.getElementById("onchain-embed") ?? document;
@@ -143,7 +143,7 @@ function paint() {
     <li><span>Per ogni acquisto</span><b>${whole(limits.per_trade_usd)}</b></li>
     <li><span>Al giorno</span><b>${whole(limits.daily_usd)}</b></li>
     <li><span>Token nuovi</span><b>liquidità &gt; ${compact(data.filters.min_liquidity_usd)} · età &lt; ${hours(data.filters.max_age_hours)}</b></li>
-    <li><span>Strategia</span><b>${escapeHtml(data.strategy)}</b></li>`;
+    <li><span>Strategia</span><b>${escapeHtml(strategyLabel(data.strategy))}</b></li>`;
 
   const feed = root.querySelector(".pilot-feed");
   feed.hidden = !data.enabled && tokens.length === 0;
@@ -266,7 +266,7 @@ function openHealth() {
   if (!data) return;
   const { scan } = data;
   openSheet(`
-    <header class="diag-head"><div><h2>Come sta il pilota</h2><p>${escapeHtml(chainInfo().label)} · ${escapeHtml(data.strategy)}</p></div></header>
+    <header class="diag-head"><div><h2>Come sta il pilota</h2><p>${escapeHtml(chainInfo().label)} · ${escapeHtml(strategyLabel(data.strategy))}</p></div></header>
     <ul class="checks">
       ${check(data.enabled, "Interruttore", data.enabled ? "acceso" : "spento")}
       ${data.health.map((h) => check(h.ok, h.label, h.detail)).join("")}

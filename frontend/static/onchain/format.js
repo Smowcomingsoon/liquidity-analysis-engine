@@ -51,3 +51,17 @@ export const escapeHtml = (value) =>
   String(value).replace(/[&<>"']/g, (c) => (
     { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
   ));
+
+// Strategy names are storage keys on the backend (watchlist, auto-trade);
+// only what the page shows is renamed to neutral, professional labels.
+const STRATEGY_LABELS = [
+  [/^Lorenzo HF\b[^·]*/i, "Trend HF"],
+  [/^Lorenzo\b[^·]*/i, "Trend EMA"],
+  [/^Gabriele 2\b[^·]*/i, "RSI+BB Long/Short"],
+  [/^Gabriele\b[^·]*/i, "RSI+BB Reversal"],
+];
+export function strategyLabel(name) {
+  const text = String(name ?? "");
+  for (const [re, label] of STRATEGY_LABELS) if (re.test(text)) return text.replace(re, `${label} `).replace(/\s+$/, "").replace(/\s+·/, " ·");
+  return text;
+}

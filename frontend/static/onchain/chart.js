@@ -6,7 +6,7 @@
  * grafico nel wallet sarebbero solo latenza sprecata.
  *
  * SEMPRE VISIBILE, non piu' dentro una sheet: la revisione "deve essere
- * come un exchange" (Lorenzo) e' arrivata anche a un team di esperti
+ * come un exchange" (richiesta) e' arrivata anche a un team di esperti
  * consultato in questa sessione — nessun exchange nasconde il grafico
  * dietro un tap, e' la prima cosa che si vede.
  *

@@ -1,6 +1,6 @@
 /**
  * Swap — pannello ordine, SEMPRE VISIBILE (non piu' una sheet): la
- * revisione "deve essere come un exchange" (Lorenzo) ha portato anche
+ * revisione "deve essere come un exchange" (richiesta) ha portato anche
  * questo fuori dai pannelli a comparsa — un vero exchange non nasconde
  * il form d'ordine dietro un tap.
  *
@@ -15,7 +15,7 @@
  * (di default lo e'): qui lo si dice PRIMA di far compilare il modulo,
  * non dopo un tentativo fallito.
  *
- * Lorenzo: "lo swap deve essere possibile in ogni valuta o crypto possibile"
+ * Richiesta: "lo swap deve essere possibile in ogni valuta o crypto possibile"
  * — non piu' solo nativo→stablecoin: entrambe le gambe sono un indirizzo
  * qualsiasi sulla chain scelta, con la coppia nativa come scorciatoia di
  * default (e' l'unica per cui il saldo e' gia' noto senza chiederlo).
@@ -62,7 +62,7 @@ let tokenCache = new Map();
 let onExecutedCb = null;
 let onTokenPickedCb = null;
 
-// Cosa c'e' nel wallet, dal valore piu' alto: Lorenzo, "devo sapere subito
+// Cosa c'e' nel wallet, dal valore piu' alto: l'utente, "devo sapere subito
 // cosa ho disponibile anche quando vado a fare lo swap [...] deve essere
 // selezionata automaticamente la valuta detenuta, quella con maggior
 // quantita'". Dopo uno swap ETH -> USDG lo swap parte da USDG.
@@ -201,7 +201,7 @@ function paintForm(armed) {
   const chain = state.chain;
   const available = availableFor(chain, leg.in);
   const availableInfo = availableLabel(chain);
-  // Campo alla Uniswap (mockup approvato da Lorenzo): importo grande e
+  // Campo alla Uniswap (mockup approvato dall'utente): importo grande e
   // pillola del token sulla stessa riga, didascalia e disponibile sotto,
   // dentro lo stesso riquadro. La pillola E' il selettore del token.
   host().innerHTML = `

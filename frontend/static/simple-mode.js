@@ -46,7 +46,7 @@
   // aveva il suo timeframe (il backtest usava il default del server, il
   // grafico "1d" fisso, l'ottimizzazione "1d" fisso, la watchlist "1d"
   // fisso): esattamente il tipo di disallineamento fra cio' che si vede e
-  // cio' che gira davvero di cui Lorenzo si e' lamentato piu' volte
+  // cio' che gira davvero di cui l'utente si e' lamentato piu' volte
   // (seed-0007, backtest/ottimizzazione su feed diversi senza dirlo).
   const SIMPLE_INTERVALS = [
     { id: "15m", label: "15m" },
@@ -84,6 +84,21 @@
   }
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  // Strategy names are API keys; users read a neutral label (same mapping
+  // as strategyLabel() in app.js, kept local so load order doesn't matter).
+  function stratLabel(name) {
+    if (name == null) return "";
+    const s = String(name);
+    const i = s.indexOf(" · ");
+    const head = i < 0 ? s : s.slice(0, i);
+    const tail = i < 0 ? "" : s.slice(i);
+    let label = head;
+    if (/^Lorenzo HF\b/.test(head)) label = "Trend HF";
+    else if (/^Lorenzo\b/.test(head)) label = "Trend EMA";
+    else if (/^Gabriele 2\b/.test(head)) label = "RSI+BB Long/Short";
+    else if (/^Gabriele\b/.test(head)) label = "RSI+BB Reversal";
+    return label + tail;
   }
   function fmtPct(v, digits) {
     if (v == null || Number.isNaN(v)) return "—";
@@ -348,7 +363,7 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
         row.innerHTML = `<div><div class="sym">${esc(item.symbol)}</div><div class="name">${esc(item.name)} · ${esc(item.exchange)}</div></div><span class="sm-row-check">✓</span><span class="sm-row-spinner"></span>`;
         // Il tocco deve rispondere SUBITO, non solo quando il backtest
         // reale (qualche secondo, rete vera) finisce e la lista viene
-        // ridisegnata — a Lorenzo sembrava che il click non avesse fatto
+        // ridisegnata — a l'utente sembrava che il click non avesse fatto
         // niente. Evidenzio la riga e mostro uno spinner al volo, prima
         // ancora di chiamare selectTicker().
         row.addEventListener("click", () => {
@@ -477,7 +492,7 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
       const card = document.createElement("div");
       card.className = "sm-archive-card";
       card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;"><b>${esc(entry.strategy_name)}</b><span class="sm-muted">${esc(when)}</span></div>
+        <div style="display:flex;justify-content:space-between;"><b>${esc(stratLabel(entry.strategy_name))}</b><span class="sm-muted">${esc(when)}</span></div>
         <div class="sm-summary" style="margin-top:10px;">
           <div class="sm-stat"><div class="lbl">Rendimento</div><div class="val ${retUp ? "up" : "down"}">${fmtPct(m.total_return_pct)}</div></div>
           <div class="sm-stat"><div class="lbl">Drawdown</div><div class="val down">${fmtPct(m.max_drawdown_pct)}</div></div>
@@ -584,7 +599,7 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
       const info = describeStrategy(name);
       const card = document.createElement("div");
       card.className = "sm-strat-card" + (state.strategy === name ? " active" : "");
-      card.innerHTML = `<div><span class="sm-strat-name">${esc(name)}</span><span class="sm-strat-tag">${info.tag}</span></div><div class="sm-strat-desc">${info.desc}</div>`;
+      card.innerHTML = `<div><span class="sm-strat-name">${esc(stratLabel(name))}</span><span class="sm-strat-tag">${info.tag}</span></div><div class="sm-strat-desc">${info.desc}</div>`;
       card.addEventListener("click", () => { state.strategy = name; renderStrategyGrid(); document.getElementById("sm-to-backtest-btn").disabled = false; });
       grid.appendChild(card);
     });
@@ -605,7 +620,7 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
 <main class="sm-step active">
   <div class="sm-eyebrow">Passo 3 di ${TOTAL_STEPS}</div>
   ${fromArchive ? '<span class="sm-badge">◆ Dall\'archivio</span>' : ""}
-  <h1 class="sm-title">Backtest — ${esc(state.strategy)}</h1>
+  <h1 class="sm-title">Backtest — ${esc(stratLabel(state.strategy))}</h1>
   <p class="sm-sub">Su <b>${esc(state.ticker.symbol)}</b> · timeframe <b>${esc(tfLabel(state.interval))}</b>. Ogni ingresso e uscita generato dalla strategia è segnato sul grafico reale.</p>
   <div id="sm-bt-body"><div class="sm-muted">Eseguo il backtest…</div></div>
   <div class="sm-ctabar"><div class="sm-ctabar-inner">
@@ -793,7 +808,7 @@ body:has(#simple-mode-root:not(.hidden)) #opt-pill{z-index:600;}
 <main class="sm-step active">
   <div class="sm-eyebrow">Passo 4 di ${TOTAL_STEPS}</div>
   <h1 class="sm-title">Ottimizza i parametri</h1>
-  <p class="sm-sub">Cerca la combinazione di parametri migliore per <b>${esc(state.strategy)}</b> su <b>${esc(state.ticker.symbol)}</b> · timeframe <b>${esc(tfLabel(state.interval))}</b>.</p>
+  <p class="sm-sub">Cerca la combinazione di parametri migliore per <b>${esc(stratLabel(state.strategy))}</b> su <b>${esc(state.ticker.symbol)}</b> · timeframe <b>${esc(tfLabel(state.interval))}</b>.</p>
   <div id="sm-opt-body"></div>
   <div id="sm-opt-cta" class="sm-ctabar"><div class="sm-ctabar-inner">
     <button class="sm-btn ghost" id="sm-back-btn">Indietro</button>
@@ -994,7 +1009,7 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
 
   // ------------------------------------------------------------------
   // STEP 5.5 — test the just-saved connection: balance + an optional real
-  // manual order, before committing to automatic activation. Lorenzo,
+  // manual order, before committing to automatic activation. l'utente,
   // verbatim: "voglio semplicemente... una volta che le ho inserite [le
   // API], vuoi testarle subito? ... mi permetti sia di visualizzare il
   // saldo... e di poter fare un ordine quindi manuale". The keys used here
@@ -1148,7 +1163,7 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
   <div class="sm-review-card">
     <div class="sm-review-row"><span class="k">Ticker</span><span class="v">${esc(state.ticker.symbol)}</span></div>
     <div class="sm-review-row"><span class="k">Timeframe</span><span class="v">${esc(tfLabel(state.interval))}</span></div>
-    <div class="sm-review-row"><span class="k">Strategia</span><span class="v">${esc(state.strategy)}</span></div>
+    <div class="sm-review-row"><span class="k">Strategia</span><span class="v">${esc(stratLabel(state.strategy))}</span></div>
     <div class="sm-review-row"><span class="k">Ottimizzazione</span><span class="v">${state.archiveEntry ? "dall'archivio" : (state.optResult ? (state.optMode === "fast" ? "Rapida" : "Stabile") : "parametri di default")}</span></div>
     <div class="sm-review-row"><span class="k">Esecuzione</span><span class="v">${isCrypto ? esc(TRADING_EXCHANGES.find((e) => e.id === state.tradingExchange).name) + (state.connTested ? " — connessione testata ✓" : "") : "solo avviso (nessun exchange)"}</span></div>
   </div>
@@ -1235,7 +1250,7 @@ ${ex.id === "kucoin" ? '<div class="sm-field"><label>Passphrase</label><input id
   <div class="sm-pulse-wrap">
     <div class="sm-pulse"><div class="core"></div></div>
     <h1 style="font-size:20px;margin:0;">${isListening ? "Strategia in ascolto" : "Attivazione registrata"}</h1>
-    <p class="sm-muted" style="max-width:38ch;margin-top:8px;"><b>${esc(state.strategy)}</b> è ${isListening ? "attiva" : "in fase di attivazione"} su <b>${esc(state.ticker.symbol)}</b>. Riceverai un avviso Telegram al prossimo segnale${state.ticker.asset_type === "crypto" ? ", e l'ordine partirà da solo se le chiavi exchange sono collegate." : "."}</p>
+    <p class="sm-muted" style="max-width:38ch;margin-top:8px;"><b>${esc(stratLabel(state.strategy))}</b> è ${isListening ? "attiva" : "in fase di attivazione"} su <b>${esc(state.ticker.symbol)}</b>. Riceverai un avviso Telegram al prossimo segnale${state.ticker.asset_type === "crypto" ? ", e l'ordine partirà da solo se le chiavi exchange sono collegate." : "."}</p>
     <div class="sm-status-card">
       <div class="sm-status-row"><span class="k">Stato</span><span class="v"><span class="sm-live-dot"></span>${isListening ? "In ascolto" : "Da verificare"}</span></div>
       <div class="sm-status-row"><span class="k">Voce watchlist</span><span class="v">${esc(entry.id || "—")}</span></div>
