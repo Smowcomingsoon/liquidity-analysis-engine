@@ -175,8 +175,7 @@
       </div>
       <div class="panel">
         <h3>Structure &amp; Liquidity</h3>
-        <p class="panel-hint">Off by default — too many levels at once clutter the chart. Turn on only the ones you need.</p>
-        <label class="layer-toggle"><input type="checkbox" data-layer="order_block" /> Order Blocks</label>
+                <label class="layer-toggle"><input type="checkbox" data-layer="order_block" /> Order Blocks</label>
         <label class="layer-toggle"><input type="checkbox" data-layer="fvg" /> Fair Value Gap</label>
         <label class="layer-toggle"><input type="checkbox" data-layer="liquidity" /> Equal Highs/Lows</label>
         <label class="layer-toggle"><input type="checkbox" data-layer="structure" /> BOS / CHoCH</label>
@@ -192,7 +191,7 @@
         <label class="layer-toggle"><input type="checkbox" id="strategy-markers-toggle" checked /> Strategy markers on chart</label>
         <label class="layer-toggle"><input type="checkbox" id="backtest-trades-toggle" /> Backtest trades on chart</label>
         <label class="layer-toggle"><input type="checkbox" id="executed-orders-toggle" checked /> Actually executed orders</label>
-        <p class="panel-hint">Every order that actually went out &mdash; manual or from a strategy &mdash; stays marked on the series at its fill price.</p>
+        <p class="panel-hint">Marked at the real fill price.</p>
         <p id="backtest-trades-note" class="panel-hint hidden"></p>
         <label class="layer-toggle"><input type="checkbox" data-layer="ema" /> EMA 20 / 50</label>
         <label class="layer-toggle"><input type="checkbox" data-layer="bbands" /> Bollinger Bands</label>
@@ -203,13 +202,13 @@
       </div>
       <div class="panel">
         <h3>Indicator library</h3>
-        <p class="panel-hint">151 open-source indicators (pandas-ta), on top of the 6 built in above — each with an explanation of what it measures, so you don't need to know its name upfront.</p>
+        <p class="panel-hint">151 pandas-ta indicators, each explained.</p>
         <div id="active-indicators-chips" class="active-indicators-chips"></div>
         <button type="button" id="open-indicator-library-btn" class="indicator-library-open-btn">Browse the library →</button>
       </div>
       <div class="panel">
         <h3>Chart drawings</h3>
-        <p class="panel-hint">Use the tools in the column left of the chart (or the pencil button on the chart, on mobile). They persist for this ticker across page reloads (saved in this browser).</p>
+        <p class="panel-hint">Saved per ticker in this browser.</p>
         <ul id="draw-list" class="draw-list"></ul>
       </div>
     </div>
@@ -221,7 +220,7 @@
         <button type="button" class="drawer-close-btn" data-close-drawer>✕ Close</button>
       </div>
       <div class="panel">
-        <p class="panel-hint">Report the problems you find here. Claude reads them and posts the diagnosis and fix under each one, with the commit that contains it.</p>
+        <p class="panel-hint">Each report gets a diagnosis and the fixing commit.</p>
         <div id="issues-counts" class="issues-counts"></div>
         <form id="issue-form" class="issue-form">
           <input type="text" id="issue-title" placeholder="What's wrong — in one line" autocomplete="off" required />
@@ -457,7 +456,7 @@
                campi data vuoti in bella vista, per chi non li usa quasi mai,
                occupavano spazio senza dire niente. -->
           <details class="lab-daterange-details">
-            <summary>Date range (optional)</summary>
+            <summary>Date range</summary>
             <div class="lab-daterange-row" id="lab-daterange-row">
               <label class="lab-daterange-field">
                 <span>From</span>
@@ -497,14 +496,14 @@
 
           <!-- Strategy selector -->
           <div class="lab-strat-header">
-            <span class="lab-strat-label">Strategy parameters</span>
+            <span class="lab-strat-label">Parameters</span>
             <select id="lab-strategy-select" class="lab-strategy-select"></select>
           </div>
           <div id="lab-params-fields" class="lab-params-grid"></div>
 
           <!-- Backtest params (collapsed) -->
           <details class="lab-bt-details">
-            <summary>Backtest parameters</summary>
+            <summary>Capital &amp; fees</summary>
             <div class="lab-bt-params">
               <label>Initial capital <input type="text" inputmode="decimal" id="lab-initial-capital" value="10000" /></label>
               <label>% equity/trade <input type="text" inputmode="decimal" id="lab-qty-pct" value="100" /></label>
@@ -515,7 +514,7 @@
                   <option value="signal_close">As soon as the condition is met</option>
                 </select>
               </label>
-              <p class="panel-hint lab-fill-hint">The order fills at the close of the candle that meets the condition — the same moment the live alert fires. It&rsquo;s the price you&rsquo;d actually get by reacting right away, on any timeframe.</p>
+              <p class="panel-hint lab-fill-hint">Fills at the close of the signal candle, when the live alert fires.</p>
             </div>
           </details>
 
@@ -592,8 +591,8 @@
             <div id="lab-apply-text" class="lab-apply-text"></div>
             <div class="lab-apply-actions">
               <button type="button" id="lab-apply-btn" class="lab-apply-btn">Apply ↗</button>
-              <button type="button" id="lab-signal-btn" class="lab-signal-btn" title="Add to the alert watchlist with this strategy and these parameters">📬 Signals</button>
-              <button type="button" id="lab-archive-btn" class="lab-archive-btn" title="Save this configuration to the strategy archive">🗄 Archive</button>
+              <button type="button" id="lab-signal-btn" class="lab-signal-btn" title="Add to the alert watchlist with this strategy and these parameters">Signals</button>
+              <button type="button" id="lab-archive-btn" class="lab-archive-btn" title="Save this configuration to the strategy archive">Archive</button>
             </div>
           </div>
           <div id="lab-signal-status" class="lab-signal-status hidden"></div>
@@ -638,10 +637,10 @@
           <ul id="favorite-rows" class="wl-rows"></ul>
           <p id="favorite-empty" class="wl-empty hidden">
             <span class="wl-empty-icon">☆</span><br />
-            No saved tickers.<br />Add one to switch between charts in one click — from here you can also turn on automatic alerts and automatic orders on strategies.
+            No saved tickers yet.
           </p>
 
-          <p class="wl-hint">Click a ticker to load it on the chart. The <b>●</b> dot means you have an active Telegram alert on that ticker — manage it from the <b>Alert</b> tab.</p>
+          <p class="wl-hint"><b>●</b> active Telegram alert</p>
         </div>
       </div>
 
@@ -682,7 +681,7 @@
             <p id="watchlist-resolved-pair" class="wl-resolved-pair hidden"></p>
 
             <details class="wl-options-details">
-              <summary>Options — asset, exchange, timeframe, candle close</summary>
+              <summary>Options</summary>
               <div class="asset-toggle small hidden">
                 <button type="button" data-watchlist-asset="stock" class="wl-asset-btn">Stocks</button>
                 <button type="button" data-watchlist-asset="crypto" class="wl-asset-btn active">Crypto</button>
@@ -718,7 +717,7 @@
             </form>
             <ul id="price-alerts-list" class="pa-list"></ul>
 
-            <p class="panel-hint">Every ticker in here is checked in the background every minute, whatever you're looking at on screen. Turn on one or more strategies per ticker: you get a Telegram notification for every confirmed signal.</p>
+            <p class="panel-hint">Checked every minute in the background; each confirmed signal goes to Telegram.</p>
 
             <ul id="watchlist-list" class="watchlist-cards"></ul>
 
@@ -752,15 +751,15 @@
             <input type="file" id="archive-import-file" accept="application/json" class="hidden" />
             <button type="button" id="archive-refresh-btn" class="section-action-btn">Refresh</button>
           </div>
-          <p class="panel-hint">Every time you turn on a strategy on a ticker, its configuration is snapshotted here together with the backtest at that moment. So months later you can see what it started with and what it promised. The "Share" button on each entry downloads a file you can import into another account.</p>
+          <p class="panel-hint">Snapshot of each strategy and its backtest at the moment it was turned on.</p>
           <ul id="archive-list" class="archive-cards"></ul>
         </div>
       </div>
 
       <div class="tab-content" data-tab-content="trading">
-        <details class="panel opera-advanced">
+        <details class="panel opera-advanced" open>
           <summary>Exchange keys, positions, log, manual order <span class="risk-badge">real money</span></summary>
-          <p class="panel-hint">You usually don't need this panel: when you turn on "Auto-trading" for a strategy in Alert, it asks for the key there if one is missing. Come here only to manage keys you've already set up, see open positions, or place a manual order outside a strategy.</p>
+          <p class="panel-hint">Auto-trading asks for a key from Alert when one is missing. Use this for existing keys, open positions or a manual order.</p>
 
           <div id="opera-login-prompt" class="alert-login-prompt hidden">
             <p class="panel-hint">Log in to trade: each user has their own keys, encrypted server-side.</p>
@@ -1163,7 +1162,7 @@
         </div>
         <div class="panel">
           <h3>Confluence zones</h3>
-          <p class="panel-hint">Prices where several structure levels (order blocks, FVGs, equal highs/lows) on different timeframes overlap within 0.15% — the higher the score, the more timeframes/levels coincide in the same zone.</p>
+          <p class="panel-hint">Levels from several timeframes overlapping within 0.15%.</p>
           <ul id="confluence-list" class="confluence-list"></ul>
         </div>
       </div>
@@ -1171,7 +1170,7 @@
       <div class="tab-content" data-tab-content="saldi">
         <div class="panel">
           <h3>Balances <span class="readonly-badge">read-only</span></h3>
-          <p class="panel-hint">Real balance read directly from the exchanges — this page can never send an order.</p>
+          <p class="panel-hint">Read directly from the exchanges. No orders are sent from here.</p>
           <div id="balances-updated" class="panel-hint"></div>
           <div id="balances-content"><p class="panel-hint">Loading…</p></div>
         </div>

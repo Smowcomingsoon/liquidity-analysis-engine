@@ -5544,3 +5544,250 @@ button:active:not(:disabled) { transform: translateY(1px); }
   margin: 4px 0;
   background: var(--border);
 }
+
+/* ============================================================
+   Quiet pass — fewer boxes, one type scale, one accent.
+   Loaded last on purpose: it only restyles the classes above and the
+   ones app.js renders, it never hides a control. The rules are:
+   · a surface is separated by a hairline, not wrapped in a card;
+   · labels are sentence case; uppercase is kept for tiny eyebrows only;
+   · every control is 30px tall with the same radius;
+   · the accent means "primary action" or "active", nothing else.
+   ============================================================ */
+:root { --ctl-h: 30px; --hair: color-mix(in srgb, var(--border) 70%, transparent); }
+
+/* ── toolbar: one row of same-height, low-contrast controls ── */
+.toolbar { gap: 8px; padding: 8px 14px; }
+.toolbar input, .toolbar select, .theme-toggle-btn, .toolbar-indicators-btn,
+#search-btn, #auth-toggle-btn, #auth-logout-btn {
+  height: var(--ctl-h);
+  box-sizing: border-box;
+}
+.toolbar input, .toolbar select {
+  background: var(--bg-raised);
+  border-color: transparent;
+}
+.toolbar input:hover, .toolbar select:hover { border-color: var(--border); }
+.toolbar .theme-toggle-btn, .toolbar-indicators-btn {
+  background: transparent;
+  border: 1px solid transparent;
+}
+.toolbar .theme-toggle-btn:hover, .toolbar-indicators-btn:hover { background: var(--bg-raised); }
+.toolbar-check { color: var(--ink-dim); font-size: 12px; }
+#search-btn {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  padding: 0 16px;
+}
+#auth-logout-btn, #auth-toggle-btn {
+  text-transform: none;
+  letter-spacing: 0;
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-dim);
+  padding: 0 8px;
+}
+#auth-logout-btn:hover, #auth-toggle-btn:hover { color: var(--ink); background: var(--bg-raised); }
+.auth-user-email { color: var(--ink-faint); font-size: 12px; }
+
+/* ── sidenav: quieter labels, tighter rhythm ── */
+.sidenav-label { font-size: 10px; letter-spacing: 0.12em; padding: 4px 9px 4px; opacity: 0.8; }
+.sidenav-item { padding: 7px 9px; }
+.sidenav-group + .sidenav-group { border-top: 1px solid var(--hair); padding-top: 10px; }
+
+/* ── panels: hairline sections instead of cards ── */
+.right-panel .panel,
+.levels-panel .panel {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+  padding: 14px 16px;
+}
+@media (min-width: 761px) {
+  .right-panel .panel { padding: 14px 4px; }
+}
+.layer-toggle { justify-content: flex-start; gap: 12px; }
+.right-panel .panel + .panel,
+.levels-panel .panel + .panel { border-top: 1px solid var(--hair); }
+.right-panel .panel:last-child,
+.levels-panel .panel:last-child { border-bottom: 0; }
+.tab-content.active > .panel:hover { border-color: var(--hair); }
+.panel h3 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 0 0 10px;
+}
+.levels-panel .panel h3::before,
+.tab-content[data-tab-content="analisi"] .panel h3::before { display: none; }
+.panel-hint { font-size: 12px; line-height: 1.5; color: var(--ink-faint); }
+
+/* Structure tab: text reads as text, list items as rows. */
+.summary-text {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--ink-dim);
+  line-height: 1.6;
+}
+.indicator-readout { gap: 0; font-size: 12px; }
+.indicator-readout li,
+.confluence-list li {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--hair);
+  border-radius: 0;
+  padding: 7px 0;
+}
+.indicator-readout li:last-child, .confluence-list li:last-child { border-bottom: 0; }
+.indicator-readout li:hover, .confluence-list li:hover { background: transparent; color: var(--ink); }
+.confluence-list { gap: 0; }
+
+/* ── Lab: one surface, flat disclosures, compact mode picker ── */
+.lab-ticker-hero {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+}
+.lab-exchange-select { height: var(--ctl-h); align-self: center; border-color: transparent; background: var(--bg-raised); }
+.lab-daterange-details, .lab-bt-details, .lab-filters, .wl-options-details {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 6px 0;
+  margin: 0 0 6px;
+}
+.lab-filters > summary { padding: 6px 0; font-weight: 500; color: var(--ink-dim); }
+.lab-daterange-details summary, .lab-bt-details summary, .lab-filters > summary,
+.wl-options-details summary {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-dim);
+}
+details > summary:hover { color: var(--ink); }
+.lab-params-grid { gap: 8px 10px; }
+.lab-params-grid label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.lab-params-grid input[type=number],
+.lab-params-grid input[inputmode="decimal"],
+.lab-params-grid select,
+.lab-bt-params input, .lab-bt-params select {
+  border: 1px solid transparent;
+  background: var(--bg-raised);
+  border-radius: 6px;
+  min-height: var(--ctl-h);
+}
+.lab-params-grid input:hover, .lab-params-grid select:hover { border-color: var(--border); }
+.lab-strat-label { font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0; }
+.lab-divider { background: var(--hair); }
+
+.lab-btn-opt, .lab-btn-run { text-transform: none; letter-spacing: 0; min-height: 34px; }
+
+/* Optimisation mode: three pills in a row; only the chosen mode explains
+   itself, underneath. Same radio inputs, same values. */
+.lab-mode-picker {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+  background: transparent;
+  border: 0;
+  margin: 8px 0 4px;
+}
+.lab-mode-opt,
+.lab-mode-opt:has(input:checked) { display: contents; }
+.lab-mode-opt.hidden { display: none; }
+.lab-mode-opt input {
+  position: absolute;
+  opacity: 0;
+  width: 1px; height: 1px;
+  pointer-events: none;
+}
+.lab-mode-name {
+  flex: 1 1 0;
+  text-align: center;
+  padding: 6px 8px;
+  margin: 0;
+  border-radius: 6px;
+  background: var(--bg-raised);
+  color: var(--ink-dim);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+.lab-mode-name:hover { color: var(--ink); }
+.lab-mode-opt:has(input:checked) .lab-mode-name {
+  background: var(--accent-soft);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.lab-mode-opt:has(input:focus-visible) .lab-mode-name { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lab-mode-name em {
+  background: transparent;
+  color: var(--accent);
+  padding: 0;
+  margin-left: 4px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+.lab-mode-desc {
+  order: 1;
+  flex-basis: 100%;
+  display: none;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  padding: 2px 2px 0;
+  animation: lae-fade-in 180ms ease both;
+}
+.lab-mode-opt:has(input:checked) .lab-mode-desc { display: block; color: var(--ink-faint); }
+.lab-mode-desc strong { color: var(--ink-dim); font-weight: 500; }
+@keyframes lae-fade-in { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: none; } }
+
+.lab-result-block { border: 0; background: transparent; padding: 10px 0 0; border-top: 1px solid var(--hair); border-radius: 0; }
+.lab-stat-chips > div { border: 0; background: var(--bg-raised); }
+.lab-stat-chips .chip-lbl { font-size: 10px; letter-spacing: 0.06em; }
+
+/* ── Watchlist / Alert: fewer frames ── */
+.telegram-setup {
+  background: transparent;
+  border: 0;
+  border-left: 2px solid var(--hair);
+  border-radius: 0;
+  padding: 2px 0 2px 12px;
+}
+.wl-hint { font-size: 11.5px; color: var(--ink-faint); }
+.wl-empty { font-size: 12px; color: var(--ink-faint); }
+.section-eyebrow { font-size: 10px; letter-spacing: 0.1em; }
+.section-action-btn {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-dim);
+  font-size: 12px;
+  padding: 3px 8px;
+}
+.section-action-btn:hover { background: var(--bg-raised); color: var(--ink); }
+.alert-footnote { border-top: 1px solid var(--hair); }
+
+/* Panels fade in when the section changes, instead of popping. */
+.tab-content.active { animation: lae-fade-in 200ms ease both; }
+@media (prefers-reduced-motion: reduce) {
+  .tab-content.active, .lab-mode-desc { animation: none; }
+}
+
+.section-count:empty { display: none; }
+:is(.toolbar, .right-panel, .levels-panel) button:not(.lab-tf-btn, .tab, .draw-tool-btn, #onchain-embed-details button),
+.telegram-setup #telegram-chat-id-save { text-transform: none; letter-spacing: 0; }
+.opera-advanced > summary { font-size: 14px; }
+.opera-sub { border: 0; border-top: 1px solid var(--hair); border-radius: 0; background: transparent; }
+.opera-sub > summary { padding: 10px 0; }

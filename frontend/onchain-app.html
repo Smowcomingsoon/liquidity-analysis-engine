@@ -2144,6 +2144,130 @@
   @media (width >= 1100px) { .topbar .topbar-right { grid-column: 3; } }
   @media (prefers-reduced-motion: reduce) { .entry-card, .entry-card .entry-go::after { transition: none; } }
 }
+
+/* ============================================================
+   Simplification pass. One spacing scale (4 8 12 16 24 32), one
+   type scale (11 meta, 13 secondary, 15 body, 20 title, 26+ hero),
+   hairlines instead of boxes, one card per idea. Later in the same
+   layer, so it wins over the rules above without !important.
+   ============================================================ */
+@layer components {
+  :root { --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+    --ease-out: cubic-bezier(.2, .8, .2, 1); }
+
+  /* --- section headings: one style everywhere ---------------------- */
+  :is(.board, .radar, .memes, .pilot-feed, .pilot-rejected) > header {
+    display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3);
+    margin: 0 0 var(--s2); padding-inline: var(--s1);
+    & h3 { display: flex; align-items: center; gap: var(--s2); margin: 0;
+      font-size: 13px; font-weight: 600; letter-spacing: -.005em; color: var(--ink); }
+    & > span { font-size: 12px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+  }
+
+  /* --- notes: a line of text, not a coloured box ------------------ */
+  .gem-banner, .risk-banner {
+    margin: 0 0 var(--s4); padding: 2px 0 2px var(--s3); border: 0; border-radius: 0; background: none;
+    border-inline-start: 2px solid var(--live); font-size: 12.5px; line-height: 1.45; color: var(--ink-dim);
+  }
+  .gem-banner b { color: var(--ink); font-weight: 600; }
+  .risk-banner { border-inline-start-color: #ff4fa3;
+    & b { color: #ffb648; font-weight: 600; } }
+
+  /* --- meme lane: one list with hairlines, not stacked boxes ------ */
+  .memes-list { gap: 0; }
+  .memes-list li { border-block-end: 1px solid var(--line); &:last-child { border: 0; } }
+  .meme-row {
+    padding: var(--s3) var(--s1); border: 0; border-radius: var(--r-sm); background: none;
+    transition: background .15s, translate .2s var(--ease-out);
+    &:hover { background: var(--hover); translate: 2px 0; border-color: transparent; }
+    & .mm-avatar { inline-size: 36px; block-size: 36px; border-radius: 10px; font-size: 12px; }
+    & .mm-num b { font: 500 15px var(--mono); letter-spacing: -.02em; }
+  }
+  .memes-list:not(:empty) li { animation: rise .45s var(--ease-out) backwards; }
+  .memes-list li:nth-child(2) { animation-delay: 40ms; }
+  .memes-list li:nth-child(3) { animation-delay: 80ms; }
+  .memes-list li:nth-child(n+4) { animation-delay: 120ms; }
+
+  /* --- autopilot: one card ---------------------------------------- */
+  .pilot { gap: var(--s5); }
+  .pilot-box {
+    position: relative; overflow: hidden; display: grid; gap: var(--s3);
+    padding: var(--s2) var(--s2) var(--s4); border-radius: var(--radius); background: var(--panel);
+  }
+  .pilot-head { display: flex; align-items: center; gap: var(--s2); padding-inline-end: var(--s2); }
+  .pilot-card { flex: 1; min-inline-size: 0; position: static; overflow: visible; padding: 0; background: none; border-radius: 0; }
+  .pilot-status { padding: var(--s2) var(--s2); gap: var(--s3); border-radius: 14px; }
+  .pilot-line b { font-size: 15px; }
+  .pilot-line small { font-size: 12.5px; }
+  .pilot-toggle { inline-size: auto; flex: none; padding: var(--s1); background: none; border-radius: 99px; }
+  .pilot-toggle:focus-visible { outline: 2px solid var(--live); outline-offset: 2px; }
+  .pilot-stats { margin: 0 var(--s4); padding-block-start: var(--s3); gap: var(--s2);
+    & dt { font-size: 11px; }
+    & dd { font-size: 17px; } }
+  .pilot-stats:empty, .pilot-rules:empty, .pilot-note:empty { display: none; }
+  /* Limits as one quiet row of facts: label over value, no table. */
+  .pilot-rules {
+    display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin: 0 var(--s4); padding: 0;
+    background: none; border-radius: 0; overflow: visible;
+    & li { display: grid; gap: 1px; padding: 0; background: none; font-size: 13px; }
+    & span { font-size: 11px; color: var(--ink-faint); }
+    & b { font-weight: 500; text-align: start; }
+  }
+  .pilot-note { margin: 0 var(--s4); font-size: 12.5px; color: var(--ink-dim); }
+  .pilot[data-tone="off"] .pilot-note { color: var(--ink-faint); }
+  .pilot-box .pilot-scan { position: absolute; inset: auto 0 0; }
+  .pilot-feed button { padding: var(--s3) var(--s1); }
+
+  /* --- leaderboard and scanner ----------------------------------- */
+  .board { margin-block: 0 var(--s5); }
+  .board-podium li[data-place="1"] button::before { animation-duration: 7s; }
+  .radar-new { border-block-end-color: var(--line); }
+  .radar-sub, .radar-new h4 { font-size: 11px; color: var(--ink-faint); }
+
+
+  /* --- wallet: the coin list is the balances tab; no duplicate row  */
+  #app-shell[data-view="wallet"] .status-strip #holdings { display: none !important; }
+  .wallet-actions button { padding: 11px; border-radius: 14px; font-size: 13.5px; background: var(--panel);
+    transition: background .15s, scale .12s; &:hover { background: var(--raised); } }
+
+  /* --- entry door: flat panels on a faint grid, the colour is a glow */
+  .entry { position: relative; isolation: isolate; gap: var(--s4);
+    &::before { content: ""; position: absolute; inset: -40px -16px auto; block-size: 420px; z-index: -1; pointer-events: none;
+      background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 32px 32px; opacity: .45;
+      mask-image: radial-gradient(70% 60% at 50% 30%, #000, transparent 75%);
+      -webkit-mask-image: radial-gradient(70% 60% at 50% 30%, #000, transparent 75%); }
+  }
+  .entry-cards { gap: var(--s3); }
+  .entry-card, .entry-card[data-kind="meme"] {
+    min-block-size: 0; gap: var(--s2); padding: var(--s5) var(--s5) var(--s4);
+    border-color: color-mix(in oklch, var(--tone) 18%, var(--line));
+    background:
+      radial-gradient(90% 70% at 100% 0%, color-mix(in oklch, var(--tone) 14%, transparent), transparent 65%),
+      var(--panel);
+    & p { font-size: 13.5px; }
+    & .entry-go { margin-block-start: var(--s2); }
+  }
+
+  #app-shell.stack { gap: var(--s5); }
+  .board { margin-block-end: 0; }
+  .entry-card .entry-go::after { margin-inline-start: 6px; content: "→"; }
+  /* The field says "Sell ≈ $x" / "Receive (est.)" already: no header on top. */
+  .swap-form .swap-field::before, .swap-form .swap-field.is-readonly::before { content: none; display: none; }
+
+  /* Nothing charted yet: an empty chart grid, not another filled box. */
+  .radar-stage:has(> .radar-idle:only-child) {
+    background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 40px, var(--bg);
+    border: 1px dashed var(--line); opacity: .8;
+  }
+
+  @media (width >= 1100px) {
+    #app-shell[data-view="meme"] #pilot { inset-block-start: 84px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .memes-list li, .meme-row { animation: none !important; transition: none; }
+  }
+}
 </style>
 <!--onchain-importmap-->
 </head>
@@ -2192,18 +2316,18 @@
     <div id="app-shell" class="stack" data-view="entry" hidden>
       <section class="entry" id="entry" aria-labelledby="entry-title">
         <h1 id="entry-title">Find them first.<br>Ride them right.</h1>
-        <p class="entry-sub">Two tables. One for researchers, one for gamblers.</p>
+        <p class="entry-sub">Two tables: one for research, one for gambling.</p>
         <div class="entry-cards">
           <button type="button" class="entry-card" data-go="gems" data-kind="gems">
             <span class="entry-tag">Gems · research</span>
             <b>Gem Finder</b>
-            <p>Real micro and low cap projects on Solana and Robinhood Chain. Code, tokenomics and holders screened 24/7. The best climb the leaderboard.</p>
-            <span class="entry-go">See the leaderboard</span>
+            <p>Micro caps on Solana and Robinhood Chain, scored on code, tokenomics and holders. 24/7.</p>
+            <span class="entry-go">Leaderboard</span>
           </button>
           <button type="button" class="entry-card" data-go="meme" data-kind="meme">
             <span class="entry-tag">Memes · casino</span>
             <b>Meme Sniper</b>
-            <p>Tokens minutes old, rug-filtered and backtested on our strategies. It's pure gambling: only ape what you're ready to burn.</p>
+            <p>Minutes-old tokens, rug-filtered and backtested. Pure gambling: only ape what you can burn.</p>
             <span class="entry-go">Enter the casino</span>
           </button>
         </div>
@@ -2256,8 +2380,8 @@
            che conta". DREGG sta primo come metro di paragone. La disegna
            static/onchain/leaderboard.js. -->
       <section class="board" id="board" data-loading>
-        <p class="gem-banner" role="note"><b>24/7 research.</b> Micro and low cap projects with real code, site and tokenomics. The score is a filter, not advice: DYOR before you buy.</p>
-        <header><h3>Gems · leaderboard</h3><span data-board-meta></span></header>
+        <p class="gem-banner" role="note"><b>Research, not advice.</b> Code, site and tokenomics scored 24/7. DYOR before you buy.</p>
+        <header><h3>Leaderboard</h3><span data-board-meta></span></header>
         <ol class="board-podium" data-board-podium></ol>
         <div class="board-detail" data-board-detail hidden></div>
         <ol class="board-list" data-board-list></ol>
@@ -2272,7 +2396,7 @@
            static/onchain/radar.js. Sopra c'e' solo il saldo ("il saldo va
            bene inserirlo in cima, il resto poi"). -->
       <section class="radar" id="radar" data-loading>
-        <header><h3><span class="radar-dot" aria-hidden="true"></span>Gems · 24/7 scanner</h3><span data-radar-clock></span></header>
+        <header><h3><span class="radar-dot" aria-hidden="true"></span>Live scanner</h3><span data-radar-clock></span></header>
         <div class="radar-grid">
           <div class="radar-col">
             <div class="radar-new" data-radar-new>
@@ -2316,23 +2440,27 @@
            tasti". Un interruttore, una riga di stato, i token che segue.
            Il contenuto lo disegna static/onchain/pilot.js. -->
       <section class="memes" id="memes" data-loading>
-        <p class="risk-banner" role="note"><b>Degen zone.</b> Tokens minutes old, thin liquidity, rugs around every corner. Only play with money you can burn.</p>
-        <header><h3><span class="radar-dot" aria-hidden="true"></span>Memes · ready to pump</h3><span data-memes-meta></span></header>
+        <p class="risk-banner" role="note"><b>Degen zone.</b> Minutes-old tokens, thin liquidity, frequent rugs. Only bet what you can burn.</p>
+        <header><h3><span class="radar-dot" aria-hidden="true"></span>Ready to pump</h3><span data-memes-meta></span></header>
         <ol class="memes-list" data-memes-list></ol>
         <p class="memes-empty" data-memes-empty hidden>Nothing worth a bet right now. The radar runs 24/7: check back soon.</p>
       </section>
 
       <section class="pilot" id="pilot" data-tone="off">
+        <!-- One card: status, switch, today's numbers, the limits. It used
+             to be three stacked cards saying the same thing three times. -->
         <div class="pilot-main">
-          <div class="pilot-card"><p class="pilot-line"><small>Loading autopilot…</small></p></div>
-          <button type="button" class="pilot-toggle" data-pilot-toggle role="switch" aria-checked="false">
-            <span><b>Autopilot</b><small></small></span>
-            <span class="pilot-switch" aria-hidden="true"></span>
-          </button>
-          <div class="pilot-intro" hidden>
-            <h2>Autopilot only buys when the strategy says so.</h2>
-            <p>It hunts new tokens, tracks them with the Trend EMA strategy and shows you every call. These are its limits:</p>
-            <ul class="pilot-rules" data-rules></ul>
+          <div class="pilot-box">
+            <div class="pilot-head">
+              <div class="pilot-card"><p class="pilot-line"><small>Loading autopilot…</small></p></div>
+              <button type="button" class="pilot-toggle" data-pilot-toggle role="switch" aria-checked="false" aria-label="Autopilot">
+                <span class="pilot-switch" aria-hidden="true"></span>
+              </button>
+            </div>
+            <dl class="pilot-stats" data-stats></dl>
+            <ul class="pilot-rules" data-rules aria-label="Autopilot limits"></ul>
+            <p class="pilot-note" data-note></p>
+            <span class="pilot-scan" aria-hidden="true"></span>
           </div>
         </div>
         <div class="pilot-side">

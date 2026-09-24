@@ -102,7 +102,7 @@ export async function refreshPilot() {
 function headline() {
   const { label } = chainInfo();
   if (!data.enabled) {
-    return { tone: "off", title: "Autopilot off", sub: `Not buying anything on its own on ${label}` };
+    return { tone: "off", title: "Autopilot off", sub: `${label}` };
   }
   const blocker = data.health.find((h) => !h.ok);
   if (blocker) return { tone: "warn", title: "On, but stuck", sub: `${blocker.label}: ${blocker.detail}` };
@@ -123,27 +123,26 @@ function paint() {
         <small data-clock>${escapeHtml(head.sub ?? clockText())}</small>
       </span>
       <span class="pilot-chev" aria-hidden="true">›</span>
-    </button>
-    <dl class="pilot-stats">
-      <div><dt>Watching</dt><dd>${tokens.length}</dd></div>
-      <div><dt>Scanned today</dt><dd>${scan.seen_today}</dd></div>
-      <div><dt>Spent today</dt><dd>${whole(limits.spent_today_usd)}<span> / ${whole(limits.daily_usd)}</span></dd></div>
-    </dl>
-    <span class="pilot-scan" aria-hidden="true"></span>`;
+    </button>`;
+  root.querySelector("[data-stats]").innerHTML = `
+    <div><dt>Watching</dt><dd>${tokens.length}</dd></div>
+    <div><dt>Scanned today</dt><dd>${scan.seen_today}</dd></div>
+    <div><dt>Spent today</dt><dd>${whole(limits.spent_today_usd)}</dd></div>`;
 
   const toggleEl = root.querySelector("[data-pilot-toggle]");
   toggleEl.setAttribute("aria-checked", String(data.enabled));
-  toggleEl.querySelector("small").textContent = data.enabled
-    ? `Buys on its own, max ${whole(limits.per_trade_usd)} per trade and ${whole(limits.daily_usd)} per day`
-    : "Off: buys nothing on its own. Open positions still get closed";
 
-  const intro = root.querySelector(".pilot-intro");
-  intro.hidden = data.enabled || tokens.length > 0;
-  intro.querySelector("[data-rules]").innerHTML = `
+  // The limits stay on screen whether it is on or off: they are the
+  // answer to "how much can it spend without me".
+  root.querySelector("[data-rules]").innerHTML = `
     <li><span>Per buy</span><b>${whole(limits.per_trade_usd)}</b></li>
     <li><span>Per day</span><b>${whole(limits.daily_usd)}</b></li>
-    <li><span>New tokens</span><b>liquidity &gt; ${compact(data.filters.min_liquidity_usd)} · age &lt; ${hours(data.filters.max_age_hours)}</b></li>
+    <li><span>Liquidity</span><b>&gt; ${compact(data.filters.min_liquidity_usd)}</b></li>
+    <li><span>Age</span><b>&lt; ${hours(data.filters.max_age_hours)}</b></li>
     <li><span>Strategy</span><b>${escapeHtml(strategyLabel(data.strategy))}</b></li>`;
+  root.querySelector("[data-note]").textContent = data.enabled
+    ? "Buys on its own, only on a strategy signal and within these limits."
+    : "Buys nothing on its own. Open positions still get closed.";
 
   const feed = root.querySelector(".pilot-feed");
   feed.hidden = !data.enabled && tokens.length === 0;
