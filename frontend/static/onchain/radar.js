@@ -157,6 +157,7 @@ function clock() {
 function paint() {
   const { proposals, chains } = data;
   root.hidden = false;
+  delete root.dataset.loading;
   root.dataset.running = String(Boolean(data.running));
   root.querySelector("[data-radar-clock]").textContent = clock();
 

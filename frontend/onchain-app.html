@@ -2032,6 +2032,23 @@
     #app-shell[data-view="wallet"] .holdings { flex-wrap: wrap; mask-image: none; overflow: visible; }
   }
 }
+
+/* La prima pagina non e' mai vuota. Lorenzo: "sta pagina rimane vuota":
+   classifica e radar restavano nascosti finche' i loro dati non
+   arrivavano, e senza il saldo in cima non restava nulla a schermo.
+   Ora si vedono subito, con un segnaposto che pulsa. */
+@layer components {
+  #radar[data-loading] :is(.radar-empty, .radar-foot) { display: none; }
+  :is(#board .board-podium, #radar [data-radar-list], #radar .radar-stage):empty {
+    min-block-size: 76px; border-radius: var(--radius);
+    background: linear-gradient(90deg, var(--panel) 30%, var(--raised) 50%, var(--panel) 70%) 0 0 / 250% 100%;
+    animation: skel 1.4s linear infinite;
+  }
+  #radar .radar-stage:empty { min-block-size: 220px; padding: 0; }
+  #radar [data-radar-list]:empty { min-block-size: 56px; list-style: none; }
+  @keyframes skel { to { background-position: -150% 0; } }
+  @media (prefers-reduced-motion: reduce) { :is(#board .board-podium, #radar [data-radar-list], #radar .radar-stage):empty { animation: none; } }
+}
 </style>
 <!--onchain-importmap-->
 </head>
@@ -2122,7 +2139,7 @@
            come posizione deve essere piu' in risalto [...] e' l'unica cosa
            che conta". DREGG sta primo come metro di paragone. La disegna
            static/onchain/leaderboard.js. -->
-      <section class="board" id="board" hidden>
+      <section class="board" id="board" data-loading>
         <header><h3>Classifica · progetti migliori</h3><span data-board-meta></span></header>
         <ol class="board-podium" data-board-podium></ol>
         <div class="board-detail" data-board-detail hidden></div>
@@ -2137,7 +2154,7 @@
            con gli ingressi della strategia migliore. Lo disegna
            static/onchain/radar.js. Sopra c'e' solo il saldo ("il saldo va
            bene inserirlo in cima, il resto poi"). -->
-      <section class="radar" id="radar" hidden>
+      <section class="radar" id="radar" data-loading>
         <header><h3><span class="radar-dot" aria-hidden="true"></span>Radar · token nuovi</h3><span data-radar-clock></span></header>
         <div class="radar-grid">
           <div class="radar-col">

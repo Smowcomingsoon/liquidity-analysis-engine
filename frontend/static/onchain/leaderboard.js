@@ -74,6 +74,7 @@ async function refresh() {
 
 function paint(animate) {
   root.hidden = false;
+  delete root.dataset.loading;
   const before = animate ? positions() : null;
   const entries = data.entries ?? [];
   const podium = root.querySelector("[data-board-podium]");
