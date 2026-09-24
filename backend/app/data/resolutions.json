@@ -1428,7 +1428,8 @@
       "frontend/static/onchain/main.js",
       "frontend/static/onchain/format.js",
       "frontend/static/app.js"
-    ],
+    ]
+  },
   "seed-0110": {
     "status": "in corso",
     "at": 1790266233,
