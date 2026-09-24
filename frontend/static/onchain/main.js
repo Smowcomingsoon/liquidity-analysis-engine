@@ -24,6 +24,7 @@ import { mountPilot, refreshPilot } from "@onchain/pilot.js";
 import { mountRadar } from "@onchain/radar.js";
 import { refreshHoldings } from "@onchain/holdings.js";
 import { mountLeaderboard } from "@onchain/leaderboard.js";
+import { mountMemes } from "@onchain/memes.js";
 
 // Sulla pagina a se' (onchain-app.html) la radice e' il documento intero.
 // Fusa dentro la tab Trading, invece, questo modulo viene importato dentro
@@ -502,6 +503,7 @@ function setView(name) {
   const from = view.shell.dataset.view;
   const paint = () => {
     view.shell.dataset.view = name;
+    if (name === "gems" || name === "meme") view.shell.dataset.section = name;
     view.dock?.querySelectorAll("[data-go]").forEach((b) => {
       if (b.dataset.go === name) b.setAttribute("aria-current", "page");
       else b.removeAttribute("aria-current");
@@ -539,6 +541,7 @@ for (const el of [view.dock, view.shell]) {
 mountPilot({ toast, onChange: refreshSniperCard });
 mountRadar({ toast });
 mountLeaderboard();
+mountMemes();
 
 // La rete si cambia dal suo nome, accanto al saldo: un tocco, niente menu.
 view.chainFlip?.addEventListener("click", () => {

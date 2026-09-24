@@ -1740,8 +1740,8 @@
      scansioni"; il saldo non in cima; l'automazione in una sezione sua.
      Ogni sezione vive in una vista sola. */
   #app-shell:not([data-view="entry"]) #entry,
-  #app-shell:not([data-view="gems"]) #board,
-  #app-shell:not([data-view="meme"]) :is(#radar, #pilot),
+  #app-shell:not([data-view="gems"]) :is(#board, #radar),
+  #app-shell:not([data-view="meme"]) :is(#memes, #pilot),
   #app-shell:not([data-view="manual"]) #market-order-row,
   #app-shell:not([data-view="wallet"]) :is(.status-strip, #wallet-view) { display: none !important; }
 
@@ -1992,20 +1992,23 @@
     #app-shell:not([hidden]) { padding-block-end: 40px; }
 
     /* --- Radar: classifica in alto, liste a sinistra, dettaglio a destra */
-    #app-shell[data-view="meme"] {
+    #app-shell[data-view="gems"] {
       display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); column-gap: 28px; row-gap: 14px;
       align-items: start;
     }
-    #app-shell[data-view="meme"] :is(#radar, .radar-grid) { display: contents; }
-    #app-shell[data-view="meme"] .risk-banner { grid-column: 1 / -1; grid-row: 1; margin: 0; }
-    #app-shell[data-view="meme"] #radar > header { grid-column: 1; grid-row: 2; margin: 0; }
-    #app-shell[data-view="meme"] .radar-col { grid-column: 1; grid-row: 3; }
-    #app-shell[data-view="meme"] #pilot { grid-column: 1; grid-row: 4; margin: 0; }
-    #app-shell[data-view="meme"] .radar-rejected { display: none; }
-    #app-shell[data-view="meme"] .radar-stage {
-      grid-column: 2; grid-row: 2 / span 3; position: sticky; inset-block-start: 76px;
+    #app-shell[data-view="gems"] :is(#radar, .radar-grid) { display: contents; }
+    #app-shell[data-view="gems"] #board { grid-column: 1 / -1; grid-row: 1; margin: 0 0 10px; }
+    #app-shell[data-view="gems"] #radar > header { grid-column: 1; grid-row: 2; margin: 0; }
+    #app-shell[data-view="gems"] .radar-col { grid-column: 1; grid-row: 3; }
+    #app-shell[data-view="gems"] .radar-rejected { display: none; }
+    #app-shell[data-view="gems"] .radar-stage {
+      grid-column: 2; grid-row: 2 / span 2; position: sticky; inset-block-start: 76px;
       max-block-size: calc(100dvh - 96px); overflow-y: auto; scrollbar-width: thin;
     }
+    #app-shell[data-view="meme"] {
+      display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 400px); column-gap: 28px; align-items: start;
+    }
+    #app-shell[data-view="meme"] #pilot { position: sticky; inset-block-start: 90px; margin: 0; }
 
     /* Podio in riga, 1-2-3 da sinistra, stessa altezza: una striscia,
        non tre card enormi. */
@@ -2091,7 +2094,7 @@
   }
 
   #app-shell[data-view="meme"] { --live: #ff4fa3; }
-  #app-shell[data-view="meme"] #radar > header h3 { color: #ff8cc4; }
+  #app-shell[data-view="meme"] #memes > header h3 { color: #ff8cc4; }
   :root:has(#app-shell[data-view="meme"]) .dock button[aria-current] svg { stroke: #ff4fa3; }
   .risk-banner {
     margin: 0 0 12px; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.45; color: var(--ink-dim);
@@ -2099,6 +2102,40 @@
     border: 1px solid rgb(255 79 163 / .35);
     & b { color: #ffb648; }
   }
+  .memes > header { display: flex; justify-content: space-between; align-items: baseline; margin-block-end: 8px;
+    & h3 { margin: 0; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    & [data-memes-meta] { font-size: 12px; color: var(--ink-faint); } }
+  .memes-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .memes-list:empty { min-block-size: 180px; border-radius: var(--radius);
+    background: linear-gradient(90deg, var(--panel) 30%, var(--raised) 50%, var(--panel) 70%) 0 0 / 250% 100%;
+    animation: skel 1.4s linear infinite; }
+  .meme-row {
+    display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center;
+    padding: 12px 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line);
+    color: var(--ink); text-decoration: none; transition: border-color .2s, translate .2s;
+    &:hover { border-color: rgb(255 79 163 / .5); translate: 0 -1px; }
+    & .mm-avatar { inline-size: 40px; block-size: 40px; border-radius: 12px; display: grid; place-items: center;
+      font-weight: 700; font-size: 13px; color: #ff8cc4; background: rgb(255 79 163 / .12); }
+    & .mm-name { display: grid; gap: 3px; min-inline-size: 0; }
+    & .mm-name b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    & .mm-name small { font-size: 12px; color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    & .mm-num { display: grid; justify-items: end; gap: 3px; }
+    & .mm-num b { font-size: 16px; font-variant-numeric: tabular-nums; }
+    & .mm-num b[data-sign="up"] { color: var(--up); }
+    & .mm-num b[data-sign="down"] { color: var(--down); }
+    & .mm-num small { font-size: 11.5px; color: #ffb648; }
+  }
+  /* The logo follows the section chosen at the door: a dragon egg for
+     gems, a grinning frog with shades for memes. */
+  .brand .logo { inline-size: 26px; block-size: 26px; flex-shrink: 0; display: none; }
+  .brand .bn:not(.bn-def) { display: none; }
+  :root:has(#app-shell[data-section="gems"]) .brand {
+    & .brand-dot, & .bn-def { display: none; } & .logo-gem { display: block; } & .bn-gem { display: inline; } }
+  :root:has(#app-shell[data-section="meme"]) .brand {
+    & .brand-dot, & .bn-def { display: none; } & .logo-meme { display: block; animation: wobble 2.8s ease-in-out infinite; }
+    & .bn-meme { display: inline; color: #ff8cc4; } }
+  @keyframes wobble { 0%, 100% { rotate: 0deg; } 50% { rotate: -8deg; } }
+  @media (prefers-reduced-motion: reduce) { .brand .logo-meme { animation: none !important; } }
   .gem-banner {
     margin: 0 0 12px; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.45; color: var(--ink-dim);
     background: color-mix(in oklch, var(--live) 7%, var(--panel)); border: 1px solid color-mix(in oklch, var(--live) 22%, var(--line));
@@ -2120,7 +2157,10 @@
       <!-- Il marchio e' anche il ritorno al sito: un link vero, non
            history.back() — questa pagina si apre anche da zero (QR, link
            salvato) e li' "indietro" non avrebbe dove andare. -->
-      <a class="brand" href="/engn" title="Il progetto $ENGN"><span class="brand-dot" aria-hidden="true"></span><h1>Liquidity Engine · Wallet</h1></a>
+      <a class="brand" href="/engn" title="Il progetto $ENGN"><span class="brand-dot" aria-hidden="true"></span>
+        <svg class="logo logo-gem" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg-egg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6ff9a"/><stop offset="1" stop-color="#5fa82e"/></linearGradient></defs><path d="M16 2.5c6 0 10.5 9.2 10.5 16.2 0 6.3-4.7 10.8-10.5 10.8S5.5 25 5.5 18.7C5.5 11.7 10 2.5 16 2.5z" fill="url(#lg-egg)"/><path d="M9.5 15.5c2 1.6 4 1.6 6.5 0s4.5-1.6 6.5 0M8 21c2.6 2 5.3 2 8 0s5.4-2 8 0M12 9.8c1.4 1 2.7 1 4 0s2.6-1 4 0" fill="none" stroke="#1d3a0c" stroke-width="1.4" stroke-linecap="round" opacity=".55"/><path d="M11.5 7.5c1-1.6 2.3-2.6 3.6-2.9" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity=".7"/></svg>
+        <svg class="logo logo-meme" viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="16" cy="20" rx="13.5" ry="9.5" fill="#6fd24a"/><circle cx="9.5" cy="10.5" r="5.5" fill="#6fd24a"/><circle cx="22.5" cy="10.5" r="5.5" fill="#6fd24a"/><circle cx="9.5" cy="10.5" r="3.6" fill="#fff"/><circle cx="22.5" cy="10.5" r="3.6" fill="#fff"/><circle cx="10.4" cy="11" r="1.8" fill="#111"/><circle cx="23.4" cy="11" r="1.8" fill="#111"/><path d="M5.5 10.2h8M18.5 10.2h8" stroke="#ff4fa3" stroke-width="1.6"/><path d="M7 21.5c4.5 4 13.5 4 18 0" fill="none" stroke="#b83a2e" stroke-width="2" stroke-linecap="round"/><circle cx="26" cy="5" r="3.4" fill="#ffb648"/><text x="26" y="6.6" text-anchor="middle" font-size="4.6" font-weight="800" fill="#111">$</text></svg>
+        <h1><span class="bn bn-def">Liquidity Engine</span><span class="bn bn-gem">Gem Finder</span><span class="bn bn-meme">Meme Sniper</span></h1></a>
       <div class="topbar-right">
         <button type="button" class="chain-flip" id="chain-flip" title="Tocca per cambiare rete">
           <span class="chain-ic" id="chain-ic" aria-hidden="true">◎</span><span id="chain-label">Solana</span><span class="flip-ic" aria-hidden="true">⇄</span>
@@ -2232,8 +2272,7 @@
            static/onchain/radar.js. Sopra c'e' solo il saldo ("il saldo va
            bene inserirlo in cima, il resto poi"). -->
       <section class="radar" id="radar" data-loading>
-        <p class="risk-banner" role="note"><b>Zona degen.</b> Token nati da minuti, liquidità sottile, rug dietro l'angolo. Gioca solo soldi che puoi bruciare.</p>
-        <header><h3><span class="radar-dot" aria-hidden="true"></span>Meme · appena nati</h3><span data-radar-clock></span></header>
+        <header><h3><span class="radar-dot" aria-hidden="true"></span>Gemme · scanner h24</h3><span data-radar-clock></span></header>
         <div class="radar-grid">
           <div class="radar-col">
             <div class="radar-new" data-radar-new>
@@ -2276,6 +2315,13 @@
            monitorando, voglio vedere cosa sta scansionando [...] pochi
            tasti". Un interruttore, una riga di stato, i token che segue.
            Il contenuto lo disegna static/onchain/pilot.js. -->
+      <section class="memes" id="memes" data-loading>
+        <p class="risk-banner" role="note"><b>Zona degen.</b> Token nati da minuti, liquidità sottile, rug dietro l'angolo. Gioca solo soldi che puoi bruciare.</p>
+        <header><h3><span class="radar-dot" aria-hidden="true"></span>Meme · pronti a esplodere</h3><span data-memes-meta></span></header>
+        <ol class="memes-list" data-memes-list></ol>
+        <p class="memes-empty" data-memes-empty hidden>Niente di giocabile adesso. Il radar gira h24: torna tra poco.</p>
+      </section>
+
       <section class="pilot" id="pilot" data-tone="off">
         <div class="pilot-main">
           <div class="pilot-card"><p class="pilot-line"><small>Leggo il pilota…</small></p></div>

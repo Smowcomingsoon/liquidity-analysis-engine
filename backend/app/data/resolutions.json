@@ -1421,13 +1421,14 @@
   },
   "seed-0115": {
     "status": "risolto",
-    "at": 1790266200,
-    "summary": "All'ingresso del wallet ci sono ora due porte: 'Gemme nascoste' (ricerca h24, classifica, tono calmo) e 'Sniper meme' (radar dei token appena nati e pilota, in rosa acceso con l'avviso 'Zona degen': e' gioco d'azzardo). La barra in basso diventa Gemme, Meme, Scambia, Portafoglio. Nessun nome personale a schermo: le strategie si chiamano Trend EMA, Trend HF, RSI+BB Reversal, RSI+BB Long/Short (cambia solo l'etichetta, non la logica ne' i dati salvati), e i commenti del codice pubblico non citano piu' nessuno. La ricerca di progetti seri piu' ampia la segue la classifica.",
+    "at": 1790267000,
+    "summary": "All'ingresso del wallet ci sono due porte. 'Gem Finder' (logo: uovo di drago) mostra la classifica e lo scanner h24 dei progetti seri, DREGG compreso. 'Meme Sniper' (logo: rana irriverente, tutto in rosa) mostra solo meme: la corsia dei meme vivi e puliti studiata dalla memoria, il pilota e l'avviso 'Zona degen: e' gioco d'azzardo'. DREGG e i progetti seri non compaiono piu' nei meme. Barra: Gemme, Meme, Scambia, Portafoglio. Nessun nome personale a schermo: le strategie si chiamano Trend EMA, Trend HF, RSI+BB Reversal, RSI+BB Long/Short (cambia solo l'etichetta, non la logica ne' i dati salvati).",
     "files": [
       "frontend/onchain-app.html",
       "frontend/static/onchain/main.js",
       "frontend/static/onchain/format.js",
-      "frontend/static/app.js"
+      "frontend/static/app.js",
+      "frontend/static/onchain/memes.js"
     ]
   },
   "seed-0110": {

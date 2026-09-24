@@ -114,6 +114,7 @@ export const getPilot = (chain) => request(`/api/onchain/pilot/${chain}`);
 export const getRadar = () => request("/api/onchain/radar");
 export const getLeaderboard = () => request("/api/onchain/leaderboard");
 export const getRadarLessons = () => request("/api/onchain/radar/lessons");
+export const getRadarMemes = () => request("/api/onchain/radar/memes");
 export const getRadarChart = (chain, pool, symbol, interval) =>
   request(`/api/onchain/radar/chart?${new URLSearchParams({ chain, pool, symbol, interval })}`);
 export const followRadar = (body) => request("/api/onchain/radar/follow", { method: "POST", body });

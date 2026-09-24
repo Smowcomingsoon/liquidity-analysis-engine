@@ -165,8 +165,8 @@ def _resolutions() -> dict[str, dict]:
 
 _SEED = [
     ("seed-0115", "Sito senza nomi personali, con due sezioni distinte: gemme e meme",
-     "alta"),
      "Richiesta: 'rendilo privacy centrico, nel senso che non ci deve essere scritto Lorenzo [...] ci deve essere una sezione che riguarda il trading di meme coin [...] mentre per quanto riguarda i progetti seri voglio che anche li' ci sia uno scan H24 [...] che poi finisce nella leaderboard [...] anche a livello di interfaccia grafica siano distinte queste due sezioni prima di poter entrare'. Poi: 'deve essere anche chiaro che e' un qualcosa di estremamente gambling, la sezione per le meme coin' e 'revisione a tutto il sito in ottica degen [...] i dettagli che non serve a nessuno sapere non ci devono essere'.",
+     "alta"),
     ("seed-0110", "La memoria deve studiare i token scartati che poi sono esplosi, e le meme vanno cavalcate",
      "Lorenzo: 'ho visto che hai scartato dei token che hanno fatto grandissime percentuali, per cui devi andare a studiare tutti quei casi li' e fare in modo che la prossima volta quei progetti vengano fuori con le stesse caratteristiche. Dobbiamo cavalcare le meme coin sostanzialmente, per cui deve essere anche chiaro che e' un qualcosa di estremamente gambling'.",
      "alta"),
