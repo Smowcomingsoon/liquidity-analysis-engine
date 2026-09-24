@@ -225,7 +225,8 @@ def judge_github(data: dict | None, launched_at: float | None = None, now: float
     return _pillar("github", score, facts, flags)
 
 
-async def analyze_github(urls: list[str], client: httpx.AsyncClient, launched_at: float | None) -> dict:
+async def analyze_github(urls: list[str], client: httpx.AsyncClient, launched_at: float | None,
+                         token: dict | None = None, website: str | None = None) -> dict:
     targets = legit.github_targets(urls)
     if not targets:
         return _pillar("github", 0, {}, [], "nessun GitHub")
@@ -238,6 +239,10 @@ async def analyze_github(urls: list[str], client: httpx.AsyncClient, launched_at
         return _pending("github", "GitHub non risponde")
     if not repo:
         return judge_github({}, launched_at)
+    # Un link a una libreria o a una piattaforma non e' il codice del progetto.
+    if token and not benchmark.is_benchmark(token.get("chain"), token.get("token_address")) \
+            and not legit.github_belongs(repo, token, website):
+        return _pillar("github", 0, {"repo": repo.get("full_name")}, [], "GitHub non appartiene al progetto")
     return judge_github(await fetch_github(repo["full_name"], client), launched_at)
 
 
@@ -590,7 +595,11 @@ async def analyze(item: dict, client: httpx.AsyncClient, *, skip: set[str] = fro
         if out["site"]["fatal"]:
             return out
     if "github" not in skip:
-        out["github"] = await analyze_github([u for u in gh_links if u], client, launched)
+        if not legit.github_targets([u for u in gh_links if u]):
+            found_gh = await legit.github_find(item.get("website"), client)
+            gh_links += [found_gh] if found_gh else []
+        out["github"] = await analyze_github([u for u in gh_links if u], client, launched,
+                                             token=item, website=item.get("website"))
         if out["github"]["fatal"]:
             return out
     if "tokenomics" not in skip:

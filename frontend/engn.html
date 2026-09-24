@@ -245,6 +245,61 @@ footer .soc { display: flex; gap: 18px; font-family: var(--mono); }
 footer .soc a:hover { color: var(--ink); }
 footer p { max-width: 900px; line-height: 1.7; }
 
+/* ---------- why us ---------- */
+.vs-wrap { border: 1px solid var(--line); border-radius: 18px; background: var(--bg-2); overflow: hidden; }
+table.vs { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.vs th { font: 500 10.5px/1.3 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--faint);
+  padding: 18px 16px; text-align: center; vertical-align: bottom; }
+table.vs th small { display: block; margin-top: 6px; font-size: 10px; letter-spacing: .04em; text-transform: none; color: var(--faint); opacity: .8; }
+table.vs th:first-child, table.vs td:first-child { text-align: left; }
+table.vs td { padding: 15px 16px; border-top: 1px solid var(--line); text-align: center; color: var(--faint); font-family: var(--mono); }
+table.vs td:first-child { color: var(--ink); font-family: inherit; }
+table.vs .us { background: var(--soft); color: var(--green); }
+table.vs th.us { color: var(--green); }
+table.vs .yes::before { content: "✓"; font-size: 15px; }
+table.vs .no::before { content: "—"; }
+table.vs .soon { font-size: 10px; letter-spacing: .14em; }
+.vs-note { margin-top: 18px; font-size: 13px; color: var(--faint); }
+.vs-note b { color: var(--green); font: 500 10px/1 var(--mono); letter-spacing: .14em; }
+@media (max-width: 640px) {
+  table.vs { font-size: 13px; }
+  table.vs th, table.vs td { padding: 12px 6px; }
+  table.vs th { font-size: 9px; letter-spacing: .06em; }
+  table.vs td:first-child, table.vs th:first-child { padding-left: 14px; width: 52%; }
+  table.vs th small { display: none; }
+}
+
+/* ---------- chapter rail ---------- */
+section, header.hero { scroll-margin-top: 64px; }
+.rail { position: fixed; z-index: 40; font-family: var(--mono); }
+.rail a { display: flex; align-items: center; color: var(--faint); transition: color .3s var(--ease); }
+.rail a:hover, .rail a.on { color: var(--ink); }
+.rail .n { font-size: 10px; letter-spacing: .12em; }
+.rail .t { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
+.rail .mark { position: absolute; background: var(--green); box-shadow: 0 0 14px var(--glow); border-radius: 2px;
+  transition: transform .45s var(--ease), width .45s var(--ease), height .45s var(--ease); }
+@media (min-width: 1000px) {
+  body, nav.top { padding-left: 190px; }
+  .rail { left: 32px; top: 50%; transform: translateY(-50%); padding-left: 18px; border-left: 1px solid var(--line-2); }
+  .rail a { gap: 10px; height: 40px; }
+  .rail a .n { width: 18px; }
+  .rail .mark { left: -2px; top: 0; width: 3px; height: 40px; }
+  .rail .bar { transition: width .45s var(--ease); width: 0; height: 1px; background: var(--green); }
+  .rail a.on .bar { width: 14px; }
+}
+@media (max-width: 999px) {
+  .rail { left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex;
+    padding: 4px; border: 1px solid var(--line-2); border-radius: 999px;
+    background: color-mix(in oklch, var(--bg) 78%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+  .rail a { position: relative; z-index: 1; padding: 9px 10px; border-radius: 999px; white-space: nowrap; }
+  .rail .t { font-size: 10px; letter-spacing: .1em; }
+  .rail a .n, .rail .bar { display: none; }
+  .rail a.on { color: #04130d; }
+  .rail .mark { top: 4px; left: 0; height: calc(100% - 8px); border-radius: 999px; box-shadow: none; }
+  footer { padding-bottom: 96px; }
+}
+@media (max-width: 400px) { .rail .t { font-size: 9.5px; letter-spacing: .06em; } .rail a { padding: 9px 7px; } }
+
 /* ---------- reveal ---------- */
 .rv { transition: opacity .8s var(--ease), transform .8s var(--ease); }
 .js .rv:not(.in) { opacity: 0; transform: translateY(18px); }
@@ -284,11 +339,17 @@ footer p { max-width: 900px; line-height: 1.7; }
       LIQUIDITY ENGINE
     </a>
     <span class="ticker-chip">$ENGN</span>
-    <div class="links">
-      <a href="#token">Tokenomics</a><a href="#roadmap">Roadmap</a>
-    </div>
-    <a class="btn-sm" href="/onchain-app.html">OPEN APP</a>
+    <a class="btn-sm" style="margin-left:auto" href="/onchain-app.html">OPEN APP</a>
   </div>
+</nav>
+
+<nav class="rail" id="rail" aria-label="Chapters">
+  <span class="mark" id="railMark" aria-hidden="true"></span>
+  <a href="#top"><span class="n">01</span><span class="bar"></span><span class="t">Doors</span></a>
+  <a href="#why"><span class="n">02</span><span class="bar"></span><span class="t">Why us</span></a>
+  <a href="#token"><span class="n">03</span><span class="bar"></span><span class="t">Tokenomics</span></a>
+  <a href="#roadmap"><span class="n">04</span><span class="bar"></span><span class="t">Roadmap</span></a>
+  <a href="#enter"><span class="n">05</span><span class="bar"></span><span class="t">Enter</span></a>
 </nav>
 
 <header class="hero" id="top">
@@ -341,6 +402,31 @@ footer p { max-width: 900px; line-height: 1.7; }
   </div>
 </header>
 
+<section id="why">
+  <div class="wrap">
+    <div class="head rv">
+      <p class="eyebrow">Why us</p>
+      <h2>Filters show numbers. <em>We make the call.</em></h2>
+      <p>Liquidity, mcap, holders: every screener gives you those for free. Your filter shows 200 clean tokens. We tell you which few have a real project behind them, test them before you touch them, and remember how every one we tracked ended.</p>
+    </div>
+    <div class="vs-wrap rv">
+      <table class="vs">
+        <thead><tr><th></th><th>Screeners<small>DexScreener, Birdeye</small></th><th>Terminals<small>Photon, Axiom, BullX</small></th><th class="us">Liquidity Engine</th></tr></thead>
+        <tbody>
+        <tr><td>Swaps from the same wallet</td><td class="no"></td><td class="yes"></td><td class="us yes"></td></tr>
+        <tr><td>Rug-checked before you see it</td><td class="no"></td><td class="no"></td><td class="us yes"></td></tr>
+        <tr><td>Checks the project is real: GitHub, code, site</td><td class="no"></td><td class="no"></td><td class="us yes"></td></tr>
+        <tr><td>Backtests every token it proposes</td><td class="no"></td><td class="no"></td><td class="us yes"></td></tr>
+        <tr><td>Follows every pick for 7 days and learns from the rugs</td><td class="no"></td><td class="no"></td><td class="us yes"></td></tr>
+        <tr><td>Public track record against the market</td><td class="no"></td><td class="no"></td><td class="us soon">SOON</td></tr>
+        <tr><td>Pulls you out when the dev starts dumping</td><td class="no"></td><td class="no"></td><td class="us soon">SOON</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="vs-note rv"><b>SOON</b> means on the roadmap, not live yet. We ship it, then we say it.</p>
+  </div>
+</section>
+
 <section id="token">
   <div class="wrap">
     <div class="head rv">
@@ -381,12 +467,12 @@ footer p { max-width: 900px; line-height: 1.7; }
       <div class="step done"><span class="q">LIVE</span><h4>The engine</h4><p>Wallet, swaps, Meme Sniper, Gem Finder and trend automation.</p></div>
       <div class="step"><span class="q">PHASE 1</span><h4>Launch</h4><p>Fair launch on pump.fun. Liquidity burned at graduation. Contract published on this site only.</p></div>
       <div class="step"><span class="q">PHASE 2</span><h4>Holder tiers</h4><p>Holding $ENGN unlocks real-time alerts and automated strategies.</p></div>
-      <div class="step"><span class="q">PHASE 3</span><h4>More engines</h4><p>More chains, new trend strategies and a public track record.</p></div>
+      <div class="step"><span class="q">PHASE 3</span><h4>More engines</h4><p>Public track record against the market, a wallet guardian that exits before the rug, more chains.</p></div>
     </div>
   </div>
 </section>
 
-<section class="final">
+<section class="final" id="enter">
   <div class="wrap rv">
     <p class="eyebrow">Ready, anon?</p>
     <h2 style="margin-top:14px">The chain never sleeps. <em>Neither do we.</em></h2>
@@ -448,6 +534,37 @@ footer p { max-width: 900px; line-height: 1.7; }
     svg.appendChild(el);
     return [el, p];
   });
+
+  // Chapter rail: the bookmark follows the section under the reading line.
+  const links = [...document.querySelectorAll("#rail a")];
+  const mark = document.getElementById("railMark");
+  const chapters = links.map(a => document.querySelector(a.getAttribute("href")));
+  let current = -1;
+  const place = i => {
+    const a = links[i];
+    if (matchMedia("(min-width: 1000px)").matches) {
+      mark.style.width = ""; mark.style.height = "";
+      mark.style.transform = `translateY(${a.offsetTop}px)`;
+    } else {
+      mark.style.height = "";
+      mark.style.width = `${a.offsetWidth}px`;
+      mark.style.transform = `translateX(${a.offsetLeft}px)`;
+    }
+  };
+  const spy = () => {
+    const line = innerHeight * 0.4;
+    let i = 0;
+    chapters.forEach((el, k) => { if (el.getBoundingClientRect().top <= line) i = k; });
+    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) i = chapters.length - 1;
+    if (i === current) return;
+    current = i;
+    links.forEach((a, k) => a.classList.toggle("on", k === i));
+    place(i);
+  };
+  addEventListener("scroll", spy, { passive: true });
+  addEventListener("resize", () => { if (current >= 0) place(current); });
+  document.fonts?.ready.then(() => current >= 0 && place(current));
+  spy();
 
   const io = new IntersectionObserver(entries => entries.forEach(en => {
     if (!en.isIntersecting) return;

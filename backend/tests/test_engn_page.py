@@ -13,6 +13,7 @@ def test_page_is_public_and_leads_to_the_app():
     assert "ENTER THE APP" in resp.text
     assert 'href="/onchain-app.html"' in resp.text
     assert "ENTER MEME SNIPER" in resp.text and "ENTER GEM FINDER" in resp.text
+    assert 'id="why"' in resp.text and 'href="#why"' in resp.text
 
 
 def test_page_names_no_person():

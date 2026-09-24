@@ -38,7 +38,7 @@ import time
 
 import httpx
 
-from app.trading.onchain import benchmark, depth, legit, listings, radar, storage
+from app.trading.onchain import benchmark, depth, discovery, legit, listings, radar, storage
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +58,13 @@ ANALYZE_CONCURRENCY = 3
 BOARD_SIZE = 50
 SIMILARITY_WEIGHT = 0.30
 MIN_PILLAR = 35                    # sotto, un pilastro e' troppo debole per stare in classifica
+# Progetti trovati dallo scan dedicato (discovery): l'eta' conta poco, la cap
+# si' ("sotto 2-3 milioni, non oltre"), e la qualita' deve essere vera.
+SERIOUS_SOURCES = ("coingecko", "dexscreener")
+SERIOUS_CAP_MAX_USD = discovery.CAP_MAX
+SERIOUS_AGE_MAX_DAYS = 365
+SERIOUS_MIN_PILLAR = 60
+SERIOUS_MIN_GITHUB = 70
 CAP_MAX_USD = radar.MCAP_MAX_USD
 
 _entries: dict[str, dict] = {}     # chain:token
@@ -263,7 +270,8 @@ def _prune(now: float) -> None:
     for k, e in list(_entries.items()):
         launched = e.get("launched_at")
         pending_since = e.get("found_at", now)
-        limit = radar.EXC_AGE_MAX_DAYS if exceptional(e) else MAX_AGE_DAYS
+        limit = (radar.EXC_AGE_MAX_DAYS if exceptional(e)
+                 else SERIOUS_AGE_MAX_DAYS if e.get("source") in SERIOUS_SOURCES else MAX_AGE_DAYS)
         if benchmark.is_benchmark(e["chain"], e["token_address"]):
             continue
         if launched and now - launched > limit * 86400:
@@ -302,6 +310,8 @@ def qualifies(e: dict, now: float | None = None) -> str:
     weak = [k for k in depth.WEIGHTS if pillars[k]["score"] < MIN_PILLAR]
     if weak:
         return f"{weak[0]} troppo debole ({pillars[weak[0]]['score']})"
+    if e.get("source") in SERIOUS_SOURCES:
+        return _serious_shortfall(e, pillars, now)
     if is_big(e, now):
         launched = e.get("launched_at")
         if (float(e.get("market_cap") or 0) > radar.EXC_MCAP_MAX_USD
@@ -317,6 +327,18 @@ def qualifies(e: dict, now: float | None = None) -> str:
     if cap > legit.GEM_CAP_USD and any(pillars[k]["score"] < legit.GEM_MIN_SCORE for k in depth.WEIGHTS):
         return "sopra $100k senza pilastri eccellenti"
     return ""
+
+
+def _serious_shortfall(e: dict, pillars: dict, now: float | None) -> str:
+    launched = e.get("launched_at")
+    if float(e.get("market_cap") or 0) > SERIOUS_CAP_MAX_USD:
+        return f"oltre ${SERIOUS_CAP_MAX_USD / 1e6:.0f}M"
+    if launched and (now or time.time()) - launched > SERIOUS_AGE_MAX_DAYS * 86400:
+        return f"oltre {SERIOUS_AGE_MAX_DAYS} giorni"
+    if pillars["github"]["score"] < SERIOUS_MIN_GITHUB:
+        return f"GitHub solo {pillars['github']['score']}"
+    weak = [k for k in depth.WEIGHTS if pillars[k]["score"] < SERIOUS_MIN_PILLAR]
+    return f"{weak[0]} solo {pillars[weak[0]]['score']}" if weak else ""
 
 
 def final_score(e: dict) -> float:
@@ -366,7 +388,7 @@ def board() -> dict:
         "entries": [_public(e) for e in entries],
         "examined": _state["examined"], "analyzing": len(_busy), "waiting": waiting,
         "excluded": _excluded[:20], "excluded_total": len(_gone),
-        "sources": _state["sources"],
+        "sources": _state["sources"], "discovery": discovery.status(),
         "rules": {"weights": depth.WEIGHTS, "similarity_weight": SIMILARITY_WEIGHT, "benchmark": benchmark.NAME, "min_pillar": MIN_PILLAR, "gem_cap_usd": legit.GEM_CAP_USD,
                   "gem_min_score": legit.GEM_MIN_SCORE, "cap_max_usd": CAP_MAX_USD, "max_age_days": MAX_AGE_DAYS,
                   "exception_cap_usd": radar.EXC_MCAP_MAX_USD, "exception_age_days": radar.EXC_AGE_MAX_DAYS},
@@ -391,6 +413,7 @@ async def tick(client: httpx.AsyncClient, now: float | None = None) -> None:
         collect_saved()
     except Exception:
         logger.exception("classifica: lettura del radar fallita")
+    await _step("progetti", discovery.tick, client, add, now)
     if now - _state["last_market"] >= MARKET_POLL_S and _entries:
         _state["last_market"] = now
         await _step("dexscreener", _poll_market, client)

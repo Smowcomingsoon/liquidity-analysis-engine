@@ -208,6 +208,23 @@ eccezione in quanto tecnicamente incredibili su github".
 
 ---
 
+### Scan H24 dei progetti seri — `seed-0111` (24/09)
+
+Lorenzo: "hai trovato soltanto drag perche' te l'ho detto io [...] ce ne sono
+tanti su Robin Hood Chain e su Solana [...] sotto 2-3 milioni di market cap,
+non oltre; uno, due, tre mesi non e' importante".
+
+- Causa: la classifica leggeva solo il radar (pool nuovi/di tendenza = meme).
+- `onchain/discovery.py`: CoinGecko `solana-ecosystem` (pagine 3-8) e
+  `robinhood-ecosystem` (1-4), fascia $50k-$3M, una richiesta ogni 12 s
+  (il gratuito da' 429 facilmente); profili DexScreener ogni 2 min. Scarta
+  meme/azioni tokenizzate/stablecoin, richiede sito proprio. Chiave CoinGecko
+  della chain: `robinhood` (verificata).
+- Fonti `coingecko`/`dexscreener` in classifica: cap <= $3M, eta' <= 365 gg,
+  GitHub >= 70, altri pilastri >= 60. `depth.analyze_github` ora boccia un
+  repository che non e' del progetto (`legit.github_belongs`).
+- Resta: la UI a due sezioni e i testi sono di "Revisione generale app".
+
 ## Link ospite in sola lettura — `seed-0096`, branch `claude/link-ospite-asb5wj`
 
 Lorenzo (23/09/2026): "vorrei pubblicare un link per condividere questo sito

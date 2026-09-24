@@ -443,6 +443,34 @@ async def github_repo(owner: str, repo: str | None, client: httpx.AsyncClient) -
     return max(own, key=lambda x: x.get("pushed_at") or "", default={})
 
 
+async def github_find(website: str | None, client: httpx.AsyncClient) -> str | None:
+    """Il GitHub di un progetto che non lo linka: un account col nome del
+    dominio che dichiara quel sito, o un repository con quel sito come
+    homepage. Solo corrispondenze esatte del dominio: meglio niente che il
+    codice di un altro."""
+    host = _host(website or "")
+    if not host:
+        return None
+    stem = host.split(".")[0]
+
+    def same(url: str | None) -> bool:
+        url = (url or "").strip()
+        return bool(url) and _host(url if "://" in url else f"https://{url}") == host
+    try:
+        r = await client.get(f"{GITHUB_API}/users/{stem}", headers=_gh_headers(), timeout=8.0)
+        if r.status_code == 200 and same(r.json().get("blog")):
+            return f"https://github.com/{stem}"
+        r = await client.get(f"{GITHUB_API}/search/repositories", params={"q": f'"{host}"', "per_page": 10},
+                             headers=_gh_headers(), timeout=8.0)
+        if r.status_code == 200:
+            for repo in r.json().get("items") or []:
+                if not repo.get("fork") and same(repo.get("homepage")):
+                    return repo.get("html_url")
+    except (httpx.HTTPError, ValueError):
+        return None
+    return None
+
+
 async def github_commits(full_name: str, client: httpx.AsyncClient) -> list[dict] | None:
     r = await client.get(f"{GITHUB_API}/repos/{full_name}/commits", params={"per_page": 100},
                          headers=_gh_headers(), timeout=8.0)

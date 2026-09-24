@@ -1435,5 +1435,10 @@
     "status": "in corso",
     "at": 1790266233,
     "summary": "Studiati i casi dal vivo. JIRACHI, il '+6877%', aveva 300 acquisti e zero vendite, con liquidita' uguale alla capitalizzazione: un prezzo che nessuno poteva incassare, non una salita persa. Adesso la memoria conta una salita solo se qualcuno ha venduto e al massimo c'era liquidita' per uscire (almeno $10k); le altre sono 'salite finte' e non finiscono piu' fra i token persi. Per ogni motivo di scarto la memoria misura quanti token sono esplosi davvero, quanti erano finti e quanti rug, e confronta com'erano al primo sguardo (acquisti, vendite, volume, liquidita', detentori) le salite vere e le altre. Da questi dati nasce la corsia meme: token scartati per nome, sito, social o GitHub, mai per sicurezza, ancora vivi, vendibili, con RugCheck o GoPlus puliti e nessun wallet sopra il 15%, ordinati per somiglianza alle salite vere (un modello che entra solo se lo prevede anche su token nuovi). La corsia dice chiaramente che e' gioco d'azzardo e il pilota con soldi veri non la compra."
+  },
+  "seed-0111": {
+    "status": "in corso",
+    "at": 1790266300,
+    "summary": "La classifica leggeva solo cio' che il radar salvava: pool nuovi e di tendenza, quasi solo meme. Ora c'e' uno scan H24 dedicato ai progetti: CoinGecko (categorie Solana e Robinhood Chain, fascia $50k-$3M) e i profili DexScreener. Scarta meme, azioni tokenizzate e stablecoin, tiene chi ha un sito proprio; il GitHub lo prende da CoinGecko o dall'HTML del sito, e deve essere del progetto. Entra in classifica con cap fino a $3M ed eta' fino a un anno, se GitHub e' almeno 70 e sito e tokenomics almeno 60."
   }
 }

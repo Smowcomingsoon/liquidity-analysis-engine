@@ -173,10 +173,11 @@ def test_overall_fatal_and_pending():
 
 # -------------------------------------------------------------- classifica
 
-def _entry(sym: str, gh: int, site: int, tok: int, cap: float = 50_000, age_days: float = 2, **item) -> dict:
+def _entry(sym: str, gh: int, site: int, tok: int, cap: float = 50_000, age_days: float = 2, source: str = "radar",
+           **item) -> dict:
     item = {"chain": "solana", "token_address": sym + "mint", "pair_address": sym + "pool", "symbol": sym,
             "market_cap": cap, "created_at": time.time() - age_days * DAY, **item}
-    lb.add(item, "radar")
+    lb.add(item, source)
     k = lb._key("solana", sym + "mint")
     lb.apply_analysis(k, {n: {"key": n, "score": s, "facts": {}, "flags": [], "fatal": ""}
                           for n, s in (("github", gh), ("site", site), ("tokenomics", tok))})
@@ -301,3 +302,23 @@ def test_benchmark_is_never_excluded():
     k = lb._key(benchmark.CHAIN, benchmark.TOKEN)
     lb.apply_analysis(k, {"site": {"key": "site", "score": 0, "facts": {}, "flags": [], "fatal": "pagina vuota"}})
     assert k in lb._entries
+
+
+def test_serious_project_enters_up_to_three_million_and_a_year():
+    e = _entry("SER", 80, 70, 65, cap=2_500_000, age_days=90, source="coingecko")
+    assert lb.qualifies(e) == ""
+    e["market_cap"] = 3_500_000
+    assert "oltre" in lb.qualifies(e)
+    old = _entry("OLD", 80, 70, 65, cap=900_000, age_days=400, source="coingecko")
+    assert "giorni" in lb.qualifies(old)
+
+
+def test_serious_project_needs_real_code():
+    assert "GitHub" in lb.qualifies(_entry("THIN", 60, 90, 90, cap=500_000, source="dexscreener"))
+    assert "site" in lb.qualifies(_entry("WEAK", 85, 50, 90, cap=500_000, source="coingecko"))
+
+
+def test_serious_project_survives_prune_past_radar_age():
+    _entry("MID", 80, 70, 65, cap=800_000, age_days=60, source="coingecko")
+    lb._prune(time.time())
+    assert lb._key("solana", "MIDmint") in lb._entries
