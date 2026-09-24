@@ -28,8 +28,10 @@ al minuto: una ogni CG_GAP_S secondi, schede ricontrollate ogni settimana.
 from __future__ import annotations
 
 import asyncio
+import calendar
 import json
 import logging
+import re
 import time
 from typing import Callable
 
@@ -60,6 +62,7 @@ PROFILES_POLL_S = 120
 PROFILES_PER_POLL = 12
 
 _state = {"cg_queue": [], "cg_last_sweep": 0.0, "cg_next_at": 0.0, "profiles_at": 0.0,
+          "gh_queue": [], "gh_query": 0, "gh_search_at": 0.0, "gh_repo_at": 0.0,
           "found": 0, "skipped": 0, "running": False}
 _seen: dict[str, dict] = {}   # "cg:<chain>:<id>" o "dx:<chain>:<token>" -> {at, ok, why}
 
@@ -84,12 +87,12 @@ def _save() -> None:
 
 def reset_for_tests() -> None:
     _seen.clear()
-    _state.update(cg_queue=[], cg_last_sweep=0.0, cg_next_at=0.0, profiles_at=0.0, found=0, skipped=0,
-                  running=False)
+    _state.update(cg_queue=[], cg_last_sweep=0.0, cg_next_at=0.0, profiles_at=0.0, gh_queue=[], gh_query=0,
+                  gh_search_at=0.0, gh_repo_at=0.0, found=0, skipped=0, running=False)
 
 
 def status() -> dict:
-    return {"queue": len(_state["cg_queue"]), "found": _state["found"], "skipped": _state["skipped"],
+    return {"queue": len(_state["cg_queue"]) + len(_state["gh_queue"]), "found": _state["found"], "skipped": _state["skipped"],
             "last_sweep": _state["cg_last_sweep"] or None, "seen": len(_seen)}
 
 
@@ -235,6 +238,159 @@ async def _poll_profiles(client: httpx.AsyncClient, add: Callable[[dict, str], b
         add(c, "dexscreener")
 
 
+# ---------------------------------------------------------------- GitHub
+#
+# Reversed channel: start from the code. Serious small projects put their
+# contract address in the README; the address both finds the token and
+# proves the repository is theirs. Only the search costs GitHub API quota
+# (one call every GH_SEARCH_S); READMEs come from raw.githubusercontent.
+
+GH_QUERIES = (
+    '"pump.fun" in:readme',
+    '"dexscreener.com/solana" in:readme',
+    '"dexscreener.com/robinhood" in:readme',
+    '"robinhood chain" token in:readme',
+    '"contract address" solana in:readme',
+    '"CA:" solana in:readme',
+    '"token" "solana" "mint address" in:readme',
+    '"birdeye.so/token" in:readme',
+    '"robinhood chain" in:readme,description',
+)
+GH_SEARCH_S = 150
+GH_REPO_S = 6
+GH_FRESH_DAYS = 120
+GH_QUEUE_MAX = 300
+DEX_TOKENS = "https://api.dexscreener.com/tokens/v1/{chain}/{addresses}"
+_SOL_ADDR = re.compile(r"(?<![1-9A-HJ-NP-Za-km-z])[1-9A-HJ-NP-Za-km-z]{32,44}(?![1-9A-HJ-NP-Za-km-z])")
+_EVM_ADDR = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
+# Program ids and famous mints: in many READMEs, never a project's own token.
+_KNOWN = {
+    "So11111111111111111111111111111111111111112", "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb", "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    "11111111111111111111111111111111", "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+    "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s", "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+    "0x0000000000000000000000000000000000000000",
+}
+
+
+def readme_addresses(text: str) -> dict[str, list[str]]:
+    """Contract addresses in a README, by chain family, in order of appearance."""
+    sol, evm = [], []
+    for m in _SOL_ADDR.findall(_EVM_ADDR.sub(" ", text or "")):
+        # a base58 word with no digit and no mixed case is a word, not a key
+        if m not in _KNOWN and m not in sol and any(c.isdigit() for c in m) and not m.islower():
+            sol.append(m)
+    for m in _EVM_ADDR.findall(text or ""):
+        if m not in _KNOWN and m.lower() not in {x.lower() for x in evm}:
+            evm.append(m)
+    return {"solana": sol[:10], "robinhood": evm[:10]}
+
+
+def search_candidates(items: list[dict], now: float) -> list[dict]:
+    """Repositories worth reading: own code, pushed recently, not forks."""
+    out = []
+    for r in items or []:
+        full = r.get("full_name")
+        if not full or r.get("fork") or r.get("archived") or not r.get("size"):
+            continue
+        pushed = _iso(r.get("pushed_at"))
+        if pushed and now - pushed > GH_FRESH_DAYS * 86400:
+            continue
+        if f"gh:{full}" in _seen:
+            continue
+        out.append({"full_name": full, "html_url": r.get("html_url") or f"https://github.com/{full}",
+                    "homepage": r.get("homepage") or "", "default_branch": r.get("default_branch") or "HEAD"})
+    return out
+
+
+def _iso(s: str | None) -> float | None:
+    try:
+        return calendar.timegm(time.strptime(s, "%Y-%m-%dT%H:%M:%SZ")) if s else None
+    except ValueError:
+        return None
+
+
+def token_from_pairs(chain: str, pairs: list[dict], repo: dict) -> tuple[dict | None, str]:
+    """The README's token, from DexScreener: the most liquid pool, cap in band."""
+    best = None
+    for p in pairs or []:
+        if p.get("chainId") != chain:
+            continue
+        liq = float((p.get("liquidity") or {}).get("usd") or 0)
+        if best is None or liq > float((best.get("liquidity") or {}).get("usd") or 0):
+            best = p
+    if best is None:
+        return None, "no pool"
+    base = best.get("baseToken") or {}
+    cap = float(best.get("marketCap") or best.get("fdv") or 0)
+    if not (CAP_MIN <= cap <= CAP_MAX):
+        return None, f"cap ${cap / 1e6:.2f}M"
+    if _looks_like_meme(base.get("symbol") or "", base.get("name") or ""):
+        return None, "meme name"
+    links = legit.links_from_dexscreener(best)
+    website = legit.pick_website(links["websites"] + [repo.get("homepage") or ""])
+    return {
+        "chain": chain, "token_address": base.get("address"), "pair_address": best.get("pairAddress") or "",
+        "symbol": base.get("symbol") or "?", "name": base.get("name") or "", "website": website,
+        "github": repo["html_url"], "github_verified": True, "socials": links["socials"],
+        "market_cap": cap, "liquidity_usd": float((best.get("liquidity") or {}).get("usd") or 0),
+        "launched_at": (best.get("pairCreatedAt") or 0) / 1000 or None, "image": (best.get("info") or {}).get("imageUrl"),
+        "pair_url": best.get("url"),
+    }, ""
+
+
+async def _gh_search(client: httpx.AsyncClient, now: float) -> None:
+    if now - _state["gh_search_at"] < GH_SEARCH_S or len(_state["gh_queue"]) >= GH_QUEUE_MAX:
+        return
+    _state["gh_search_at"] = now
+    for k in [k for k, v in _seen.items() if now - v.get("at", now) > 30 * 86400]:
+        del _seen[k]
+    q = GH_QUERIES[_state["gh_query"] % len(GH_QUERIES)]
+    _state["gh_query"] += 1
+    since = time.strftime("%Y-%m-%d", time.gmtime(now - GH_FRESH_DAYS * 86400))
+    r = await legit.gh_get(client, f"{legit.GITHUB_API}/search/repositories",
+                         params={"q": f"{q} fork:false pushed:>{since}", "sort": "updated", "per_page": 50},
+                         headers=legit._gh_headers(), timeout=10.0)
+    if r.status_code != 200:
+        raise RuntimeError(f"GitHub search {r.status_code}")
+    queued = {j["full_name"] for j in _state["gh_queue"]}
+    _state["gh_queue"].extend(c for c in search_candidates(r.json().get("items") or [], now)
+                              if c["full_name"] not in queued)
+
+
+async def _gh_repo(client: httpx.AsyncClient, add: Callable[[dict, str], bool], now: float) -> None:
+    if not _state["gh_queue"] or now - _state["gh_repo_at"] < GH_REPO_S:
+        return
+    _state["gh_repo_at"] = now
+    repo = _state["gh_queue"].pop(0)
+    text = ""
+    for name in ("README.md", "readme.md", "README.MD", "README"):
+        r = await client.get(f"https://raw.githubusercontent.com/{repo['full_name']}/{repo['default_branch']}/{name}",
+                             timeout=10.0)
+        if r.status_code == 200:
+            text = r.text[:200_000]
+            break
+    found, why = None, "no contract address"
+    for chain, addrs in readme_addresses(text).items():
+        if not addrs:
+            continue
+        r = await client.get(DEX_TOKENS.format(chain=chain, addresses=",".join(addrs)), timeout=10.0)
+        pairs = r.json() if r.status_code == 200 else []
+        # the first address in the README with a pool is the project's token
+        for a in addrs:
+            own = [p for p in pairs if ((p.get("baseToken") or {}).get("address") or "").lower() == a.lower()]
+            if own:
+                found, why = token_from_pairs(chain, own, repo)
+                break
+        if found or why != "no contract address":
+            break
+    _note(f"gh:{repo['full_name']}", found is not None, why, now)
+    if found:
+        add(found, "github")
+    _save()
+
+
 # -------------------------------------------------------------------- giro
 
 async def tick(client: httpx.AsyncClient, add: Callable[[dict, str], bool], now: float | None = None) -> None:
@@ -244,7 +400,9 @@ async def tick(client: httpx.AsyncClient, add: Callable[[dict, str], bool], now:
         return
     _state["running"] = True
     try:
-        for name, step in (("coingecko", _cg_step), ("profili", _poll_profiles)):
+        steps = (("coingecko", _cg_step), ("profili", _poll_profiles),
+                 ("github", lambda c, a, n: _gh_search(c, n)), ("readme", _gh_repo))
+        for name, step in steps:
             try:
                 await step(client, add, now)
             except (httpx.HTTPError, ValueError, RuntimeError) as exc:

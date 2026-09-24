@@ -235,7 +235,10 @@ function paintAges() {
 function paintMeta() {
   const meta = root.querySelector("[data-board-meta]");
   const d = data ?? {};
-  meta.textContent = `${d.examined ?? 0} examined${d.analyzing ? ` · ${d.analyzing} under analysis` : ""}`;
+  const gh = d.github_rate?.core;
+  const starved = !gh ? "" : !d.github_rate.token || gh.limit <= 60 ? " · GitHub limited: no token"
+    : gh.remaining === 0 ? " · GitHub paused" : "";
+  meta.textContent = `${d.examined ?? 0} examined${d.analyzing ? ` · ${d.analyzing} under analysis` : ""}${starved}`;
 }
 
 function emptyText() {

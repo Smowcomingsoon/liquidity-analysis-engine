@@ -60,7 +60,7 @@ SIMILARITY_WEIGHT = 0.30
 MIN_PILLAR = 35                    # sotto, un pilastro e' troppo debole per stare in classifica
 # Progetti trovati dallo scan dedicato (discovery): l'eta' conta poco, la cap
 # si' ("sotto 2-3 milioni, non oltre"), e la qualita' deve essere vera.
-SERIOUS_SOURCES = ("coingecko", "dexscreener")
+SERIOUS_SOURCES = ("coingecko", "dexscreener", "github")
 SERIOUS_CAP_MAX_USD = discovery.CAP_MAX
 SERIOUS_AGE_MAX_DAYS = 365
 SERIOUS_MIN_PILLAR = 60
@@ -130,7 +130,7 @@ def add(item: dict, source: str, now: float | None = None) -> bool:
         return False
     now = now or time.time()
     fresh = {f: item[f] for f in ("market_cap", "liquidity_usd", "website", "github", "socials", "pair_url",
-                                  "report", "scan_url", "checks", "exception") if item.get(f)}
+                                  "report", "scan_url", "checks", "exception", "github_verified") if item.get(f)}
     if k in _entries:
         _entries[k].update(fresh)
         return False
@@ -277,7 +277,9 @@ def _prune(now: float) -> None:
         if launched and now - launched > limit * 86400:
             _entries.pop(k)
         elif (e.get("overall") or {}).get("pending") and now - pending_since > PENDING_GIVE_UP_S:
-            _exclude(k, f"data never arrived ({e['overall']['pending']})", now)
+            # A slow service (GitHub out of requests) is not the project's
+            # fault: drop it from the queue, but let it come back.
+            _entries.pop(k)
     if len(_entries) > MAX_ENTRIES:
         for k in sorted(_entries, key=lambda k: _entries[k].get("found_at", 0))[:len(_entries) - MAX_ENTRIES]:
             _entries.pop(k)
@@ -389,6 +391,7 @@ def board() -> dict:
         "examined": _state["examined"], "analyzing": len(_busy), "waiting": waiting,
         "excluded": _excluded[:20], "excluded_total": len(_gone),
         "sources": _state["sources"], "discovery": discovery.status(),
+        "github_rate": legit.github_rate or None,
         "rules": {"weights": depth.WEIGHTS, "similarity_weight": SIMILARITY_WEIGHT, "benchmark": benchmark.NAME, "min_pillar": MIN_PILLAR, "gem_cap_usd": legit.GEM_CAP_USD,
                   "gem_min_score": legit.GEM_MIN_SCORE, "cap_max_usd": CAP_MAX_USD, "max_age_days": MAX_AGE_DAYS,
                   "exception_cap_usd": radar.EXC_MCAP_MAX_USD, "exception_age_days": radar.EXC_AGE_MAX_DAYS},

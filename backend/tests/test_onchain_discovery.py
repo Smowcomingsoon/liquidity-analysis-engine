@@ -9,6 +9,7 @@ from app.trading.onchain import depth, discovery as d
 @pytest.fixture(autouse=True)
 def _clean():
     d.reset_for_tests()
+    d.legit._found.clear()
     yield
     d.reset_for_tests()
 
@@ -106,9 +107,11 @@ class _Resp:
 class _Client:
     def __init__(self, routes):
         self.routes = routes
+        self.urls = []
 
     async def get(self, url, **kw):
-        return next((r for k, r in self.routes.items() if url.endswith(k)), _Resp(404, {}))
+        self.urls.append(url)
+        return next((r for k, r in self.routes.items() if k in url), _Resp(404, {}))
 
 
 def test_github_found_by_account_declaring_the_site():
@@ -121,5 +124,87 @@ def test_github_found_by_repo_homepage_only_on_exact_domain():
              {"html_url": "https://github.com/y/arena", "homepage": "https://gridarena.xyz"}]
     c = _Client({"/search/repositories": _Resp(200, {"items": items})})
     assert asyncio.run(d.legit.github_find("https://gridarena.xyz", c)) == "https://github.com/y/arena"
+    d.legit._found.clear()
     c = _Client({"/search/repositories": _Resp(200, {"items": items[:1]})})
     assert asyncio.run(d.legit.github_find("https://gridarena.xyz", c)) is None
+
+
+def test_github_lookup_is_cached_but_not_when_github_fails():
+    c = _Client({"/users/gridarena": _Resp(403, {})})
+    assert asyncio.run(d.legit.github_find("https://gridarena.xyz", c)) is None
+    c = _Client({"/users/gridarena": _Resp(200, {"blog": "https://gridarena.xyz"})})
+    assert asyncio.run(d.legit.github_find("https://gridarena.xyz", c)) == "https://github.com/gridarena"
+    c = _Client({})
+    assert asyncio.run(d.legit.github_find("https://gridarena.xyz", c)) == "https://github.com/gridarena"
+    assert c.urls == []
+
+
+MINT = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"
+EVM = "0xDEd852De9fe9bA9b6f27f39e8e81cF851a5c79cC"
+
+
+def test_readme_addresses_skips_words_and_known_programs():
+    text = (f"## Token\nCA: `{MINT}`\nUses So11111111111111111111111111111111111111112 and "
+            f"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA. Robinhood: {EVM}\n"
+            "abcdefghijkmnopqrstuvwxyzabcdefghijk")
+    out = d.readme_addresses(text)
+    assert out == {"solana": [MINT], "robinhood": [EVM]}
+
+
+def test_search_candidates_keeps_fresh_own_repos():
+    now = 1_790_000_000.0
+    items = [{"full_name": "a/live", "size": 900, "pushed_at": "2026-09-20T10:00:00Z"},
+             {"full_name": "a/fork", "size": 900, "fork": True, "pushed_at": "2026-09-20T10:00:00Z"},
+             {"full_name": "a/stale", "size": 900, "pushed_at": "2025-01-01T10:00:00Z"},
+             {"full_name": "a/empty", "size": 0, "pushed_at": "2026-09-20T10:00:00Z"}]
+    assert [c["full_name"] for c in d.search_candidates(items, now)] == ["a/live"]
+
+
+def _pair(addr, cap, liq=20_000, chain="solana", symbol="PRVR", name="Prover Network"):
+    return {"chainId": chain, "baseToken": {"address": addr, "symbol": symbol, "name": name},
+            "marketCap": cap, "liquidity": {"usd": liq}, "pairAddress": "pool", "pairCreatedAt": 1_785_000_000_000,
+            "info": {"websites": [{"url": "https://prover.io"}]}}
+
+
+def test_token_from_pairs_picks_liquid_pool_in_band():
+    repo = {"html_url": "https://github.com/p/r", "homepage": ""}
+    item, why = d.token_from_pairs("solana", [_pair(MINT, 800_000, 5_000), _pair(MINT, 900_000, 50_000)], repo)
+    assert why == "" and item["market_cap"] == 900_000 and item["github_verified"]
+    assert item["website"] == "https://prover.io" and item["launched_at"] == 1_785_000_000
+    assert d.token_from_pairs("solana", [_pair(MINT, 9_000_000)], repo)[1].startswith("cap")
+    assert d.token_from_pairs("solana", [_pair(MINT, 500_000, symbol="PEPE", name="Pepe Inu")], repo)[1] == "meme name"
+
+
+def test_repo_readme_to_leaderboard():
+    d._state["gh_queue"].append({"full_name": "p/r", "html_url": "https://github.com/p/r", "homepage": "",
+                                 "default_branch": "main"})
+    c = _Client({"raw.githubusercontent.com/p/r/main/README.md": _Resp(200, {}),
+                 "tokens/v1/solana/": _Resp(200, [_pair(MINT, 700_000)])})
+    c.routes["raw.githubusercontent.com/p/r/main/README.md"].text = f"Our token: {MINT}"
+    added = []
+    asyncio.run(d._gh_repo(c, lambda item, src: added.append((item["token_address"], src)) or True, 1_790_000_000.0))
+    assert added == [(MINT, "github")] and d._seen["gh:p/r"]["ok"]
+
+
+def test_verified_readme_skips_ownership_check(monkeypatch):
+    async def repo(owner, name, client):
+        return {"full_name": "alice/rust-utils", "homepage": "", "description": "misc"}
+
+    async def fetch(full, client):
+        return {}
+
+    monkeypatch.setattr(depth.legit, "github_repo", repo)
+    monkeypatch.setattr(depth, "fetch_github", fetch)
+    out = asyncio.run(depth.analyze_github(["https://github.com/alice/rust-utils"], None, None,
+                                           token={"chain": "solana", "token_address": "M", "symbol": "GRID",
+                                                  "github_verified": True}, website="https://grid.xyz"))
+    assert out["fatal"] != "GitHub does not belong to the project"
+
+
+def test_github_rate_limit_is_recorded():
+    d.legit.github_rate.clear()
+    r = _Resp(200, {})
+    r.headers = {"x-ratelimit-limit": "60", "x-ratelimit-remaining": "0", "x-ratelimit-reset": "1790000000",
+                 "x-ratelimit-resource": "core"}
+    asyncio.run(d.legit.gh_get(_Client({"/x": r}), "https://api.github.com/x"))
+    assert d.legit.github_rate["core"]["limit"] == 60 and d.legit.github_rate["core"]["remaining"] == 0

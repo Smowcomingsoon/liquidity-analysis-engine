@@ -107,7 +107,7 @@ async def fetch_github(full_name: str, client: httpx.AsyncClient) -> dict | None
     base = f"{legit.GITHUB_API}/repos/{full_name}"
     h = legit._gh_headers()
     try:
-        repo = await client.get(base, headers=h, timeout=8.0)
+        repo = await legit.gh_get(client, base, headers=h, timeout=8.0)
         if repo.status_code == 404:
             return {}
         if repo.status_code != 200:
@@ -118,7 +118,7 @@ async def fetch_github(full_name: str, client: httpx.AsyncClient) -> dict | None
                                  ("languages", f"{base}/languages", None),
                                  ("root", f"{base}/contents", None),
                                  ("participation", f"{base}/stats/participation", None)):
-            r = await client.get(url, params=params, headers=h, timeout=8.0)
+            r = await legit.gh_get(client, url, params=params, headers=h, timeout=8.0)
             if key == "participation" and r.status_code != 200:
                 out[key] = {}   # 202: GitHub la sta ancora calcolando; si usano i 100 commit
             elif r.status_code in (204, 404, 409):  # vuoto, o niente contributori calcolati
@@ -240,7 +240,9 @@ async def analyze_github(urls: list[str], client: httpx.AsyncClient, launched_at
     if not repo:
         return judge_github({}, launched_at)
     # Un link a una libreria o a una piattaforma non e' il codice del progetto.
-    if token and not benchmark.is_benchmark(token.get("chain"), token.get("token_address")) \
+    # github_verified: the README names the token's address, proof enough.
+    if token and not token.get("github_verified") \
+            and not benchmark.is_benchmark(token.get("chain"), token.get("token_address")) \
             and not legit.github_belongs(repo, token, website):
         return _pillar("github", 0, {"repo": repo.get("full_name")}, [], "GitHub does not belong to the project")
     return judge_github(await fetch_github(repo["full_name"], client), launched_at)

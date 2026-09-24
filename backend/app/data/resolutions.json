@@ -1438,7 +1438,7 @@
   },
   "seed-0111": {
     "status": "in corso",
-    "at": 1790266300,
-    "summary": "La classifica leggeva solo cio' che il radar salvava: pool nuovi e di tendenza, quasi solo meme. Ora c'e' uno scan H24 dedicato ai progetti: CoinGecko (categorie Solana e Robinhood Chain, fascia $50k-$3M) e i profili DexScreener. Scarta meme, azioni tokenizzate e stablecoin, tiene chi ha un sito proprio; il GitHub lo prende da CoinGecko o dall'HTML del sito, e deve essere del progetto. Entra in classifica con cap fino a $3M ed eta' fino a un anno, se GitHub e' almeno 70 e sito e tokenomics almeno 60."
+    "at": 1790290590,
+    "summary": "La classifica leggeva solo cio' che il radar salvava: pool nuovi e di tendenza, quasi solo meme. Ora c'e' uno scan H24 dedicato ai progetti: CoinGecko (categorie Solana e Robinhood Chain, fascia $50k-$3M) e i profili DexScreener. Scarta meme, azioni tokenizzate e stablecoin, tiene chi ha un sito proprio; il GitHub lo prende da CoinGecko o dall'HTML del sito, e deve essere del progetto. Entra in classifica con cap fino a $3M ed eta' fino a un anno, se GitHub e' almeno 70 e sito e tokenomics almeno 60. 25/09: dopo un giorno ancora solo DREGG, perche' quasi nessuna microcap linka un GitHub. Nuovo canale al contrario: cerca su GitHub i repository recenti che citano pump.fun, DexScreener, Robinhood Chain o un contract address, legge il README, e se l'indirizzo ha un pool sotto $3M il progetto entra in analisi (il README che cita il token prova che il codice e' suo). Un GitHub lento non scarta piu' un progetto per 30 giorni, e la ricerca del GitHub per dominio si ricorda il risultato per una settimana."
   }
 }

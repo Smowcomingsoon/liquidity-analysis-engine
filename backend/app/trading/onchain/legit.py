@@ -418,6 +418,25 @@ def judge_goplus_solana(info: dict | None) -> dict:
 
 # ----------------------------------------------------------------- GitHub
 
+github_rate: dict = {}   # last GitHub answer: limit 60 = no token on the server
+
+
+async def gh_get(client: httpx.AsyncClient, url: str, **kw) -> httpx.Response:
+    """GitHub GET that remembers the rate limit, so the page can say when
+    the analysis is starved."""
+    r = await client.get(url, **kw)
+    h = getattr(r, "headers", None) or {}
+    try:
+        if h.get("x-ratelimit-limit") is not None:
+            github_rate[h.get("x-ratelimit-resource") or "core"] = {
+                "limit": int(h["x-ratelimit-limit"]), "remaining": int(h.get("x-ratelimit-remaining") or 0),
+                "reset": int(h.get("x-ratelimit-reset") or 0), "at": time.time()}
+            github_rate["token"] = bool(settings.github_api_token)
+    except (TypeError, ValueError):
+        pass
+    return r
+
+
 def _gh_headers() -> dict:
     h = {"Accept": "application/vnd.github+json", "User-Agent": "LiquidityEngine"}
     if settings.github_api_token:
@@ -429,11 +448,11 @@ async def github_repo(owner: str, repo: str | None, client: httpx.AsyncClient) -
     """Il repository indicato, o il piu' attivo non-fork dell'account. None =
     GitHub non risponde (limite di richieste): si riprova."""
     if repo:
-        r = await client.get(f"{GITHUB_API}/repos/{owner}/{repo}", headers=_gh_headers(), timeout=8.0)
+        r = await gh_get(client, f"{GITHUB_API}/repos/{owner}/{repo}", headers=_gh_headers(), timeout=8.0)
         if r.status_code == 404:
             return {}
         return r.json() if r.status_code == 200 else None
-    r = await client.get(f"{GITHUB_API}/users/{owner}/repos", params={"sort": "pushed", "per_page": 10},
+    r = await gh_get(client, f"{GITHUB_API}/users/{owner}/repos", params={"sort": "pushed", "per_page": 10},
                          headers=_gh_headers(), timeout=8.0)
     if r.status_code == 404:
         return {}
@@ -443,7 +462,26 @@ async def github_repo(owner: str, repo: str | None, client: httpx.AsyncClient) -
     return max(own, key=lambda x: x.get("pushed_at") or "", default={})
 
 
+_FIND_TTL_S = 7 * 86400
+_found: dict[str, tuple[float, str | None]] = {}
+
+
 async def github_find(website: str | None, client: httpx.AsyncClient) -> str | None:
+    """Cached per domain for a week: two API calls per project are cheap once,
+    not on every refresh."""
+    host = _host(website or "")
+    hit = _found.get(host)
+    if hit and time.time() - hit[0] < _FIND_TTL_S:
+        return hit[1]
+    url = await _github_find(website, client)
+    if url == "":             # GitHub did not answer: ask again next time
+        return None
+    if host:
+        _found[host] = (time.time(), url)
+    return url
+
+
+async def _github_find(website: str | None, client: httpx.AsyncClient) -> str | None:
     """Il GitHub di un progetto che non lo linka: un account col nome del
     dominio che dichiara quel sito, o un repository con quel sito come
     homepage. Solo corrispondenze esatte del dominio: meglio niente che il
@@ -457,22 +495,25 @@ async def github_find(website: str | None, client: httpx.AsyncClient) -> str | N
         url = (url or "").strip()
         return bool(url) and _host(url if "://" in url else f"https://{url}") == host
     try:
-        r = await client.get(f"{GITHUB_API}/users/{stem}", headers=_gh_headers(), timeout=8.0)
+        r = await gh_get(client, f"{GITHUB_API}/users/{stem}", headers=_gh_headers(), timeout=8.0)
+        if r.status_code not in (200, 404):
+            return ""
         if r.status_code == 200 and same(r.json().get("blog")):
             return f"https://github.com/{stem}"
-        r = await client.get(f"{GITHUB_API}/search/repositories", params={"q": f'"{host}"', "per_page": 10},
+        r = await gh_get(client, f"{GITHUB_API}/search/repositories", params={"q": f'"{host}"', "per_page": 10},
                              headers=_gh_headers(), timeout=8.0)
-        if r.status_code == 200:
-            for repo in r.json().get("items") or []:
-                if not repo.get("fork") and same(repo.get("homepage")):
-                    return repo.get("html_url")
+        if r.status_code != 200:
+            return ""
+        for repo in r.json().get("items") or []:
+            if not repo.get("fork") and same(repo.get("homepage")):
+                return repo.get("html_url")
     except (httpx.HTTPError, ValueError):
-        return None
+        return ""
     return None
 
 
 async def github_commits(full_name: str, client: httpx.AsyncClient) -> list[dict] | None:
-    r = await client.get(f"{GITHUB_API}/repos/{full_name}/commits", params={"per_page": 100},
+    r = await gh_get(client, f"{GITHUB_API}/repos/{full_name}/commits", params={"per_page": 100},
                          headers=_gh_headers(), timeout=8.0)
     if r.status_code == 409:  # repository vuoto
         return []
@@ -482,7 +523,7 @@ async def github_commits(full_name: str, client: httpx.AsyncClient) -> list[dict
 async def github_commit_total(full_name: str, client: httpx.AsyncClient) -> int | None:
     """Commit totali del ramo principale: con una pagina da 1, il numero
     dell'ultima pagina nel Link e' il conteggio."""
-    r = await client.get(f"{GITHUB_API}/repos/{full_name}/commits", params={"per_page": 1},
+    r = await gh_get(client, f"{GITHUB_API}/repos/{full_name}/commits", params={"per_page": 1},
                          headers=_gh_headers(), timeout=8.0)
     if r.status_code != 200:
         return None

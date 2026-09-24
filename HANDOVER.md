@@ -224,6 +224,13 @@ non oltre; uno, due, tre mesi non e' importante".
   GitHub >= 70, altri pilastri >= 60. `depth.analyze_github` ora boccia un
   repository che non e' del progetto (`legit.github_belongs`).
 - Resta: la UI a due sezioni e i testi sono di "Revisione generale app".
+- 25/09, Lorenzo: "non stai trovando nessuna gemma [...] puoi farla anche
+  attraverso altri canali". Scelto sulla card: GitHub obbligatorio.
+  Canale GitHub in `discovery.py`: ricerca repository (una ogni 150 s, 9
+  query a rotazione: pump.fun, dexscreener, robinhood chain, "CA:"...),
+  README da raw.githubusercontent (niente quota API), indirizzi -> DexScreener
+  -> cap $50k-$3M, sorgente `github`, `github_verified` salta il controllo di
+  appartenenza. Pending oltre 6 h: tolto dalla coda, non bandito.
 
 ## Link ospite in sola lettura — `seed-0096`, branch `claude/link-ospite-asb5wj`
 

@@ -322,3 +322,17 @@ def test_serious_project_survives_prune_past_radar_age():
     _entry("MID", 80, 70, 65, cap=800_000, age_days=60, source="coingecko")
     lb._prune(time.time())
     assert lb._key("solana", "MIDmint") in lb._entries
+
+
+def test_github_channel_counts_as_serious_source():
+    e = _entry("GHX", 80, 65, 65, cap=1_500_000, age_days=100, source="github")
+    assert lb.qualifies(e) == ""
+
+
+def test_data_that_never_arrives_does_not_ban_the_project():
+    e = _entry("SLOW", 80, 80, 80)
+    k = lb._key("solana", "SLOWmint")
+    e["overall"]["pending"] = "GitHub not answering"
+    e["found_at"] = time.time() - lb.PENDING_GIVE_UP_S - 60
+    lb._prune(time.time())
+    assert k not in lb._entries and k not in lb._gone
