@@ -164,6 +164,9 @@ def _resolutions() -> dict[str, dict]:
 
 
 _SEED = [
+    ("seed-0116", "Gem Finder: cercare anche per narrativa (privacy, ZK, AI agent, OS agentici, soldi gestiti da AI)",
+     "Lorenzo: 'dobbiamo inserire nel cacciatore di gemme anche la parte di narrativa, quelle che vanno piu' forte ora, privacy, zero knowledge, ai agent, sistemi operativi agentici etc, usa un esperto e trova quanti piu' argomenti essenziali per il futuro delle cripto e dei soldi gestiti da AI, perche' non stanno ancora uscendo risultati, ho solo dregg e un altro'.",
+     "alta"),
     ("seed-0115", "Sito senza nomi personali, con due sezioni distinte: gemme e meme",
      "Richiesta: 'rendilo privacy centrico, nel senso che non ci deve essere scritto Lorenzo [...] ci deve essere una sezione che riguarda il trading di meme coin [...] mentre per quanto riguarda i progetti seri voglio che anche li' ci sia uno scan H24 [...] che poi finisce nella leaderboard [...] anche a livello di interfaccia grafica siano distinte queste due sezioni prima di poter entrare'. Poi: 'deve essere anche chiaro che e' un qualcosa di estremamente gambling, la sezione per le meme coin' e 'revisione a tutto il sito in ottica degen [...] i dettagli che non serve a nessuno sapere non ci devono essere'.",
      "alta"),

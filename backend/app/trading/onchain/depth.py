@@ -35,7 +35,7 @@ from urllib.parse import urljoin, urlparse
 
 import httpx
 
-from app.trading.onchain import benchmark, legit
+from app.trading.onchain import benchmark, legit, narratives
 
 WEIGHTS = {"github": 0.40, "site": 0.30, "tokenomics": 0.30}
 
@@ -390,6 +390,7 @@ def judge_site(page: dict | None, followed: list[dict], registered_at: float | N
         "domain_days": None if domain_days is None else round(domain_days),
         "cites_contract": cites, "https": bool(page.get("https")),
         "tech_terms": benchmark.site_terms(page.get("text") or ""),
+        "narratives": narratives.match(page.get("text") or ""),
     }
     flags: list[str] = []
     if page.get("not_own"):

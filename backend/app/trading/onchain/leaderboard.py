@@ -38,7 +38,7 @@ import time
 
 import httpx
 
-from app.trading.onchain import benchmark, depth, discovery, legit, listings, radar, storage
+from app.trading.onchain import benchmark, depth, discovery, legit, listings, narratives, radar, storage
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +130,8 @@ def add(item: dict, source: str, now: float | None = None) -> bool:
         return False
     now = now or time.time()
     fresh = {f: item[f] for f in ("market_cap", "liquidity_usd", "website", "github", "socials", "pair_url",
-                                  "report", "scan_url", "checks", "exception", "github_verified") if item.get(f)}
+                                  "report", "scan_url", "checks", "exception", "github_verified", "description",
+                                  "categories") if item.get(f)}
     if k in _entries:
         _entries[k].update(fresh)
         return False
@@ -235,6 +236,10 @@ def apply_analysis(k: str, result: dict, now: float | None = None) -> None:
     e["similarity"] = benchmark.similarity(benchmark.signals(
         (e["pillars"].get("github") or {}).get("facts"),
         (e["pillars"].get("site") or {}).get("facts", {}).get("tech_terms")))
+    gh = (e["pillars"].get("github") or {}).get("facts") or {}
+    site_keys = (e["pillars"].get("site") or {}).get("facts", {}).get("narratives") or []
+    more = narratives.match(e.get("description"), e.get("categories"), gh.get("topics"), gh.get("description"))
+    e["narratives"] = list(dict.fromkeys([*site_keys, *more]))
     if e["overall"]["fatal"] and not benchmark.is_benchmark(e["chain"], e["token_address"]):
         _exclude(k, e["overall"]["fatal"], now)
     _mark()
@@ -347,7 +352,8 @@ def final_score(e: dict) -> float:
     """Qualita' (i tre pilastri) e somiglianza tecnica a DREGG."""
     q = (e.get("overall") or {}).get("score") or 0
     sim = (e.get("similarity") or {}).get("score") or 0
-    return round((1 - SIMILARITY_WEIGHT) * q + SIMILARITY_WEIGHT * sim, 1)
+    base = (1 - SIMILARITY_WEIGHT) * q + SIMILARITY_WEIGHT * sim
+    return round(min(100.0, base + narratives.bonus(e.get("narratives") or [])), 1)
 
 
 def _rank() -> None:
@@ -379,7 +385,8 @@ def _public(e: dict) -> dict:
             "image", "bonding", "rank", "rank_before", "moved_at", "overall", "pillars", "checked_at")
     top = benchmark.is_benchmark(e["chain"], e["token_address"])
     return {**{k: e.get(k) for k in keep}, "exception": is_big(e) and not top, "score": final_score(e),
-            "similarity": e.get("similarity"), "benchmark": top, "honor": benchmark.HONOR if top else None}
+            "similarity": e.get("similarity"), "benchmark": top,
+            "narratives": narratives.labels(e.get("narratives") or []), "honor": benchmark.HONOR if top else None}
 
 
 def board() -> dict:

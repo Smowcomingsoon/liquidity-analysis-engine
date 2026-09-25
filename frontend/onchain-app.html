@@ -1912,7 +1912,9 @@
   .bd-tags { display: flex; gap: 4px; min-block-size: 0; &:empty { display: none; } }
   .board em { font-style: normal; font-size: 10.5px; padding: 1px 6px; border-radius: 99px; background: var(--raised);
     color: var(--ink-dim); white-space: nowrap;
-    &[data-tone="gold"] { color: var(--gold); background: color-mix(in oklch, var(--gold) 12%, transparent); } }
+    &[data-tone="gold"] { color: var(--gold); background: color-mix(in oklch, var(--gold) 12%, transparent); }
+    &.bd-nar { color: var(--live); background: color-mix(in oklch, var(--live) 10%, transparent); }
+    &.bd-nar[data-tone="hot"] { box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--live) 40%, transparent); } }
   .bd-move { font: 500 10.5px var(--mono); font-style: normal; color: var(--ink-faint); white-space: nowrap;
     &[data-dir="up"] { color: var(--up); } &[data-dir="down"] { color: var(--down); }
     &[data-dir="new"] { color: var(--live); font-family: var(--sans); } }

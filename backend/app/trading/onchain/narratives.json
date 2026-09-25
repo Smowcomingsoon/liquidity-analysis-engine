@@ -1,0 +1,677 @@
+[
+ {
+  "key": "ai_agents",
+  "label": "AI Agents",
+  "heat": 3,
+  "why": "Autonomous software agents that hold keys and act on-chain are becoming the main new class of crypto users.",
+  "terms": [
+   "\\bai[- ]agents?\\b",
+   "autonomous agents?",
+   "on[- ]?chain agents?",
+   "agent[- ]to[- ]agent",
+   "\\ba2a\\b",
+   "agent swarms?",
+   "multi[- ]agent",
+   "\\bmcp server",
+   "model context protocol",
+   "llm[- ]powered agent"
+  ],
+  "coingecko": [
+   "ai-agents",
+   "ai-applications",
+   "artificial-intelligence",
+   "virtuals-protocol-ecosystem",
+   "ai-agent-launchpad"
+  ],
+  "github": [
+   "\"ai agent\" solana token in:readme",
+   "\"autonomous agent\" \"spl token\" in:readme",
+   "\"mcp server\" solana in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "agent_frameworks",
+  "label": "Agentic OS",
+  "heat": 3,
+  "why": "Agent frameworks and agentic operating systems are the runtime layer where agents are built, coordinated and monetised.",
+  "terms": [
+   "agent(ic)? (os|operating system)",
+   "agent framework",
+   "agentic (framework|runtime|infrastructure|layer)",
+   "\\belizaos\\b",
+   "\\beliza framework",
+   "\\brig framework\\b",
+   "solana agent kit",
+   "agent sdk",
+   "agent orchestration",
+   "agent (runtime|launchpad)"
+  ],
+  "coingecko": [
+   "ai-framework",
+   "ai-agent-launchpad"
+  ],
+  "github": [
+   "\"agent framework\" solana token in:readme",
+   "\"agentic os\" in:readme",
+   "\"solana agent kit\" in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "ai_money",
+  "label": "AI-Managed Money",
+  "heat": 3,
+  "why": "Agents that manage treasuries, trade and pay each other need non-custodial wallets and machine-native payment rails, and crypto is the only rail that fits.",
+  "terms": [
+   "x402",
+   "agent(ic)? payments?",
+   "agent wallets?",
+   "wallets? for (ai )?agents",
+   "machine[- ]to[- ]machine payments?",
+   "autonomous (treasur(y|ies)|fund|vault)",
+   "ai[- ]managed (fund|vault|treasury|portfolio)",
+   "\\bdefai\\b",
+   "agentic (commerce|finance|trading)",
+   "\\bap2\\b|agent payments protocol",
+   "ai (hedge fund|trading agent|portfolio manager)",
+   "http 402|402 payment required"
+  ],
+  "coingecko": [
+   "x402-ecosystem",
+   "defai",
+   "trading-bots",
+   "kiteai-ecosystem"
+  ],
+  "github": [
+   "x402 solana in:readme",
+   "\"agent wallet\" solana in:readme",
+   "\"defai\" token in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "privacy",
+  "label": "Privacy",
+  "heat": 3,
+  "why": "Institutional and everyday on-chain finance cannot scale on fully transparent ledgers, so compliant privacy is returning as a core requirement.",
+  "terms": [
+   "privacy[- ](preserving|layer|protocol|pool|first)",
+   "confidential (transfers?|transactions?|balances?|tokens?)",
+   "shielded (pool|transfers?|transactions?|balances?)",
+   "stealth address",
+   "private (payments?|transactions?|transfers?)",
+   "(crypto|coin|token|tornado|sol) mixer",
+   "anonymous (payments?|transactions?)",
+   "\\bprivacy coin",
+   "encrypted (mempool|balances?)",
+   "\\barcium\\b|\\belusiv\\b|\\blight protocol\\b"
+  ],
+  "coingecko": [
+   "privacy",
+   "privacy-coins",
+   "privacy-blockchain",
+   "privacy-infrastructure"
+  ],
+  "github": [
+   "\"confidential transfer\" solana in:readme",
+   "\"privacy\" \"solana\" token shielded in:readme",
+   "\"stealth address\" in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "zero_knowledge",
+  "label": "Zero Knowledge",
+  "heat": 3,
+  "why": "ZK proofs let chains scale and verify computation without revealing data, and are becoming default infrastructure.",
+  "terms": [
+   "zero[- ]knowledge",
+   "zk[- ]?snarks?",
+   "zk[- ]?starks?",
+   "\\bzk[- ]?(proofs?|rollups?|vm|evm|compression|coprocessor)\\b",
+   "\\bgroth16\\b",
+   "\\bplonk",
+   "\\bhalo2\\b",
+   "\\bcircom\\b",
+   "\\bnoir\\b lang|noir circuits?",
+   "proof aggregation",
+   "validity proofs?",
+   "\\bsp1\\b|risc[- ]?zero"
+  ],
+  "coingecko": [
+   "zero-knowledge-zk",
+   "rollup"
+  ],
+  "github": [
+   "\"zero knowledge\" solana token in:readme",
+   "\"zk\" solana groth16 in:readme",
+   "\"zk compression\" in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "verifiable_ai",
+  "label": "Verifiable AI",
+  "heat": 3,
+  "why": "As agents move money, proving which model ran and on what input (zkML, opML, TEE attestations) becomes the trust layer for AI.",
+  "terms": [
+   "\\bzkml\\b",
+   "zk[- ]?machine learning",
+   "verifiable (ai|inference|compute|computation|ml)",
+   "proof of inference",
+   "\\bopml\\b",
+   "optimistic ml",
+   "proof of (model|training)",
+   "model attestation",
+   "verifiable llm"
+  ],
+  "coingecko": [
+   "artificial-intelligence"
+  ],
+  "github": [
+   "zkml in:readme",
+   "\"verifiable inference\" in:readme",
+   "\"proof of inference\" token in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "fhe_mpc_tee",
+  "label": "FHE / MPC / TEE",
+  "heat": 3,
+  "why": "Computing on encrypted data (FHE, MPC, TEEs) unlocks private DeFi, private agents and dark order flow.",
+  "terms": [
+   "\\bfhe\\b",
+   "fully homomorphic",
+   "homomorphic encryption",
+   "multi[- ]party computation",
+   "\\bmpc\\b (wallet|network|node|signing)",
+   "threshold (signatures?|encryption|ecdsa)",
+   "\\btee\\b",
+   "trusted execution environment",
+   "\\bsgx\\b|\\btdx\\b|nitro enclaves?",
+   "secure enclaves?",
+   "confidential comput(e|ing)",
+   "encrypted compute"
+  ],
+  "coingecko": [
+   "zama-gateway-mainnet-ecosystem",
+   "privacy-infrastructure"
+  ],
+  "github": [
+   "\"fully homomorphic\" token in:readme",
+   "\"trusted execution environment\" solana in:readme",
+   "\"mpc\" solana wallet in:readme"
+  ],
+  "weak": [
+   "\\btee\\b"
+  ]
+ },
+ {
+  "key": "decentralized_compute",
+  "label": "AI Compute",
+  "heat": 3,
+  "why": "Demand for GPUs and inference is outpacing centralised supply, and open compute markets are the crypto-native answer.",
+  "terms": [
+   "decentrali[sz]ed (gpu|compute|inference|cloud|training)",
+   "gpu (marketplace|network|sharing|rental)",
+   "distributed (inference|training)",
+   "compute (marketplace|network)",
+   "inference (network|marketplace|layer)",
+   "\\bdepin\\b.{0,30}\\b(gpu|compute)",
+   "idle gpus?",
+   "open[- ]source (model|llm) hosting",
+   "federated learning",
+   "bittensor subnet"
+  ],
+  "coingecko": [
+   "artificial-intelligence",
+   "bittensor-subnets",
+   "depin",
+   "opengpu-mainnet-ecosystem"
+  ],
+  "github": [
+   "\"decentralized gpu\" in:readme",
+   "\"inference network\" token in:readme",
+   "\"compute marketplace\" solana in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "depin",
+  "label": "DePIN",
+  "heat": 2,
+  "why": "Token incentives bootstrap real-world networks (wireless, sensors, mapping, energy) faster and cheaper than traditional capex.",
+  "terms": [
+   "\\bdepin\\b",
+   "decentrali[sz]ed physical infrastructure",
+   "physical infrastructure network",
+   "proof of (coverage|location|bandwidth)",
+   "(sensor|hotspot|node) operators? earn",
+   "crowdsourced (map|data|wireless)",
+   "\\bhelium\\b|\\bhivemapper\\b",
+   "decentrali[sz]ed (wireless|energy grid|mapping)",
+   "\\biot\\b network"
+  ],
+  "coingecko": [
+   "depin",
+   "internet-of-things-iot",
+   "wireless-telecommunication-services",
+   "mobile-mining",
+   "energy"
+  ],
+  "github": [
+   "depin solana in:readme",
+   "\"proof of coverage\" in:readme",
+   "\"physical infrastructure\" token solana in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "robotics_physical_ai",
+  "label": "Robotics / Physical AI",
+  "heat": 2,
+  "why": "Robots and embodied AI need identity, coordination and payments, making machine economies a follow-on of DePIN and agents.",
+  "terms": [
+   "physical ai",
+   "embodied (ai|agents?)",
+   "robot(ic)? (economy|fleet|network|data)",
+   "machine economy",
+   "teleoperation",
+   "robot(s)? (earn|pay|identity)",
+   "\\bros ?2\\b"
+  ],
+  "coingecko": [
+   "robotics"
+  ],
+  "github": [
+   "\"physical ai\" token in:readme",
+   "robotics solana token in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "rwa",
+  "label": "RWA",
+  "heat": 3,
+  "why": "Tokenised treasuries, stocks, credit and commodities bring trillions of traditional assets on-chain, now including stock tokens on Robinhood Chain.",
+  "terms": [
+   "real[- ]world assets?",
+   "\\brwas?\\b",
+   "tokeni[sz]ed (stocks?|equit(y|ies)|treasur(y|ies)|t-bills?|bonds?|real estate|credit|gold|commodit(y|ies)|funds?|assets?)",
+   "asset tokeni[sz]ation",
+   "on[- ]?chain (credit|treasur(y|ies)|equit(y|ies))",
+   "private credit",
+   "security tokens?",
+   "fractional (ownership|real estate)",
+   "\\berc[- ]?3643\\b|\\bst[- ]?20\\b"
+  ],
+  "coingecko": [
+   "real-world-assets-rwa",
+   "rwa-protocol",
+   "tokenized-private-credit",
+   "tokenized-products"
+  ],
+  "github": [
+   "\"real world assets\" solana in:readme",
+   "\"tokenized stocks\" in:readme",
+   "\"rwa\" token solana in:readme"
+  ],
+  "weak": [
+   "private credit"
+  ]
+ },
+ {
+  "key": "stablecoin_payments",
+  "label": "Stablecoin Payments",
+  "heat": 3,
+  "why": "Post-GENIUS-Act stablecoins are becoming the internet's settlement layer for payments, remittances and merchant checkout.",
+  "terms": [
+   "stablecoin (payments?|rails?|settlement|checkout|remittance|neobank|card)",
+   "pay(ments?)? (in|with) (usdc|usdt|stablecoins?)",
+   "(usdc|stablecoin) (payroll|invoic(e|ing))",
+   "crypto (debit|payment) card",
+   "merchant (payments?|checkout)",
+   "cross[- ]border payments?",
+   "payment (rails?|gateway|processor)",
+   "on[- ]?(ramp|off[- ]?ramp)s?",
+   "solana pay"
+  ],
+  "coingecko": [
+   "payment-solutions",
+   "transaction-payment-processing-services"
+  ],
+  "github": [
+   "\"stablecoin payments\" solana in:readme",
+   "\"solana pay\" token in:readme",
+   "\"usdc\" merchant checkout token in:readme"
+  ],
+  "weak": [
+   "payment (rails?|gateway|processor)"
+  ]
+ },
+ {
+  "key": "prediction_markets",
+  "label": "Prediction Markets",
+  "heat": 3,
+  "why": "Prediction markets have become a mainstream information and hedging tool, and agents are natural market makers and traders on them.",
+  "terms": [
+   "prediction markets?",
+   "information markets?",
+   "outcome (tokens?|shares?)",
+   "binary (outcome|options?) markets?",
+   "forecast(ing)? markets?",
+   "event (contracts?|markets?|trading)",
+   "\\bbet on (outcomes?|events?)",
+   "futarchy",
+   "decision markets?"
+  ],
+  "coingecko": [
+   "prediction-markets",
+   "prediction-market-tools",
+   "metadao-launchpad"
+  ],
+  "github": [
+   "\"prediction market\" solana in:readme",
+   "futarchy solana in:readme",
+   "\"prediction market\" token agent in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "formal_verification_security",
+  "label": "Secure Infra",
+  "heat": 2,
+  "why": "With agents and institutions moving capital automatically, formally verified contracts and on-chain security tooling are prerequisites.",
+  "terms": [
+   "formal(ly)? verif(ied|ication)",
+   "smart contract (audit|security|firewall)",
+   "exploit (detection|prevention|monitoring)",
+   "(on[- ]?chain|real[- ]time) (threat|security) monitoring",
+   "\\bcertora\\b|\\blean ?4\\b|\\bcoq\\b|\\bk framework\\b",
+   "symbolic execution",
+   "security (oracle|firewall)",
+   "rug[- ]?pull detection",
+   "wallet drainer"
+  ],
+  "coingecko": [
+   "cybersecurity"
+  ],
+  "github": [
+   "\"formal verification\" solana in:readme",
+   "\"smart contract security\" token in:readme",
+   "\"exploit detection\" solana in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "mev_intents",
+  "label": "MEV / Intents",
+  "heat": 2,
+  "why": "Intents and MEV-aware routing decide who captures value in every trade, and they are the interface agents naturally use.",
+  "terms": [
+   "\\bmev\\b",
+   "maximal extractable value",
+   "intent[- ](based|centric|solver|layer|architecture)",
+   "\\bsolvers?\\b network",
+   "order ?flow auction",
+   "sandwich (attack|protection)",
+   "bundle (auction|engine)",
+   "\\bjito\\b",
+   "block ?builder",
+   "encrypted mempool|private mempool"
+  ],
+  "coingecko": [
+   "mev-protection",
+   "intent"
+  ],
+  "github": [
+   "mev solana jito in:readme",
+   "\"intent-based\" solver token in:readme"
+  ],
+  "weak": [
+   "\\bmev\\b"
+  ]
+ },
+ {
+  "key": "restaking",
+  "label": "Restaking",
+  "heat": 1,
+  "why": "Restaking rents out base-layer security to new services (oracles, bridges, AVSs, AI verifiers), making security a reusable market.",
+  "terms": [
+   "re[- ]?staking",
+   "shared security",
+   "\\bavs\\b|actively validated services?",
+   "liquid restaking",
+   "\\blrt\\b",
+   "node consensus network",
+   "\\bncns?\\b",
+   "\\bjito restaking\\b|\\bsolayer\\b|\\bfragmetric\\b"
+  ],
+  "coingecko": [
+   "restaking"
+  ],
+  "github": [
+   "restaking solana in:readme",
+   "\"shared security\" token in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "desci",
+  "label": "DeSci",
+  "heat": 2,
+  "why": "Decentralised science funds, owns and coordinates research outside legacy institutions, and increasingly pairs with AI research agents.",
+  "terms": [
+   "\\bdesci\\b",
+   "decentrali[sz]ed science",
+   "research (dao|funding|ip)",
+   "\\bip[- ]?nfts?\\b",
+   "biotech dao",
+   "longevity (dao|research)",
+   "on[- ]?chain (research|science)",
+   "ai (scientist|research agent)",
+   "peer review (on[- ]?chain|protocol)"
+  ],
+  "coingecko": [
+   "decentralized-science-desci",
+   "pump-science-ecosystem",
+   "biotechnology"
+  ],
+  "github": [
+   "desci solana token in:readme",
+   "\"decentralized science\" in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "identity_personhood",
+  "label": "Identity / Personhood",
+  "heat": 2,
+  "why": "In a world full of bots and agents, proving who is human and which agent is authorised becomes basic infrastructure.",
+  "terms": [
+   "proof of (personhood|humanity|human)",
+   "sybil[- ](resistan(t|ce)|resistant|protection)",
+   "decentrali[sz]ed identi(ty|fiers?)",
+   "\\bdid (method|document|resolver)s?",
+   "verifiable credentials?",
+   "self[- ]sovereign identity",
+   "soul ?bound tokens?",
+   "agent identity|know your agent|\\bkya\\b",
+   "zk[- ]?(kyc|identity|passport)",
+   "on[- ]?chain reputation"
+  ],
+  "coingecko": [
+   "identity",
+   "name-service",
+   "world-chain-ecosystem"
+  ],
+  "github": [
+   "\"proof of personhood\" in:readme",
+   "\"decentralized identity\" solana in:readme",
+   "\"agent identity\" in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "data_availability",
+  "label": "Modular DA",
+  "heat": 1,
+  "why": "Cheap, verifiable data availability is what lets rollups and app-chains scale, and it anchors the modular stack.",
+  "terms": [
+   "data availability",
+   "\\bda layer\\b",
+   "data availability sampling|\\bdas\\b sampling",
+   "modular (blockchain|stack|execution)",
+   "rollups?[- ]as[- ]a[- ]service",
+   "\\braas\\b",
+   "erasure cod(ed|ing)",
+   "blob (space|storage)"
+  ],
+  "coingecko": [
+   "data-availability",
+   "modular-blockchain",
+   "rollups-as-a-service-raas"
+  ],
+  "github": [
+   "\"data availability\" token in:readme",
+   "\"modular blockchain\" in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "interop_chain_abstraction",
+  "label": "Chain Abstraction",
+  "heat": 2,
+  "why": "Users and agents should not care which chain they are on, so cross-chain messaging and chain abstraction are key for UX.",
+  "terms": [
+   "chain abstraction",
+   "chain[- ]agnostic",
+   "cross[- ]chain (messaging|swaps?|liquidity|intents?)",
+   "interoperability (protocol|layer)",
+   "omni[- ]?chain",
+   "account abstraction",
+   "smart (accounts?|wallets?)",
+   "\\berc[- ]?4337\\b|\\beip[- ]?7702\\b",
+   "unified liquidity"
+  ],
+  "coingecko": [
+   "chain-abstraction",
+   "interoperability",
+   "cross-chain-communication",
+   "account-abstraction",
+   "layer-0-l0"
+  ],
+  "github": [
+   "\"chain abstraction\" in:readme",
+   "\"cross-chain\" solana token in:readme"
+  ],
+  "weak": [
+   "smart (accounts?|wallets?)"
+  ]
+ },
+ {
+  "key": "data_oracles",
+  "label": "AI Data / Oracles",
+  "heat": 2,
+  "why": "AI needs fresh, provenance-tracked data and agents need trustworthy price and event feeds, making data markets and oracles critical.",
+  "terms": [
+   "data (marketplace|dao|labell?ing|provenance|monetization)",
+   "training data (market|marketplace|network)",
+   "\\boracles? (network|feed|protocol)",
+   "price feeds?",
+   "(web|data) scraping network",
+   "decentrali[sz]ed (storage|data network)",
+   "proof of (data|storage)",
+   "\\bpyth\\b|\\bswitchboard\\b"
+  ],
+  "coingecko": [
+   "oracle",
+   "big-data",
+   "storage"
+  ],
+  "github": [
+   "\"data marketplace\" ai token in:readme",
+   "oracle solana token in:readme"
+  ],
+  "weak": [
+   "price feeds?"
+  ]
+ },
+ {
+  "key": "ai_trading_analytics",
+  "label": "AI Trading Tools",
+  "heat": 2,
+  "why": "AI copilots for on-chain research, signals and execution are the first mass-market product where users hand money to AI.",
+  "terms": [
+   "ai[- ](trading|copilot|analytics|research|signals?)",
+   "(trading|sniper|copy[- ]?trading) (bot|agent)s?",
+   "on[- ]?chain analytics",
+   "wallet (tracking|intelligence)",
+   "sentiment analysis",
+   "quant (agent|strategies)",
+   "natural language (trading|swaps?)"
+  ],
+  "coingecko": [
+   "trading-bots",
+   "analytics",
+   "defai",
+   "market-making-solution"
+  ],
+  "github": [
+   "\"ai trading\" solana token in:readme",
+   "\"trading agent\" solana in:readme"
+  ],
+  "weak": [
+   "sentiment analysis"
+  ]
+ },
+ {
+  "key": "btcfi",
+  "label": "BTCFi",
+  "heat": 1,
+  "why": "Bringing idle bitcoin into DeFi, including onto Solana, is one of the largest untapped liquidity pools in crypto.",
+  "terms": [
+   "\\bbtcfi\\b",
+   "bitcoin (defi|l2|layer[- ]?2|staking|yield)",
+   "(wrapped|tokeni[sz]ed) (btc|bitcoin)",
+   "\\bzbtc\\b|\\bcbbtc\\b",
+   "babylon staking"
+  ],
+  "coingecko": [
+   "btcfi",
+   "bitcoin-layer-2"
+  ],
+  "github": [
+   "btcfi solana in:readme",
+   "\"bitcoin defi\" token in:readme"
+  ],
+  "weak": []
+ },
+ {
+  "key": "socialfi_creator",
+  "label": "SocialFi / InfoFi",
+  "heat": 1,
+  "why": "InfoFi and SocialFi reward attention and knowledge on-chain, and AI agents are becoming both the creators and the curators.",
+  "terms": [
+   "\\bsocialfi\\b",
+   "\\binfofi\\b",
+   "decentrali[sz]ed social",
+   "creator (coins?|economy|tokens?)",
+   "attention (economy|markets?)",
+   "mindshare (market|tokens?)",
+   "yap(ping)? to earn",
+   "\\bfarcaster\\b|\\blens protocol\\b"
+  ],
+  "coingecko": [
+   "socialfi",
+   "decentralized-social-media-desoc"
+  ],
+  "github": [
+   "socialfi solana token in:readme",
+   "infofi token in:readme"
+  ],
+  "weak": []
+ }
+]

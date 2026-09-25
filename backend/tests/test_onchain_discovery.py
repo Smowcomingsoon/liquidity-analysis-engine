@@ -73,13 +73,14 @@ def test_step_queues_pages_then_details(monkeypatch):
 
     monkeypatch.setattr(d, "_cg_get", fake_get)
     monkeypatch.setattr(d, "_save", lambda: None)
+    monkeypatch.setattr(d.narratives, "coingecko_categories", lambda: [])
     added = []
     add = lambda item, source: added.append((item["symbol"], source)) or True  # noqa: E731
     now = 1_790_000_000.0
     asyncio.run(d._cg_step(None, add, now))                 # prepara il giro
     asyncio.run(d._cg_step(None, add, now + 1))             # troppo presto
     assert calls == []
-    for i in range(1, 12):
+    for i in range(1, 13):
         asyncio.run(d._cg_step(None, add, now + i * d.CG_GAP_S))
     assert ("GRID", "coingecko") in added
     assert d.status()["found"] >= 1

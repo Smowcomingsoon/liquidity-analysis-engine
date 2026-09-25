@@ -38,7 +38,7 @@ from typing import Callable
 import httpx
 
 from app.sniper.quality import _looks_like_meme
-from app.trading.onchain import legit, storage
+from app.trading.onchain import legit, narratives, storage
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +52,7 @@ CG_CATEGORIES = {"solana": ("solana-ecosystem", range(3, 9)), "robinhood": ("rob
 CG_PLATFORMS = {"solana": ("solana",), "robinhood": ("robinhood",)}
 # Lorenzo (24/09): "sotto uno barra due, tre milioni di market cap, non oltre"
 CAP_MIN = 50_000
+NARRATIVE_PAGES = 8
 CAP_MAX = 3_000_000
 # azioni tokenizzate, stablecoin, token avvolti: non sono progetti
 _NOT_PROJECT = ("meme", "stock", "stablecoin", "wrapped", "bridged", "etf")
@@ -64,6 +65,7 @@ PROFILES_PER_POLL = 12
 _state = {"cg_queue": [], "cg_last_sweep": 0.0, "cg_next_at": 0.0, "profiles_at": 0.0,
           "gh_queue": [], "gh_query": 0, "gh_search_at": 0.0, "gh_repo_at": 0.0,
           "found": 0, "skipped": 0, "running": False}
+_chain_ids: dict[str, set[str]] = {}   # CoinGecko ids with a contract on our chains
 _seen: dict[str, dict] = {}   # "cg:<chain>:<id>" o "dx:<chain>:<token>" -> {at, ok, why}
 
 
@@ -87,6 +89,7 @@ def _save() -> None:
 
 def reset_for_tests() -> None:
     _seen.clear()
+    _chain_ids.clear()
     _state.update(cg_queue=[], cg_last_sweep=0.0, cg_next_at=0.0, profiles_at=0.0, gh_queue=[], gh_query=0,
                   gh_search_at=0.0, gh_repo_at=0.0, found=0, skipped=0, running=False)
 
@@ -102,6 +105,17 @@ def _note(key: str, ok: bool, why: str, now: float) -> None:
 
 
 # ------------------------------------------------------------- CoinGecko
+
+def chain_index(rows: list[dict]) -> dict[str, set[str]]:
+    """From /coins/list?include_platform=true: which ids live on which chain."""
+    out: dict[str, set[str]] = {c: set() for c in CG_PLATFORMS}
+    for r in rows or []:
+        plats = r.get("platforms") or {}
+        for chain, keys in CG_PLATFORMS.items():
+            if any(plats.get(k) for k in keys):
+                out[chain].add(r.get("id"))
+    return out
+
 
 def market_candidates(chain: str, rows: list[dict]) -> list[dict]:
     """Dalla lista /coins/markets: le monete nella fascia di cap, nome non da meme."""
@@ -175,9 +189,33 @@ async def _cg_step(client: httpx.AsyncClient, add: Callable[[dict, str], bool], 
         if now - _state["cg_last_sweep"] < CG_SWEEP_S:
             return
         _state["cg_last_sweep"] = now
+        # Narratives first (hotter, smaller lists), then the chain ecosystems.
+        q.append(("index",))
+        q.extend(("npage", cat, 1) for cat in narratives.coingecko_categories())
         q.extend(("page", chain, cat, p) for chain, (cat, pages) in CG_CATEGORIES.items() for p in pages)
         return
     job = q.pop(0)
+    if job[0] == "index":
+        rows = await _cg_get(client, "/coins/list", {"include_platform": "true"})
+        _chain_ids.clear()
+        _chain_ids.update(chain_index(rows if isinstance(rows, list) else []))
+        return
+    if job[0] == "npage":
+        _, cat, page = job
+        rows = await _cg_get(client, "/coins/markets", {"vs_currency": "usd", "category": cat,
+                                                       "order": "market_cap_desc", "per_page": 250,
+                                                       "page": page})
+        rows = rows if isinstance(rows, list) else []
+        fresh = []
+        for chain in CG_CATEGORIES:
+            ids = _chain_ids.get(chain) or set()
+            fresh += [("coin", chain, c) for c in market_candidates(chain, [r for r in rows if r.get("id") in ids])
+                      if now - (_seen.get(f"cg:{chain}:{c['id']}") or {}).get("at", 0) >= CG_DETAIL_TTL_S]
+        q[0:0] = fresh
+        # sorted by cap: another page only while the band is not yet below CAP_MIN
+        if len(rows) == 250 and float(rows[-1].get("market_cap") or 0) >= CAP_MIN and page < NARRATIVE_PAGES:
+            q.insert(len(fresh), ("npage", cat, page + 1))
+        return
     if job[0] == "page":
         _, chain, cat, page = job
         rows = await _cg_get(client, "/coins/markets", {"vs_currency": "usd", "category": cat,
@@ -256,7 +294,7 @@ GH_QUERIES = (
     '"birdeye.so/token" in:readme',
     '"robinhood chain" in:readme,description',
 )
-GH_SEARCH_S = 150
+GH_SEARCH_S = 60
 GH_REPO_S = 6
 GH_FRESH_DAYS = 120
 GH_QUEUE_MAX = 300
@@ -346,7 +384,8 @@ async def _gh_search(client: httpx.AsyncClient, now: float) -> None:
     _state["gh_search_at"] = now
     for k in [k for k, v in _seen.items() if now - v.get("at", now) > 30 * 86400]:
         del _seen[k]
-    q = GH_QUERIES[_state["gh_query"] % len(GH_QUERIES)]
+    queries = GH_QUERIES + tuple(narratives.github_queries())
+    q = queries[_state["gh_query"] % len(queries)]
     _state["gh_query"] += 1
     since = time.strftime("%Y-%m-%d", time.gmtime(now - GH_FRESH_DAYS * 86400))
     r = await legit.gh_get(client, f"{legit.GITHUB_API}/search/repositories",

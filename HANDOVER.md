@@ -231,6 +231,14 @@ non oltre; uno, due, tre mesi non e' importante".
   README da raw.githubusercontent (niente quota API), indirizzi -> DexScreener
   -> cap $50k-$3M, sorgente `github`, `github_verified` salta il controllo di
   appartenenza. Pending oltre 6 h: tolto dalla coda, non bandito.
+- 25/09 `seed-0116`, narrative ("privacy, zero knowledge, ai agent, sistemi
+  operativi agentici [...] soldi gestiti da AI"): `onchain/narratives.json`
+  (24 voci, heat 1-3, regex, categorie CoinGecko verificate, query GitHub) e
+  `narratives.py`. Discovery: indice `/coins/list?include_platform` a ogni
+  giro, poi le categorie narrative (pagine finche' la cap resta sopra $50k)
+  filtrate su Solana/Robinhood, poi gli ecosistemi. Voto: `bonus()` fino a +6
+  sul punteggio finale; termini generici (`weak`) contano mezzo. Etichette
+  `.bd-nar` sulle schede. `github_rate` in board() + avviso in testata.
 
 ## Link ospite in sola lettura — `seed-0096`, branch `claude/link-ospite-asb5wj`
 

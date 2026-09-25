@@ -140,6 +140,10 @@ function badges(e) {
   else if (e.similarity?.score >= 25) out.push(`<em class="bd-sim">≈ DREGG ${e.similarity.score}%</em>`);
   if (e.exception) out.push(`<em data-tone="gold">exception</em>`);
   if (e.bonding) out.push(`<em>pump.fun</em>`);
+  // hottest narrative first, at most two so the card stays clean
+  for (const n of (e.narratives ?? []).slice().sort((a, b) => b.heat - a.heat).slice(0, 2)) {
+    out.push(`<em class="bd-nar"${n.heat >= 3 ? ' data-tone="hot"' : ""}>${escapeHtml(n.label)}</em>`);
+  }
   return out.join("");
 }
 
