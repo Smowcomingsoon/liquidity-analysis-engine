@@ -1727,6 +1727,14 @@
   @keyframes splash-letter { from { opacity: 0; transform: translateY(28px) scale(.96); } to { opacity: 1; transform: none; } }
   @keyframes splash-line { to { transform: scaleX(1); } }
   @keyframes splash-out { to { opacity: 0; transform: scale(1.04); visibility: hidden; } }
+
+  /* Loading logo per section: a dragon egg for gems, the frog for memes. */
+  .splash-logo { inline-size: clamp(64px, 18vw, 96px); block-size: auto; display: none;
+    animation: splash-pop .6s cubic-bezier(.3, 1.4, .5, 1) both; }
+  :root[data-section="gems"] .splash-gem, :root[data-section="meme"] .splash-meme { display: block; }
+  :root[data-section="meme"] .splash-word { color: #ff8cc4; }
+  :root[data-section="meme"] .splash-meme { animation: splash-pop .6s cubic-bezier(.3, 1.4, .5, 1) both, wobble 1.4s ease-in-out .6s infinite; }
+  @keyframes splash-pop { from { opacity: 0; transform: scale(.6) translateY(10px); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) { .splash { display: none; } }
 }
 
@@ -2272,7 +2280,14 @@
 <!--onchain-importmap-->
 </head>
 <body>
+  <script>
+    /* The home page links here with #gems or #meme: the section decides the
+       loading logo and the first view, before any module loads. */
+    document.documentElement.dataset.section = /meme|sniper/i.test(location.hash) ? "meme" : "gems";
+  </script>
   <div class="splash" id="splash" aria-hidden="true">
+    <svg class="splash-logo splash-gem" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg-egg-s" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6ff9a"/><stop offset="1" stop-color="#5fa82e"/></linearGradient></defs><path d="M16 2.5c6 0 10.5 9.2 10.5 16.2 0 6.3-4.7 10.8-10.5 10.8S5.5 25 5.5 18.7C5.5 11.7 10 2.5 16 2.5z" fill="url(#lg-egg-s)"/><path d="M9.5 15.5c2 1.6 4 1.6 6.5 0s4.5-1.6 6.5 0M8 21c2.6 2 5.3 2 8 0s5.4-2 8 0M12 9.8c1.4 1 2.7 1 4 0s2.6-1 4 0" fill="none" stroke="#1d3a0c" stroke-width="1.4" stroke-linecap="round" opacity=".55"/><path d="M11.5 7.5c1-1.6 2.3-2.6 3.6-2.9" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity=".7"/></svg>
+    <svg class="splash-logo splash-meme" viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="16" cy="20" rx="13.5" ry="9.5" fill="#6fd24a"/><circle cx="9.5" cy="10.5" r="5.5" fill="#6fd24a"/><circle cx="22.5" cy="10.5" r="5.5" fill="#6fd24a"/><circle cx="9.5" cy="10.5" r="3.6" fill="#fff"/><circle cx="22.5" cy="10.5" r="3.6" fill="#fff"/><circle cx="10.4" cy="11" r="1.8" fill="#111"/><circle cx="23.4" cy="11" r="1.8" fill="#111"/><path d="M5.5 10.2h8M18.5 10.2h8" stroke="#ff4fa3" stroke-width="1.6"/><path d="M7 21.5c4.5 4 13.5 4 18 0" fill="none" stroke="#b83a2e" stroke-width="2" stroke-linecap="round"/><circle cx="26" cy="5" r="3.4" fill="#ffb648"/><text x="26" y="6.6" text-anchor="middle" font-size="4.6" font-weight="800" fill="#111">$</text></svg>
     <p class="splash-word"><span>D</span><span>E</span><span>G</span><span>E</span><span>N</span></p>
     <span class="splash-line"></span>
   </div>
@@ -2313,25 +2328,7 @@
       </form>
     </section>
 
-    <div id="app-shell" class="stack" data-view="entry" hidden>
-      <section class="entry" id="entry" aria-labelledby="entry-title">
-        <h1 id="entry-title">Find them first.<br>Ride them right.</h1>
-        <p class="entry-sub">Two tables: one for research, one for gambling.</p>
-        <div class="entry-cards">
-          <button type="button" class="entry-card" data-go="gems" data-kind="gems">
-            <span class="entry-tag">Gems · research</span>
-            <b>Gem Finder</b>
-            <p>Micro caps on Solana and Robinhood Chain, scored on code, tokenomics and holders. 24/7.</p>
-            <span class="entry-go">Leaderboard</span>
-          </button>
-          <button type="button" class="entry-card" data-go="meme" data-kind="meme">
-            <span class="entry-tag">Memes · casino</span>
-            <b>Meme Sniper</b>
-            <p>Minutes-old tokens, rug-filtered and backtested. Pure gambling: only ape what you can burn.</p>
-            <span class="entry-go">Enter the casino</span>
-          </button>
-        </div>
-      </section>
+    <div id="app-shell" class="stack" data-view="gems" hidden>
       <div class="status-strip">
         <section class="status-card balance-card">
           <p class="label">Balance</p>

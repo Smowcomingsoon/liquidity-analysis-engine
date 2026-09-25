@@ -96,7 +96,7 @@ function paintChainStatic() {
     view.empty.querySelector("[data-chain-name]").textContent = label;
     view.spark.hidden = true;
     if (view.holdings) view.holdings.hidden = true;
-    if (!["entry", "gems", "meme"].includes(view.shell.dataset.view)) setView("gems");
+    if (!["gems", "meme"].includes(view.shell.dataset.view)) setView("gems");
     return;
   }
 
@@ -495,11 +495,11 @@ view.more?.addEventListener("click", () => view.moreSheet.showModal());
 // Two sections chosen at the door, each with its own purpose: Progetti
 // (a round-the-clock scan of serious low/micro caps, ranked) and Meme
 // (the sniper radar plus its autopilot). Then Scambia and Portafoglio.
-// "entry" is the door itself; the dock hides there.
+// The home page picks the section (#gems or #meme); that is the first view.
 const VIEWS = ["gems", "meme", "manual", "wallet"];
 
 function setView(name) {
-  if (!VIEWS.includes(name) && name !== "entry") return;
+  if (!VIEWS.includes(name)) return;
   const from = view.shell.dataset.view;
   const paint = () => {
     view.shell.dataset.view = name;
@@ -508,7 +508,7 @@ function setView(name) {
       if (b.dataset.go === name) b.setAttribute("aria-current", "page");
       else b.removeAttribute("aria-current");
     });
-    if (view.dock && name !== "entry") view.dock.dataset.at = String(VIEWS.indexOf(name));
+    if (view.dock) view.dock.dataset.at = String(VIEWS.indexOf(name));
     window.scrollTo({ top: 0 });
   };
   if (from !== name && document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -529,6 +529,11 @@ function placeDock() {
   else document.body.append(view.dock);
 }
 placeDock();
+{
+  const first = document.documentElement.dataset.section === "meme" ? "meme" : "gems";
+  view.shell.dataset.view = first;  // same view on both sides: no transition on load
+  setView(first);
+}
 wide.addEventListener("change", placeDock);
 
 for (const el of [view.dock, view.shell]) {
