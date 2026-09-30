@@ -8,7 +8,7 @@
  * Buy button that hands the token to the swap. The back gesture closes it.
  */
 import * as api from "@onchain/api.js";
-import { age, bestSystem, changePill, escapeHtml, logo, strategyTrade, usdShort } from "@onchain/format.js";
+import { age, bestSystem, changePill, escapeHtml, logo, strategyTrade, usdShort, walletStrategy } from "@onchain/format.js";
 import { openUserSwap, walletFor } from "@onchain/userswap.js";
 import { hideToken } from "@onchain/hidden.js";
 import { shownTrades } from "@onchain/lab-shown.js";
@@ -690,7 +690,7 @@ async function drawChart(box, candles, e, iv = interval) {
       // the timeframe that took them (Lorenzo, 30/09: "scritto ingresso
       // strategia [...] con un time frame chiaro").
       text: v.iv
-        ? `${buy ? "Strategy entry" : "Strategy exit"} · ${v.iv}${v.strategy === "unknown" ? " · strategy not recorded" : v.strategy && v.strategy !== "trend" ? ` · ${v.strategy}` : ""}${!buy && v.ret != null ? ` ${pct(v.ret)}` : ""}`
+        ? `${buy ? "Strategy entry" : "Strategy exit"} · ${v.iv}${walletStrategy(v.strategy) ? ` · ${walletStrategy(v.strategy)}` : ""}${!buy && v.ret != null ? ` ${pct(v.ret)}` : ""}`
         : buy ? "Wallet in" : v.ret != null ? `Wallet out ${pct(v.ret)}` : "Wallet out" });
     drawn++;
   }

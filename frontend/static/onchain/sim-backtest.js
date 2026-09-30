@@ -6,7 +6,7 @@
  * touched. A row opens the token's page.
  */
 import * as api from "@onchain/api.js";
-import { escapeHtml, logo } from "@onchain/format.js";
+import { escapeHtml, logo, walletStrategy } from "@onchain/format.js";
 import { closeSheet, openSheet, setBody, sheetBody } from "@onchain/sheets.js";
 
 const usd = (v) => (v == null ? "—" : `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
@@ -27,7 +27,7 @@ function curve(rows) {
 }
 
 function row(p, open) {
-  const how = `${escapeHtml(p.interval ?? "")}${p.strategy && p.strategy !== "unknown" ? ` · ${escapeHtml(p.strategy)}` : ""}`;
+  const how = `${escapeHtml(p.interval ?? "")}${walletStrategy(p.strategy) ? ` · ${escapeHtml(walletStrategy(p.strategy))}` : ""}`;
   const when = open ? `in since ${day(p.at)} · ${how}` : `${day(p.at)} → ${day(p.exit_at)} · ${how}`;
   const val = open ? usd(p.value) : `${p.pnl >= 0 ? "+" : "−"}${usd(Math.abs(p.pnl))}`;
   own.set(`${p.chain}:${p.token}`, { symbol: p.symbol ?? "?",
