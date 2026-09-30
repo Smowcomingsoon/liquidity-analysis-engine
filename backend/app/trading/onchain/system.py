@@ -72,10 +72,13 @@ BACKTESTS = [
     ("Gabriele 2 (RSI+BB long/short)", "RSI+BB L/S"),
 ]
 BACKTEST_MIN_BARS = 30
-# On-chain the wallet and the lists follow trend followers only: long,
-# never mean-reversion (Lorenzo, 30/09, ORDO bought by RSI+BB after -90%).
-# The RSI+BB rows stay in the table, but never make the "best".
 TREND_LABELS = frozenset({"Trend EMA", "Trend HF"})
+# On-chain the wallet and the lists follow the long-only spot strategies:
+# the trend followers and RSI+BB (Lorenzo, 30/09 evening, after seeing the
+# wallet without its RSI+BB trades: "l'RSI piu' BB funziona apparentemente
+# bene, e quindi implementiamolo nelle strategie, nei backtest"). RSI+BB L/S
+# stays out: on-chain there is no short.
+SPOT_LABELS = TREND_LABELS | {"RSI+BB"}
 # Shown labels carry no person's name (Lorenzo, 27/09: "elimina il nome
 # lorenzo dalla strategia"); strategy_name stays the internal key. Results
 # stored under the old labels are renamed on load (alert_track._load).
@@ -261,7 +264,7 @@ def _best_trades(df: pd.DataFrame, rows: list[dict], known: dict | None = None) 
     "visualizza un alert ma non sappiamo se e' un ingresso o altro.. qui deve
     comparire la strategia [...] ingressi e uscite". The ranking shows the
     best backtest, so the chart shows the same one's trades."""
-    traded = [r for r in rows if r["trades"] and r["return_pct"] is not None and r["label"] in TREND_LABELS]
+    traded = [r for r in rows if r["trades"] and r["return_pct"] is not None and r["label"] in SPOT_LABELS]
     if not traded:
         return None
     best = max(traded, key=lambda r: r["return_pct"])
@@ -302,9 +305,9 @@ def _best_trades(df: pd.DataFrame, rows: list[dict], known: dict | None = None) 
 
 
 def trend_trade_times(bars: list[list], known: dict | None = None) -> dict[str, set[tuple[int, str]]]:
-    """Every buy and sell time of each trend follower on these candles, at
-    the signal candle and at the fill candle: what tells an old 5-minute
-    trade saved without its strategy apart (sim_backtest.relabel)."""
+    """Every buy and sell time of each spot strategy (SPOT_LABELS) on these
+    candles, at the signal candle and at the fill candle: what tells which
+    strategy made an old 5-minute trade saved without it (sim_backtest.relabel)."""
     df = frame(bars)
     out: dict[str, set[tuple[int, str]]] = {}
     if len(df) < BACKTEST_MIN_BARS:
@@ -312,7 +315,7 @@ def trend_trade_times(bars: list[list], known: dict | None = None) -> dict[str, 
     times = [int(ts.timestamp()) for ts in df.index]
     nxt = {times[i]: times[i + 1] for i in range(len(times) - 1)}
     for name, label in BACKTESTS:
-        if label not in TREND_LABELS:
+        if label not in SPOT_LABELS:
             continue
         try:
             result, signals, _pos = radar.run_spot(df, {"strategy_name": name, "params": None, "label": label,

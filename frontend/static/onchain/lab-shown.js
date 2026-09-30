@@ -5,15 +5,16 @@
  * said "The strategy stayed out". The list fell back to the 5-minute
  * backtest when the 8h/1d trend follower had no trade, the chart only ever
  * drew the 8h/1d one. Now both ask this module: the 8h/1d trend follower
- * when it traded, else the best 5-minute trend follower, else nothing. The number in the
+ * when it traded, else the best 5-minute spot strategy (trend follower or
+ * RSI+BB), else nothing. The number in the
  * list and the arrows on the chart always come from the same trades.
  *
  * Pure functions, no DOM: frontend/tests/lab-shown.test.mjs checks them.
  */
 
 const traded = (row) => row && (row.trades ?? 0) > 0 && row.return_pct != null;
-// system.TREND_LABELS: only trend followers are listed and drawn for gems.
-const TREND = new Set(["Trend EMA", "Trend HF"]);
+// system.SPOT_LABELS: the trend followers and RSI+BB, long only.
+const TREND = new Set(["Trend EMA", "Trend HF", "RSI+BB"]);
 
 /** From /api/onchain/top's summary (main._lab_summary). */
 export function shownSummary(s) {

@@ -25,7 +25,7 @@ import math
 
 from app.atomic_write import write_text_atomic
 from app.trading.onchain.storage import data_file
-from app.trading.onchain.system import TREND_LABELS
+from app.trading.onchain.system import SPOT_LABELS, TREND_LABELS
 
 _FILE = data_file("top_backtest_ledger.json")
 _ledger: dict[str, dict] = {}     # chain:token -> {chain, token, symbol, interval, events: {t:side -> event}}
@@ -45,12 +45,11 @@ def token_trades(bt: dict | None) -> tuple[str, list[dict]] | None:
     drow = (daily.get("rows") or [None])[0]
     if drow and drow.get("trades") and (daily.get("best") or {}).get("events"):
         return daily.get("interval") or "1d", daily["best"]["events"]
-    # The 5-minute best can be a mean-reversion strategy (RSI+BB buys the
-    # dip): Lorenzo, 30/09, on ORDO bought after a -90% slide: "come puo'
-    # una strategia trend follower entrare dopo un drawdown del genere?".
-    # On-chain the wallet follows trend followers only.
+    # The 5-minute best: a trend follower or RSI+BB (system.SPOT_LABELS).
+    # Lorenzo, 30/09: trend-only first, then, seeing the wallet without the
+    # RSI+BB trades, "implementiamolo nelle strategie, nei backtest".
     best = bt.get("best") or {}
-    if best.get("events") and best.get("label") in TREND_LABELS:
+    if best.get("events") and best.get("label") in SPOT_LABELS:
         return "5m", best["events"]
     return None
 
@@ -143,25 +142,26 @@ def ledger_tokens() -> list[dict]:
 
 
 def needs_relabel(chain: str, token: str) -> bool:
-    """Old 5-minute trades saved without their strategy (before 30/09 evening)."""
+    """Old 5-minute trades saved without their strategy (before 30/09 evening),
+    or marked only "not trend" before RSI+BB was looked for."""
     _load()
     row = _ledger.get(f"{chain}:{token}")
-    return bool(row) and any(e.get("iv") == "5m" and "lab" not in e for e in row["events"].values())
+    return bool(row) and any(e.get("iv") == "5m" and e.get("lab", "not trend") == "not trend"
+                             for e in row["events"].values())
 
 
 def relabel(chain: str, token: str, times: dict[str, set[tuple[int, str]]], window_from: int) -> int:
-    """Give an old unlabelled 5-minute trade its strategy when a trend
-    follower rerun on the same candles made that very trade (Lorenzo, 30/09:
-    138 trades hidden by the trend-only filter; only the proven ones come
-    back). Inside the candles and made by no trend follower: RSI+BB's, kept
-    in the ledger but marked. Older than the candles: left unknown."""
+    """Give an old unlabelled 5-minute trade the strategy that, rerun on the
+    same candles, made that very trade (Lorenzo, 30/09: every trade shows
+    which strategy took it). Inside the candles and made by none of them:
+    "not trend". Older than the candles: left unknown."""
     _load()
     row = _ledger.get(f"{chain}:{token}")
     if not row:
         return 0
     done = 0
     for e in row["events"].values():
-        if e.get("iv") != "5m" or "lab" in e:
+        if e.get("iv") != "5m" or e.get("lab", "not trend") != "not trend":
             continue
         t = int(e["t"])
         lab = next((lab for lab, got in times.items()
@@ -169,7 +169,7 @@ def relabel(chain: str, token: str, times: dict[str, set[tuple[int, str]]], wind
         if lab:
             e["lab"] = lab
             done += 1
-        elif t >= window_from:
+        elif t >= window_from and "lab" not in e:
             e["lab"] = "not trend"
             done += 1
     if done:
@@ -178,19 +178,24 @@ def relabel(chain: str, token: str, times: dict[str, set[tuple[int, str]]], wind
 
 
 def _trend(e: dict) -> bool:
-    """Only trend followers' trades count. Lorenzo, 30/09, after "Rimetti
-    tutto": "fammi visualizzare soltanto i trend follower per adesso". The
-    unproven and counter-trend ones stay in the ledger, hidden; `relabel`
-    brings each back once the lab proves a trend follower made it."""
-    return strategy_of(e) == "trend"
+    """Every saved trade counts: trend followers and RSI+BB alike (Lorenzo,
+    30/09). Each one says which strategy took it (`strategy_of`)."""
+    return True
 
 
 def strategy_of(e: dict) -> str:
-    """"trend": a trend follower's; "counter": proven not a trend follower's
-    (relabel); "unknown": a 5-minute trade saved before labels were kept."""
-    if e.get("iv") != "5m" or e.get("lab") in TREND_LABELS:
-        return "trend"
-    return "counter" if e.get("lab") == "not trend" else "unknown"
+    """The strategy that took the trade: its label ("Trend EMA", "Trend HF",
+    "RSI+BB"); "RSI+BB" too for an old 5-minute trade no trend follower made
+    (the 5-minute best was one of those); "unknown" when saved before
+    labels were kept and never proven."""
+    lab = e.get("lab")
+    if e.get("iv") != "5m":
+        return lab if lab in SPOT_LABELS else "Trend EMA"
+    if lab in SPOT_LABELS or lab in TREND_LABELS:
+        return lab
+    if lab == "not trend":
+        return "RSI+BB"
+    return lab or "unknown"
 
 
 def _one_timeframe(r: dict) -> list[dict]:

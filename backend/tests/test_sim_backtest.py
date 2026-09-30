@@ -74,35 +74,37 @@ def test_trades_of_an_earlier_timeframe_stop_where_the_new_one_starts():
     assert [e["t"] for e in sb._one_timeframe(row)] == [100, 200, 500, 4000]
 
 
-def test_mean_reversion_5m_trades_never_enter_the_wallet(monkeypatch):
+def test_rsi_bb_5m_trades_enter_the_wallet_named_but_never_long_short(monkeypatch):
     sb.reset_for_tests()
     monkeypatch.setattr(sb, "_save", lambda: None)
     dip = {"best": {"label": "RSI+BB", "events": [{"t": 100, "side": "buy", "price": 0.1}]}}
-    assert sb.token_trades(dip) is None and not sb.remember("base", "ORDO", "ORDO", dip)
-    trend = {"best": {"label": "Trend HF", "events": [{"t": 100, "side": "buy", "price": 0.1}]}}
-    assert sb.remember("base", "T", "T", trend)
+    assert sb.remember("base", "ORDO", "ORDO", dip)
+    ls = {"best": {"label": "RSI+BB L/S", "events": [{"t": 100, "side": "buy", "price": 0.1}]}}
+    assert sb.token_trades(ls) is None
     sb._ledger["base:OLD"] = {"chain": "base", "token": "OLD", "interval": "5m",
                               "events": {"100:buy": {"t": 100, "side": "buy", "iv": "5m"}}}
-    # Old unlabelled trades stay saved but hidden until proven trend follower
     toks = {t["token"]: t for t in sb.ledger_tokens()}
-    assert toks["OLD"]["events"] == [] and "100:buy" in sb._ledger["base:OLD"]["events"]
+    r = sb.replay([toks["ORDO"], toks["OLD"]], 10_000)
+    assert sorted(p["strategy"] for p in r["open"]) == ["RSI+BB", "unknown"]
 
 
-def test_the_top_row_best_is_a_trend_follower_never_rsi_bb():
+def test_the_top_row_best_is_a_long_spot_strategy_never_long_short():
     from app import main
     from app.trading.onchain import strategy_lab
-    rows = [{"label": "RSI+BB", "return_pct": 80.0, "trades": 3},
+    rows = [{"label": "RSI+BB L/S", "return_pct": 90.0, "trades": 3},
+            {"label": "RSI+BB", "return_pct": 80.0, "trades": 3},
             {"label": "Trend HF", "return_pct": 5.0, "trades": 2}]
-    assert strategy_lab._best({"rows": rows})["label"] == "Trend HF"
-    drawn = {"label": "Trend HF", "events": [{"t": 1, "side": "buy"}, {"t": 2, "side": "sell"},
-                                             {"t": 3, "side": "buy"}, {"t": 4, "side": "sell"}]}
-    assert main._lab_summary({"rows": rows, "best": drawn})["best"]["label"] == "Trend HF"
+    assert strategy_lab._best({"rows": rows})["label"] == "RSI+BB"
+    drawn = {"label": "RSI+BB", "events": [{"t": 1, "side": "buy"}, {"t": 2, "side": "sell"},
+                                           {"t": 3, "side": "buy"}, {"t": 4, "side": "sell"},
+                                           {"t": 5, "side": "buy"}, {"t": 6, "side": "sell"}]}
+    assert main._lab_summary({"rows": rows, "best": drawn})["best"]["label"] == "RSI+BB"
     # no arrows for that row on the chart: not listed (seed-0242)
     assert main._lab_summary({"rows": rows})["best"] is None
     assert main._lab_summary({"rows": rows[:1]})["best"] is None
 
 
-def test_top_hides_rows_with_no_trend_follower_trade(monkeypatch):
+def test_top_hides_rows_with_no_spot_strategy_trade(monkeypatch):
     import asyncio
     from types import SimpleNamespace
 
@@ -111,7 +113,7 @@ def test_top_hides_rows_with_no_trend_follower_trade(monkeypatch):
     ents = [{"chain": "base", "token_address": t, "symbol": t, "on_board": True} for t in ("A", "B", "C")]
     labs = {"A": {"rows": [{"label": "Trend EMA", "return_pct": 4.0, "trades": 2, "win_rate": 50.0}],
                   "best": {"label": "Trend EMA", "events": [{"t": 1, "side": "sell"}, {"t": 2, "side": "sell"}]}},
-            "B": {"rows": [{"label": "RSI+BB", "return_pct": 90.0, "trades": 3}]}, "C": None}
+            "B": {"rows": [{"label": "RSI+BB L/S", "return_pct": 90.0, "trades": 3}]}, "C": None}
     monkeypatch.setattr(main, "_top_entries", lambda n=50, narrative="": [dict(e) for e in ents][:n])
     monkeypatch.setattr(strategy_lab, "get", lambda chain, token: labs[token])
     monkeypatch.setattr(strategy_lab, "status", lambda top: {})
@@ -119,18 +121,20 @@ def test_top_hides_rows_with_no_trend_follower_trade(monkeypatch):
     assert [e["symbol"] for e in out["entries"]] == ["A", "C"]      # C: backtest still on its way
 
 
-def test_old_unlabelled_5m_trades_come_back_only_when_a_trend_follower_made_them(monkeypatch):
+def test_old_unlabelled_5m_trades_get_the_strategy_that_made_them(monkeypatch):
     sb.reset_for_tests()
     monkeypatch.setattr(sb, "_save", lambda: None)
     sb._ledger["base:X"] = {"chain": "base", "token": "X", "interval": "5m", "events": {
         "1000:buy": {"t": 1000, "side": "buy", "iv": "5m"},
         "1600:sell": {"t": 1600, "side": "sell", "iv": "5m", "ret": 0.1},
-        "5000:buy": {"t": 5000, "side": "buy", "iv": "5m"},
+        "5000:buy": {"t": 5000, "side": "buy", "iv": "5m", "lab": "not trend"},
+        "7000:buy": {"t": 7000, "side": "buy", "iv": "5m"},
         "10:buy": {"t": 10, "side": "buy", "iv": "5m"}}}
     assert sb.needs_relabel("base", "X")
-    n = sb.relabel("base", "X", {"Trend HF": {(1300, "buy"), (1600, "sell")}, "Trend EMA": set()}, window_from=500)
+    n = sb.relabel("base", "X", {"Trend HF": {(1300, "buy"), (1600, "sell")}, "RSI+BB": {(5000, "buy")}},
+                   window_from=500)
     ev = sb._ledger["base:X"]["events"]
-    assert n == 3 and ev["1000:buy"]["lab"] == "Trend HF"
-    assert ev["1600:sell"]["lab"] == "Trend HF" and ev["5000:buy"]["lab"] == "not trend" and "lab" not in ev["10:buy"]
-    assert [e["t"] for e in sb.ledger_tokens()[0]["events"]] == [1000, 1600]
-    assert len(ev) == 4
+    assert n == 4 and ev["1000:buy"]["lab"] == "Trend HF" and ev["1600:sell"]["lab"] == "Trend HF"
+    assert ev["5000:buy"]["lab"] == "RSI+BB" and ev["7000:buy"]["lab"] == "not trend" and "lab" not in ev["10:buy"]
+    assert [sb.strategy_of(e) for e in sb.ledger_tokens()[0]["events"]] == [
+        "unknown", "Trend HF", "Trend HF", "RSI+BB", "RSI+BB"]

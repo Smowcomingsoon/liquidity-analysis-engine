@@ -103,9 +103,9 @@ def _load() -> None:
 
 
 def trend_row(part: dict) -> dict | None:
-    """The trend follower's best traded row of a backtest (system.TREND_LABELS)."""
+    """The best traded row of a backtest among the spot strategies (system.SPOT_LABELS)."""
     rows = [r for r in part.get("rows") or [] if r.get("trades") and r.get("return_pct") is not None
-            and r.get("label") in system.TREND_LABELS]
+            and r.get("label") in system.SPOT_LABELS]
     return max(rows, key=lambda r: r["return_pct"]) if rows else None
 
 
@@ -188,7 +188,7 @@ async def _pair_of(client: httpx.AsyncClient, e: dict) -> str | None:
 
 def _best(bt: dict) -> dict | None:
     traded = [r for r in bt.get("rows") or [] if r.get("trades") and r.get("return_pct") is not None
-              and r.get("label") in system.TREND_LABELS]
+              and r.get("label") in system.SPOT_LABELS]
     return max(traded, key=lambda r: r["return_pct"]) if traded else None
 
 
@@ -325,7 +325,7 @@ async def run_one(client: httpx.AsyncClient, e: dict, now: float) -> dict | None
     bt = await asyncio.to_thread(system.backtest_all, sorted(bars))
     _results[key] = {"at": now, "symbol": symbol, "pair": pair, "backtests": bt}
     if sim_backtest.needs_relabel(e["chain"], e["token_address"]):
-        try:    # old Top 50 wallet trades saved without their strategy: prove which were a trend follower's
+        try:    # old Top 50 wallet trades saved without their strategy: find which strategy made them
             times = await asyncio.to_thread(system.trend_trade_times, sorted(bars))
             sim_backtest.relabel(e["chain"], e["token_address"], times, int(min(b[0] for b in bars)))
         except Exception:
