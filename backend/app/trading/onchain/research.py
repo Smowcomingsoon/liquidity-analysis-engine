@@ -98,7 +98,8 @@ def _load() -> None:
     if isinstance(raw, dict):
         _cache.update({k: v for k, v in (raw.get("cache") or {}).items() if isinstance(v, dict)})
         _calls.update(raw.get("calls") or {})
-        _prints.update({k: v for k, v in (raw.get("prints") or {}).items() if isinstance(v, list)})
+        _prints.update({k: v for k, v in (raw.get("prints") or {}).items()
+                        if isinstance(v, list) and len(v) >= reader.SKETCH_MIN_GRAMS})
 
 
 def _save() -> None:
@@ -368,6 +369,26 @@ def judge_research(sites: list[dict], description: str, ai: dict | None) -> dict
     return depth._pillar("site", score, facts, flags)
 
 
+def _host(url: str | None) -> str:
+    return (urlparse(url or "").hostname or "").lower().removeprefix("www.")
+
+
+def same_project(key: str, item: dict) -> bool:
+    """A text match that is this project listed again: same website, or same
+    name and ticker (the token on another chain, a bridged copy)."""
+    from app.trading.onchain import projects_db
+    chain, _, token = key.partition(":")
+    row = projects_db.get(chain, token) or {}
+    if not row:
+        return False
+    host = _host(item.get("website"))
+    if host and host == _host(row.get("website")):
+        return True
+    name, sym = (item.get("name") or "").strip().lower(), (item.get("symbol") or "").strip().lower()
+    return bool(name and sym and name == (row.get("name") or "").strip().lower()
+                and sym == (row.get("symbol") or "").strip().lower())
+
+
 async def analyze(item: dict, client: httpx.AsyncClient, launched: float | None) -> tuple[dict, list[str]]:
     """(research pillar, GitHub links found in the sites)."""
     info = await gecko_info(item.get("chain") or "", item.get("token_address") or "", client)
@@ -405,7 +426,7 @@ async def analyze(item: dict, client: httpx.AsyncClient, launched: float | None)
         deployed = any((s.get("facts") or {}).get("contract_link") for s in sites)
         ai = reader.read(description, texts, name=item.get("name") or "",
                          symbol=item.get("symbol") or "", app_ok=app_ok, deployed=deployed,
-                         corpus=_prints, key=key)
+                         corpus=_prints, key=key, same=lambda k: same_project(k, item))
         print_ = ai.pop("sketch", None)
         if print_ and ai["original"] and _prints.get(key) != print_:
             _prints[key] = print_

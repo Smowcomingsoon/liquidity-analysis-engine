@@ -124,3 +124,26 @@ def test_named_primitives_are_a_bonus():
     # Short acronyms only in capitals, as words: ordinary prose does not count.
     assert reader.primitives("a guarantee to the mcp team, three eas, fhe-ish tees") == []
     assert _read(BUZZ)["parts"]["primitives"] == 0
+
+
+def test_short_texts_are_never_called_copies():
+    shell = "You need to enable JavaScript to run this app."
+    assert reader.sketch(shell) == []
+    r = reader.read(shell, [], corpus={"base:0xb": reader.sketch(SOLROUTER)}, key="base:0xa")
+    assert r["original"] and r["evidence"]["twin"] is None
+
+
+def test_the_same_project_under_another_key_is_not_a_copy():
+    corpus = {"ethereum:0xB": reader.sketch(SOLROUTER), "base:0XA": reader.sketch(SOLROUTER)}
+    r = reader.read(SOLROUTER, [], corpus=corpus, key="base:0xa", same=lambda k: k == "ethereum:0xB")
+    assert r["original"] and r["evidence"]["twin"] is None
+
+
+def test_same_project_matches_the_site_or_name_and_ticker(monkeypatch):
+    from app.trading.onchain import projects_db, research
+    rows = {"ethereum:0xb": {"website": "https://www.hydrex.fi", "name": "Hydrex", "symbol": "HYDX"},
+            "base:0xc": {"website": "https://other.io", "name": "Other", "symbol": "OTH"}}
+    monkeypatch.setattr(projects_db, "get", lambda c, t: rows.get(f"{c}:{t}"))
+    assert research.same_project("ethereum:0xb", {"website": "https://hydrex.fi/", "name": "X", "symbol": "Y"})
+    assert research.same_project("ethereum:0xb", {"name": "hydrex", "symbol": "hydx"})
+    assert not research.same_project("base:0xc", {"website": "https://hydrex.fi", "name": "Hydrex", "symbol": "HYDX"})

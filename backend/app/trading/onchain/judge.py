@@ -91,6 +91,24 @@ def _load() -> None:
         logger.exception("giudice: cache non leggibile")
 
 
+CLONE_PROBLEM = re.compile(r"identical to another project|copy-?pasted", re.I)
+CLONE_FIX = "migrated:clone-short-text"
+
+
+def _drop_false_clones() -> None:
+    """Once: the "N% identical to another project" problems came from short
+    texts (a JavaScript shell) or the same project on another chain matched
+    against itself (30/09). A real copy is still flagged by the site pillar
+    and comes back at the next reading."""
+    if _calls.get(CLONE_FIX) or not _cache:
+        return
+    for v in _cache.values():
+        if isinstance(v, dict) and v.get("problems"):
+            v["problems"] = [p for p in v["problems"] if not CLONE_PROBLEM.search(str(p))]
+    _calls[CLONE_FIX] = 1
+    _save()
+
+
 def _save() -> None:
     try:
         with open(_FILE, "w", encoding="utf-8") as fh:
@@ -429,3 +447,4 @@ def get(chain: str, token: str) -> dict | None:
 
 
 _load()
+_drop_false_clones()

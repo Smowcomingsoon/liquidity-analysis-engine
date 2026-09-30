@@ -33,6 +33,7 @@ from __future__ import annotations
 import hashlib
 import math
 import re
+from typing import Callable
 
 # ------------------------------------------------------------------ lexicon
 
@@ -175,6 +176,10 @@ COHERENCE_MIN = 0.1           # shared words over the shorter of description and
 COHERENCE_WORDS = 5           # shorter descriptions cannot be checked
 GEM_MIN, PROMISING_MIN = 75, 55
 SKETCH_K = 64
+# A shorter text has too few 5-grams to compare: a JavaScript shell ("enable
+# JavaScript to run this app") matched another shell at 100% (30/09, IMG
+# from Lorenzo: "la cosa del 100% identica e' una cazzata").
+SKETCH_MIN_GRAMS = 20
 
 
 def _sat(x: float, k: float) -> float:
@@ -254,25 +259,30 @@ def sketch(text: str, k: int = SKETCH_K) -> list[int]:
     """Bottom-k MinHash of word 5-grams: the k smallest 64-bit hashes."""
     ws = words(text)
     grams = {" ".join(ws[i:i + 5]) for i in range(max(0, len(ws) - 4))}
+    if len(grams) < SKETCH_MIN_GRAMS:
+        return []
     hs = sorted(int.from_bytes(hashlib.blake2b(g.encode(), digest_size=8).digest(), "big") for g in grams)
     return hs[:k]
 
 
 def similarity(a: list[int], b: list[int], k: int = SKETCH_K) -> float:
     """Estimated Jaccard from two bottom-k sketches."""
-    if not a or not b:
+    if len(a) < SKETCH_MIN_GRAMS or len(b) < SKETCH_MIN_GRAMS:
         return 0.0
     union = sorted(set(a) | set(b))[:k]
     return len(set(union) & set(a) & set(b)) / len(union)
 
 
-def closest(print_: list[int], corpus: dict[str, list[int]], skip: str = "") -> tuple[str, float]:
+def closest(print_: list[int], corpus: dict[str, list[int]], skip: str = "",
+            same: Callable[[str], bool] | None = None) -> tuple[str, float]:
+    """The most similar other project. `same(key)` says a match is this very
+    project under another key (another chain, another pool): not a copy."""
     best = ("", 0.0)
     for key, other in corpus.items():
-        if key == skip:
+        if key.lower() == skip.lower():
             continue
         s = similarity(print_, other)
-        if s > best[1]:
+        if s > best[1] and not (same and s >= CLONE_SIMILARITY and same(key)):
             best = (key, s)
     return best
 
@@ -290,7 +300,8 @@ def summary(description: str, site: str) -> str:
 
 
 def read(description: str, site_texts: list[str], *, name: str = "", symbol: str = "", app_ok: bool = False,
-         deployed: bool = False, corpus: dict[str, list[int]] | None = None, key: str = "") -> dict:
+         deployed: bool = False, corpus: dict[str, list[int]] | None = None, key: str = "",
+         same: Callable[[str], bool] | None = None) -> dict:
     """The dossier: same keys as Claude's, plus `points` (0-100) and `why`."""
     site = "\n".join(t for t in site_texts if t)
     d_words, s_words = content_words(description), content_words(site)
@@ -316,7 +327,7 @@ def read(description: str, site_texts: list[str], *, name: str = "", symbol: str
     strong = sorted({m.lower() for m in _SCAM_STRONG.findall(text)})
     weak = sorted({m.lower() for m in _SCAM_WEAK.findall(text)})
     print_ = sketch(description or site)
-    twin, twin_sim = closest(print_, corpus or {}, skip=key) if print_ else ("", 0.0)
+    twin, twin_sim = closest(print_, corpus or {}, skip=key, same=same) if print_ else ("", 0.0)
     clone = twin_sim >= CLONE_SIMILARITY or bool(_CLONE_SELF.search(text))
 
     parts = {
