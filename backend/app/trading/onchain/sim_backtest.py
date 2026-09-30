@@ -178,10 +178,11 @@ def relabel(chain: str, token: str, times: dict[str, set[tuple[int, str]]], wind
 
 
 def _trend(e: dict) -> bool:
-    """Every saved trade counts: Lorenzo, 30/09, after the trend-only filter
-    hid 135 of 138, chose "Rimetti tutto". New trades enter only from a trend
-    follower (token_trades); the old ones say which they were (`strategy`)."""
-    return True
+    """Only trend followers' trades count. Lorenzo, 30/09, after "Rimetti
+    tutto": "fammi visualizzare soltanto i trend follower per adesso". The
+    unproven and counter-trend ones stay in the ledger, hidden; `relabel`
+    brings each back once the lab proves a trend follower made it."""
+    return strategy_of(e) == "trend"
 
 
 def strategy_of(e: dict) -> str:

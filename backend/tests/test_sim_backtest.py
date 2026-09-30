@@ -83,10 +83,9 @@ def test_mean_reversion_5m_trades_never_enter_the_wallet(monkeypatch):
     assert sb.remember("base", "T", "T", trend)
     sb._ledger["base:OLD"] = {"chain": "base", "token": "OLD", "interval": "5m",
                               "events": {"100:buy": {"t": 100, "side": "buy", "iv": "5m"}}}
-    # Old unlabelled trades stay in (Lorenzo chose "Rimetti tutto"), marked
+    # Old unlabelled trades stay saved but hidden until proven trend follower
     toks = {t["token"]: t for t in sb.ledger_tokens()}
-    assert len(toks["OLD"]["events"]) == 1 and sb.strategy_of(toks["OLD"]["events"][0]) == "unknown"
-    assert sb.replay([toks["OLD"]], 10_000)["open"][0]["strategy"] == "unknown"
+    assert toks["OLD"]["events"] == [] and "100:buy" in sb._ledger["base:OLD"]["events"]
 
 
 def test_the_top_row_best_is_a_trend_follower_never_rsi_bb():
@@ -133,4 +132,5 @@ def test_old_unlabelled_5m_trades_come_back_only_when_a_trend_follower_made_them
     ev = sb._ledger["base:X"]["events"]
     assert n == 3 and ev["1000:buy"]["lab"] == "Trend HF"
     assert ev["1600:sell"]["lab"] == "Trend HF" and ev["5000:buy"]["lab"] == "not trend" and "lab" not in ev["10:buy"]
-    assert [sb.strategy_of(e) for e in sb.ledger_tokens()[0]["events"]] == ["unknown", "trend", "trend", "counter"]
+    assert [e["t"] for e in sb.ledger_tokens()[0]["events"]] == [1000, 1600]
+    assert len(ev) == 4
