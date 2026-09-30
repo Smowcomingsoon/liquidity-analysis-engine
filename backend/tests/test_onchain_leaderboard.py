@@ -699,3 +699,30 @@ def test_audit_scoring_gates():
     fresh["review"] = {"keep": True, "score": 100, "at": time.time()}
     stale["review"] = {"keep": True, "score": 100, "at": 1}
     assert lb.final_score(fresh) > lb.final_score(stale)
+
+
+def test_goplus_lock_of_a_side_pool_is_not_the_market():
+    info = {"holder_count": 900, "holders": [{"address": "0x1", "percent": "0.05", "is_contract": 0}],
+            "is_mintable": "0", "transfer_pausable": "0", "buy_tax": "0", "sell_tax": "0",
+            "lp_holders": [{"address": "0x7", "percent": "0.97", "is_locked": 0, "value": "595.3"}]}
+    side = depth.judge_tokenomics_evm(info, "0xpair", 63_000)
+    assert side["facts"]["lp_locked_pct"] is None and "lp_note" in side["facts"]
+    assert not any("locked" in f for f in side["flags"])
+    main = depth.judge_tokenomics_evm(info, "0xpair", 800)
+    assert main["facts"]["lp_locked_pct"] == 0.0
+
+
+def test_coming_soon_on_a_full_page_is_not_a_placeholder():
+    body = " ".join(f"word{i}" for i in range(300))
+    full = depth.anatomy(f"<html><body><p>{body} Staking coming soon</p></body></html>", "https://x.io")
+    short = depth.anatomy("<html><body><p>Our app is coming soon, stay tuned</p></body></html>", "https://x.io")
+    assert not full["lorem"] and short["lorem"]
+
+
+def test_the_v4_pool_manager_is_a_pool_not_a_holder():
+    info = {"holder_count": 900, "is_mintable": "0", "transfer_pausable": "0", "buy_tax": "0", "sell_tax": "0",
+            "dex": [{"pair": "0xp", "pool_manager": "0xPM"}],
+            "holders": [{"address": "0xpm", "percent": "0.30", "is_contract": 1},
+                        {"address": "0x1", "percent": "0.05", "is_contract": 0}]}
+    p = depth.judge_tokenomics_evm(info)
+    assert p["facts"]["contracts_pct"] == 0.0 and not any("contracts" in f for f in p["flags"])

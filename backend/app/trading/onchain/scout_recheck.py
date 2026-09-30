@@ -241,7 +241,7 @@ def market_lines(entry: dict, item: dict) -> list[str]:
     if tk:
         out.append("Holders (GoPlus/GeckoTerminal): " + json.dumps(
             {k: tk.get(k) for k in ("holders", "top1_pct", "top10_pct", "creator_pct", "contracts_pct",
-                                    "lp_locked_pct", "gecko_top10_pct", "source") if tk.get(k) is not None}))
+                                    "lp_locked_pct", "lp_note", "gecko_top10_pct", "source") if tk.get(k) is not None}))
         if tk.get("top_holders"):
             out.append("Top holders: " + "; ".join(
                 f"{h.get('pct')}% " + ("contract" if h.get("contract") else "wallet")
@@ -286,6 +286,17 @@ def evidence_text(entry: dict, item: dict, ev: dict) -> str:
     for p in ev["pages"]:
         lines.append(f"Page {p['url']}: {p['text']}")
     return "\n".join(lines)
+
+
+# Lorenzo, 30/09: "il team anonimo mi interessa il giusto". An anonymous
+# team is shown, never among the red points.
+TEAM_POINT = re.compile(r"\b(anonymous|anon|doxx\w*|unidentified|no (identified|named|public) (team|builders|founders))\b", re.I)
+
+
+def minor(p: dict) -> dict:
+    if p["status"] == "confirmed" and TEAM_POINT.search(p["text"]):
+        return {**p, "status": "unverified", "note": "Minor: " + (p.get("note") or "team identity is not weighed")}
+    return p
 
 
 def parse(raw: str, points: list[dict]) -> list[dict] | None:
@@ -337,6 +348,7 @@ async def recheck(entry: dict, item: dict, client: httpx.AsyncClient, ask=None) 
         judged = heuristic(points, ev)
     else:
         _cache[key] = (time.time(), {"items": judged})
+    judged = [minor(p) for p in judged]
     return {"confirmed": [p for p in judged if p["status"] == "confirmed"],
             "unverified": [p for p in judged if p["status"] == "unverified"],
             "refuted": [p for p in judged if p["status"] == "refuted"],

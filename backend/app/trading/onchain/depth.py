@@ -61,7 +61,11 @@ _BUILDERS = ("wix", "carrd", "framer", "webflow", "squarespace", "wordpress", "z
 _FREE_HOSTS = ("carrd.co", "framer.website", "framer.ai", "webflow.io", "vercel.app", "netlify.app",
                "github.io", "wixsite.com", "pages.dev", "web.app", "firebaseapp.com", "gitbook.io",
                "notion.site", "replit.app", "lovable.app", "bolt.new")
-_LOREM = re.compile(r"lorem ipsum|dolor sit amet|your (company|project) name|coming soon", re.I)
+_LOREM = re.compile(r"lorem ipsum|dolor sit amet|your (company|project) name", re.I)
+# "Coming soon" is a placeholder only on a page with little else: a live
+# product labels its next feature that way (HYDX, 30/09: 780 words, score 0).
+_SOON = re.compile(r"coming soon", re.I)
+SOON_MAX_WORDS = 150
 _SECTIONS = {
     "team": re.compile(r"\b(team|founders?|about us|chi siamo|core contributors)\b", re.I),
     "roadmap": re.compile(r"\broad\s?map\b", re.I),
@@ -388,7 +392,7 @@ def anatomy(html_text: str, base_url: str) -> dict:
         "spa": p.root_div and p.scripts > 0,
         "builder": builder,
         "free_host": next((f for f in _FREE_HOSTS if host == f or host.endswith("." + f)), None),
-        "lorem": bool(_LOREM.search(text)),
+        "lorem": bool(_LOREM.search(text)) or (bool(_SOON.search(text)) and len(text.split()) < SOON_MAX_WORDS),
     }
 
 
@@ -553,7 +557,10 @@ def judge_tokenomics_solana(report: dict | None, exclude: set[str] | None = None
         ) if not present))
 
 
-def judge_tokenomics_evm(info: dict | None, pair_address: str = "") -> dict:
+LP_COVER_MIN = 0.5
+
+
+def judge_tokenomics_evm(info: dict | None, pair_address: str = "", liquidity_usd: float = 0.0) -> dict:
     """Da GoPlus (Robinhood Chain): holders con percentuale 0-1."""
     if not info:
         return _pending("tokenomics", "GoPlus does not have the token yet")
@@ -564,9 +571,12 @@ def judge_tokenomics_evm(info: dict | None, pair_address: str = "") -> dict:
         except (TypeError, ValueError):
             return 0.0
 
-    pair = pair_address.lower()
+    # The pools GoPlus lists are pools, not holders: Uniswap v4 keeps every
+    # pool's tokens in its PoolManager (HYDX, 30/09: 9% of the supply).
+    pools = {pair_address.lower()} | {str(d.get(k) or "").lower() for d in info.get("dex") or []
+                                      for k in ("pair", "pool_manager")} - {""}
     holders = [h for h in info.get("holders") or []
-               if (h.get("address") or "").lower() not in _DEAD | {pair}
+               if (h.get("address") or "").lower() not in _DEAD | pools
                and not str(h.get("is_locked")) == "1"
                and not re.search(r"pool|pair|lp|lock|burn", h.get("tag") or "", re.I)]
     # A contract is not "a single wallet": GoPlus leaves Robinhood's pools
@@ -588,6 +598,22 @@ def judge_tokenomics_evm(info: dict | None, pair_address: str = "") -> dict:
     lps = info.get("lp_holders") or []
     lp_locked = sum(pct(h.get("percent")) for h in lps
                     if str(h.get("is_locked")) == "1" or (h.get("address") or "").lower() in _DEAD) if lps else None
+    # GoPlus lists the LP positions of the pools it knows: on HYDX (30/09)
+    # $595 of positions in a small Uniswap v4 pool, while the pool that
+    # trades held $63k. A lock share of a pool that is not the market is no
+    # reading of the market: left out, with a note.
+    lp_value = 0.0
+    for h in lps:
+        try:
+            lp_value += float(h.get("value") or 0)
+        except (TypeError, ValueError):
+            pass
+    lp_note = ""
+    valued = any(h.get("value") not in (None, "") for h in lps)    # v4 positions carry a USD value
+    if lp_locked is not None and valued and liquidity_usd > 0 and lp_value < LP_COVER_MIN * liquidity_usd:
+        lp_locked = None
+        lp_note = (f"GoPlus LP data covers ${lp_value:,.0f} of ${liquidity_usd:,.0f} liquidity: "
+                   "the main pool's lock is not in it")
     out = _judge_tokenomics(
         top1=pcts[0] if pcts else 0.0, top10=sum(pcts[:10]),
         creator=max(pct(info.get("creator_percent")), pct(info.get("owner_percent"))),
@@ -596,6 +622,8 @@ def judge_tokenomics_evm(info: dict | None, pair_address: str = "") -> dict:
         tax=max(pct(info.get("buy_tax")), pct(info.get("sell_tax"))),
         rugged=str(info.get("is_honeypot")) == "1", unknown=unknown)
     out["facts"]["contracts_pct"] = round(in_contracts, 1)
+    if lp_note:
+        out["facts"]["lp_note"] = lp_note
     # A contract is not proof of a pool or a vesting: a multisig or a proxy
     # the team controls is a whale too (audit 29/09, M01). Unidentified
     # contracts stay out of the per-wallet limits (GRID, BV7X), but one
@@ -689,7 +717,7 @@ def _judge_tokenomics(*, top1: float, top10: float, creator: float, holders: int
 
 
 async def analyze_tokenomics(chain: str, token: str, client: httpx.AsyncClient, *, pair_address: str = "",
-                             exclude: set[str] | None = None) -> dict:
+                             exclude: set[str] | None = None, liquidity_usd: float = 0.0) -> dict:
     if chain == "solana":
         return judge_tokenomics_solana(await rugcheck_report(token, client), exclude)
     if chain in legit.GOPLUS_CHAIN:
@@ -700,7 +728,7 @@ async def analyze_tokenomics(chain: str, token: str, client: httpx.AsyncClient, 
         if not info:
             from app.trading.onchain import research   # research builds on this module
             return judge_tokenomics_gecko(await research.gecko_info(chain, token, client))
-        return judge_tokenomics_evm(info, pair_address)
+        return judge_tokenomics_evm(info, pair_address, liquidity_usd)
     return _pillar("tokenomics", None, {}, [], "chain not covered")
 
 
@@ -745,5 +773,6 @@ async def analyze(item: dict, client: httpx.AsyncClient, *, skip: set[str] = fro
                                item.get("pair_address")) if x}
         out["tokenomics"] = await analyze_tokenomics(item["chain"], item["token_address"], client,
                                                      pair_address=item.get("pair_address") or "",
-                                                     exclude=exclude)
+                                                     exclude=exclude,
+                                                     liquidity_usd=float(item.get("liquidity_usd") or 0))
     return out

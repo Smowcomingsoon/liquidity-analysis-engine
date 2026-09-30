@@ -110,3 +110,10 @@ def test_twin_with_the_same_website_refutes_the_copy_point(monkeypatch):
     pts = [{"text": "Site text is 100% identical to another project", "from": "judge"}]
     out = sr.heuristic(pts, {"found": [line], "pages": []})
     assert out[0]["status"] == "refuted"
+
+
+def test_an_anonymous_team_is_never_a_red_point():
+    p = {"text": "Anonymous team with no identified builders", "from": "judge", "status": "confirmed", "note": "x"}
+    assert sr.minor(p)["status"] == "unverified" and sr.minor(p)["note"].startswith("Minor")
+    other = {**p, "text": "Mint enabled"}
+    assert sr.minor(other)["status"] == "confirmed"
