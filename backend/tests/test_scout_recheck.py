@@ -78,3 +78,35 @@ def test_lock_flag_is_unverified_when_goplus_misses_the_main_pool(monkeypatch):
     pts = [{"text": "only 0% of liquidity locked", "from": "tokenomics"}]
     assert sr.heuristic(pts, {"found": [note], "pages": []})[0]["status"] == "unverified"
     assert asyncio.run(sr.lp_coverage({"chain": "solana", "token_address": "M"}, None)) == ""
+
+
+def test_evidence_carries_market_holders_site_and_team(monkeypatch):
+    import time
+    from app.trading.onchain import traction
+    monkeypatch.setattr(traction, "lookup", lambda c, t: {"name": "Hydrex", "tvl": 1_200_000.0})
+    monkeypatch.setattr(sr, "twin_line", lambda e, i: "")
+    entry = {"pillars": {
+        "tokenomics": {"facts": {"holders": 900, "contracts_pct": 33.0, "lp_locked_pct": 0.0,
+                                 "top_holders": [{"pct": 20.0, "contract": True, "tag": "UniswapV3"}]}},
+        "site": {"facts": {"url": "https://x.io", "words": 30, "rendered": True,
+                           "excerpt": "Built by our team. Founder Jane Doe, ex-Aave."}}}}
+    item = {"name": "X", "chain": "base", "token_address": "0xa", "created_at": time.time() - 6 * 86400,
+            "volume_24h": 50_000, "liquidity_usd": 58_000}
+    text = sr.evidence_text(entry, item, {"found": [], "pages": []})
+    assert "pool age 6.0 days" in text and "24h volume $50,000" in text
+    assert '"tvl": 1200000.0' in text
+    assert "20.0% contract (UniswapV3)" in text and '"lp_locked_pct": 0.0' in text
+    assert '"rendered": true' in text and "Founder Jane Doe" in text
+
+
+def test_twin_with_the_same_website_refutes_the_copy_point(monkeypatch):
+    from app.trading.onchain import projects_db
+    monkeypatch.setattr(projects_db, "get", lambda c, t: {"name": "Hydrex", "symbol": "HYDX", "chain": "ethereum",
+                                                           "website": "https://www.hydrex.fi", "description": "d"})
+    entry = {"pillars": {"site": {"facts": {"evidence": {"twin": "ethereum:0xb", "twin_similarity": 1.0}}}}}
+    item = {"website": "https://hydrex.fi/"}
+    line = sr.twin_line(entry, item)
+    assert "the same website" in line
+    pts = [{"text": "Site text is 100% identical to another project", "from": "judge"}]
+    out = sr.heuristic(pts, {"found": [line], "pages": []})
+    assert out[0]["status"] == "refuted"
