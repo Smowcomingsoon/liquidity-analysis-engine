@@ -12,6 +12,14 @@ WORKDIR /srv
 COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Headless browser for sites that only show their text after JavaScript
+# runs (jstext.render): Debian's chromium, driven by Playwright. Lorenzo,
+# 30/09: "Installa". SITE_RENDER=0 in .env switches it off.
+RUN apt-get update && apt-get install -y --no-install-recommends chromium \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir "playwright>=1.47,<2"
+ENV CHROMIUM_PATH=/usr/bin/chromium
+
 COPY backend/app ./backend/app
 COPY backend/app_entry.py ./backend/app_entry.py
 COPY frontend ./frontend

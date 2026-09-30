@@ -37,6 +37,9 @@ SHELL_WORDS = 50                  # under this, a page with a JS app in it is a 
 RENDER_TIMEOUT_S = 20
 RENDER_DAILY_MAX = 200
 RENDER_ENV = "SITE_RENDER"        # "0" switches the headless browser off
+# The Debian chromium package in the image (Dockerfile): Playwright's own
+# download needs system libraries the slim image's Debian may not list.
+CHROMIUM_ENV = "CHROMIUM_PATH"
 RENDER_MAX_BYTES = 5_000_000       # one script or page handed to the browser
 # httpx already decoded the body and sets its own length; the rest is per hop.
 _HOP_HEADERS = {"content-encoding", "content-length", "transfer-encoding", "connection", "host"}
@@ -310,7 +313,9 @@ async def render(url: str, allow_host: Callable[[str], Awaitable[bool]]) -> str 
             # port): every request is fetched here, on a client that only
             # opens sockets to public IPs, and handed back to the page.
             try:
-                resp = await net.request(req.method, req.url, content=req.post_data_buffer,
+                # Redirects are followed here: a 3xx handed back to the page
+                # sent Chromium to its dead proxy (hydrex.fi -> www, 30/09).
+                resp = await net.request(req.method, req.url, content=req.post_data_buffer, follow_redirects=True,
                                          headers={k: v for k, v in req.headers.items()
                                                   if k.lower() not in _HOP_HEADERS})
             except httpx.HTTPError:
@@ -324,7 +329,7 @@ async def render(url: str, allow_host: Callable[[str], Awaitable[bool]]) -> str 
                 async with async_playwright() as pw, egress.public_client(timeout=8.0) as net:
                     try:
                         browser = await pw.chromium.launch(
-                            headless=True, proxy={"server": "http://127.0.0.1:9"},
+                            headless=True, executable_path=os.environ.get(CHROMIUM_ENV) or None, proxy={"server": "http://127.0.0.1:9"},
                             args=["--proxy-bypass-list=<-loopback>"])
                     except Exception as exc:  # no browser binary on this server
                         logger.info("headless render unavailable: %s", exc)
