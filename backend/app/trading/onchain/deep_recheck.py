@@ -192,7 +192,9 @@ def next_in_sweep(board_keys: list[str], now: float) -> str | None:
     """The next Top 50 token the weekly sweep still owes a re-check, starting
     a new sweep (on the board as it is now) once a week has passed."""
     sw = _state["sweep"]
-    if not sw.get("started") or (sw.get("finished") and now - sw["started"] >= WEEK_S):
+    # A week after the start a new round begins even if the last one stalled
+    # (DeepSeek down for days): the board of today, not of a week ago.
+    if not sw.get("started") or now - sw["started"] >= WEEK_S:
         sw.clear()
         sw.update({"started": now, "keys": list(board_keys), "done": [], "finished": None})
         _save()

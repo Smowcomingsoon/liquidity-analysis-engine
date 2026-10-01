@@ -190,3 +190,9 @@ def test_weekly_sweep_walks_the_board_once_a_week():
     assert deep_recheck.next_in_sweep(keys + ["base:c"], t0 + 86400) is None
     assert deep_recheck.next_in_sweep(keys + ["base:c"], t0 + deep_recheck.WEEK_S) == "solana:a"
     assert deep_recheck._state["sweep"]["keys"] == keys + ["base:c"]
+
+
+def test_a_stalled_sweep_restarts_after_a_week():
+    t0 = 1_800_000_000.0
+    assert deep_recheck.next_in_sweep(["solana:a"], t0) == "solana:a"
+    assert deep_recheck.next_in_sweep(["base:z"], t0 + deep_recheck.WEEK_S) == "base:z"
