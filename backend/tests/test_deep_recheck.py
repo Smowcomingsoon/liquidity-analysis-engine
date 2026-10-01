@@ -128,4 +128,23 @@ def test_failed_second_search_still_asks(monkeypatch):
     monkeypatch.setattr(scout_recheck, "recheck", boom)
     res = asyncio.run(deep_recheck.run("solana", "tok7", None, ask=_fake_ask(
         {"keep": False, "score": 20, "verdict": "avoid", "reason": "thin"})))
-    assert res["keep"] is False
+    assert res["unsupported"] is True and res["claims"] == []
+
+
+def test_a_drop_needs_a_problem_backed_by_a_real_quote(monkeypatch):
+    _row("tok8")
+    ev = "Checked sources:\nsite html: found — 200, 900 bytes\nliquidity $3,100 against a $2,400,000 cap"
+    monkeypatch.setattr(scout_recheck, "recheck", _fake_recheck(
+        {"confirmed": [], "unverified": [], "refuted": [], "found": [], "evidence": ev}))
+    made_up = {"keep": False, "score": 10, "verdict": "avoid", "reason": "no product",
+               "problems": [{"text": "no product", "evidence": "the product does not exist"}]}
+    res = asyncio.run(deep_recheck.run("solana", "tok8", None, ask=_fake_ask(made_up)))
+    assert res["unsupported"] is True and res["keep"] is True and res["problems"] == []
+    row = projects_db.get("solana", "tok8")
+    assert (row.get("why") or "").startswith("DeepSeek review")       # an unsupported answer changes nothing
+
+    _row("tok9")
+    real = {**made_up, "problems": [{"text": "pool is tiny for the cap",
+                                     "evidence": "liquidity $3,100 against a $2,400,000 cap"}]}
+    res = asyncio.run(deep_recheck.run("solana", "tok9", None, ask=_fake_ask(real)))
+    assert res["keep"] is False and res["problems"][0]["evidence"].startswith("liquidity $3,100")

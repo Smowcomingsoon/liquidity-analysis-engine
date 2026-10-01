@@ -22,6 +22,7 @@ Only confirmed points stay red; the others are shown as such.
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -39,6 +40,8 @@ logger = logging.getLogger(__name__)
 TTL_S = 86400
 MAX_PAGES = 5
 EXCERPT = 1500
+EVIDENCE_MAX = 9000
+QUOTE_MIN = 8                     # an empty or two-word quote proves nothing
 _cache: dict[str, tuple[float, dict]] = {}
 
 # A red point that says something is missing or could not be read.
@@ -94,13 +97,51 @@ def other_pages(item: dict, read: set[str]) -> list[str]:
 
 
 _SCRIPT_SRC = re.compile(r"""<script[^>]+src=["']([^"']+\.js[^"']*)["']""", re.I)
-_API_PATH = re.compile(r"""["'](/api/[A-Za-z0-9_\-/]{1,60})["']""")
-_SNIPPET = re.compile(r"(?i)\b(powered by|integrat\w*|partner\w*|issuer\w*|aggregat\w*|router)\b")
-_PRINTABLE = re.compile(r"[ -~]")
+_API_PATH = re.compile(r"""["'`](/api/[A-Za-z0-9_\-/]{2,60})(?=["'`?$])""")
+_CHUNK = re.compile(r"""["'`]((?:\.{1,2}/|/)?(?:assets/|_next/static/chunks/|static/js/)?[\w.\-/]+\.js)["'`]""")
+CHUNK_HINTS = {"token", "contract", "coin", "home", "landing", "about", "index", "page", "app", "swap", "trade"}
+MAX_ENTRY_SCRIPTS = 12
+MAX_CHUNKS = 40
+MAX_CODE_BYTES = 15_000_000
+MAX_API = 4
+API_SAMPLE = 300
+# A UI string in a bundle: a quoted literal of words, not code.
+_UI_STRING = re.compile(r"""["'`]([A-Z][A-Za-z0-9 ,.'&%$+/()\-]{18,140})["'`]""")
+_CODE_HINT = re.compile(r"[{}<>=;\\_]|\b(function|return|undefined|null|const|var|div|px|rgba?|https?)\b|\w\.\w+\(")
+# Framework and library messages are not the project's own words.
+_LIB_WORDS = re.compile(r"(?i)\b(react|next\.?js|hydrat\w*|server|client|module|props?|render\w*|transition|function|"
+                        r"argument|expected|redirect|document|media query|element|component|payload|webpack|turbopack|"
+                        r"polyfill|deprecated|invariant|minified|getInitialProps|getStaticProps|ssr|ssg|node|browser|"
+                        r"provider|context|hook|callback|promise|iterable|undefined|instance|prototype|serializ\w*|"
+                        r"stylesheet|viewport|visibility|experiment|error|invalid|cannot|can not|can't|couldn't|failed|must|"
+                        r"unexpected|unsupported|unable|missing|fallback|method|runtime|require|signature|encod\w*|"
+                        r"decod\w*|curve|field|abi|constructor|mutation|easing|bezier|css|navigation|reload|"
+                        r"more information|consider using)\b")
+APP_TEXT_MAX = 2500
 
 
-def _printable(text: str) -> str:
-    return "".join(_PRINTABLE.findall(text))
+def app_text(bundle: str, names: set[str] = frozenset()) -> list[str]:
+    """What a single-page app shows its visitors, read from its own code:
+    the HTML of HYDX had no text, its bundle named Ondo, xStocks, bStocks."""
+    out, size = [], 0
+    for m in _UI_STRING.finditer(bundle):
+        t = " ".join(m.group(1).split())
+        digits = sum(ch.isdigit() for ch in t)
+        if t in out or _CODE_HINT.search(t) or _LIB_WORDS.search(t) or len(t.split()) < 3 or digits > len(t) / 5:
+            continue
+        out.append(t)
+        size += len(t) + 1
+        if size >= APP_TEXT_MAX * 2:
+            break
+    # The project's own name first, then the rest in code order.
+    out.sort(key=lambda t: not any(n in t.lower() for n in names))
+    kept, size = [], 0
+    for t in out:
+        if size + len(t) > APP_TEXT_MAX:
+            break
+        kept.append(t)
+        size += len(t) + 1
+    return kept
 
 
 async def app_probe(item: dict, client: httpx.AsyncClient) -> dict:
@@ -123,52 +164,75 @@ async def app_probe(item: dict, client: httpx.AsyncClient) -> dict:
         return {"checked": checked, "found": found, "snippets": snippets}
     srcs = []
     for m in _SCRIPT_SRC.finditer(html):
-        u = urljoin(site, m.group(1))
+        u = urljoin(r.url and str(r.url) or site, m.group(1))
         if u not in srcs:
             srcs.append(u)
     address = (item.get("token_address") or "").lower()
-    bundle = ""
-    for u in srcs[:3]:
+    words = {w for w in re.findall(r"[a-z]{3,}", f"{item.get('symbol')} {item.get('name')}".lower())} | CHUNK_HINTS
+    texts: dict[str, str] = {}
+    failed = 0
+
+    async def read(u: str) -> None:
+        nonlocal failed
         try:
-            br = await client.get(u, timeout=10.0)
-            text = br.text[:3_000_000]
-        except Exception as exc:
-            checked.append({"source": "app code", "result": "unreadable", "detail": f"{u}: {str(exc)[:100]}"})
-            continue
-        if br.status_code != 200 or not text:
-            checked.append({"source": "app code", "result": "not found", "detail": f"{u}: {br.status_code}"})
-            continue
-        bundle += text
-        name = u.rsplit("/", 1)[-1]
-        if address and address in text.lower():
-            found.append(f"token contract address in the app code ({name})")
-            checked.append({"source": "app code", "result": "found", "detail": f"{name}: token address"})
+            br = await client.get(u, timeout=8.0)
+        except Exception:
+            failed += 1
+            return
+        if br.status_code == 200 and "html" not in br.headers.get("content-type", ""):
+            texts[u] = br.text[:3_000_000]
         else:
-            checked.append({"source": "app code", "result": "not found", "detail": f"{name}: no token address"})
-    if bundle:
-        paths = []
-        for m in _API_PATH.finditer(bundle):
-            if m.group(1) not in paths:
-                paths.append(m.group(1))
-        origin = f"{urlparse(site).scheme}://{urlparse(site).netloc}"
-        for path in paths[:3]:
-            url = origin + path
-            try:
-                ar = await client.get(url, timeout=8.0)
-                ctype = ar.headers.get("content-type", "")
-                kb = len(ar.content) / 1024
-                checked.append({"source": f"api {path}", "result": "found" if ar.status_code == 200 else "not found",
-                                "detail": f"{ar.status_code}, {ctype}, {kb:.0f} KB"})
-                if ar.status_code == 200:
-                    found.append(f"live API {path}: {ar.status_code}, {ctype}, {kb:.0f} KB")
-            except Exception as exc:
-                checked.append({"source": f"api {path}", "result": "unreadable", "detail": str(exc)[:120]})
-        for m in _SNIPPET.finditer(bundle):
-            s = _printable(bundle[max(0, m.start() - 50):m.start() + 50]).strip()
-            if s and s not in snippets:
-                snippets.append(s)
-            if len(snippets) >= 5:
-                break
+            failed += 1
+
+    # The entry scripts, then the chunks they load (HYDX: the address sat in
+    # a lazy chunk, hyperToken-*.js), the likeliest names first.
+    await asyncio.gather(*(read(u) for u in srcs[:MAX_ENTRY_SCRIPTS]))
+    chunks = []
+    for u, text in list(texts.items()):
+        for m in _CHUNK.finditer(text):
+            c = urljoin(u, m.group(1))
+            if c not in texts and c not in chunks and urlparse(c).netloc == urlparse(u).netloc:
+                chunks.append(c)
+    chunks.sort(key=lambda c: not any(w in c.rsplit("/", 1)[-1].lower() for w in words))
+    for i in range(0, min(len(chunks), MAX_CHUNKS), 6):
+        if sum(len(t) for t in texts.values()) > MAX_CODE_BYTES:
+            break
+        await asyncio.gather(*(read(c) for c in chunks[i:i + 6]))
+    size = sum(len(t) for t in texts.values())
+    where = next((u.rsplit("/", 1)[-1] for u, t in texts.items() if address and address in t.lower()), None)
+    detail = f"{len(texts)} files read ({size // 1024} KB), {failed} unreadable"
+    if not texts:
+        checked.append({"source": "app code", "result": "unreadable", "detail": detail})
+        return {"checked": checked, "found": found, "snippets": snippets}
+    if where:
+        found.append(f"token contract address in the app code ({where})")
+        checked.append({"source": "app code", "result": "found", "detail": f"token address in {where}; {detail}"})
+    else:
+        checked.append({"source": "app code", "result": "not found", "detail": f"no token address; {detail}"})
+    bundle = "\n".join(texts.values())
+    paths, samples = [], []
+    for m in _API_PATH.finditer(bundle):
+        if m.group(1) not in paths and not m.group(1).endswith("/"):
+            paths.append(m.group(1))
+    origin = f"{urlparse(str(r.url) or site).scheme}://{urlparse(str(r.url) or site).netloc}"
+    for path in paths[:MAX_API]:
+        try:
+            ar = await client.get(origin + path, timeout=8.0)
+        except Exception as exc:
+            checked.append({"source": f"api {path}", "result": "unreadable", "detail": str(exc)[:120]})
+            continue
+        ctype = ar.headers.get("content-type", "")
+        kb = len(ar.content) / 1024
+        # A single-page app answers 200 with its own HTML for any path: only JSON counts.
+        live = ar.status_code == 200 and "json" in ctype and len(ar.content) >= 200
+        weight = f"{kb:.0f} KB" if kb >= 1 else f"{len(ar.content)} bytes"
+        checked.append({"source": f"api {path}", "result": "found" if live else "not found",
+                        "detail": f"{ar.status_code}, {ctype or 'no type'}, {weight}"})
+        if live:
+            found.append(f"live API {path}: {ar.status_code}, {weight}")
+            samples.append(f"API {path} sample: " + " ".join(ar.text[:API_SAMPLE].split()))
+    names = {w for w in re.findall(r"[a-z]{3,}", f"{item.get('symbol')} {item.get('name')}".lower())}
+    snippets = samples + app_text(bundle, names)
     return {"checked": checked, "found": found, "snippets": snippets}
 
 
@@ -424,21 +488,20 @@ def evidence_text(entry: dict, item: dict, ev: dict) -> str:
     gh = (pil.get("github") or {}).get("facts") or {}
     if gh.get("url"):
         lines.append(f"GitHub facts: {json.dumps({k: gh.get(k) for k in ('url', 'commits', 'authors', 'active_weeks', 'tests', 'ci', 'last_push_days') if k in gh})}")
-    lines += market_lines(entry, item) + team_lines(entry, ev)
-    for p in ev["pages"]:
-        lines.append(f"Page {p['url']}: {p['text']}")
     if ev.get("checked"):
         lines.append("Checked sources:")
-        for c in ev["checked"]:
-            lines.append(f"{c.get('source')}: {c.get('result')} — {c.get('detail')}")
+        lines += [f"{c.get('source')}: {c.get('result')} — {c.get('detail')}" for c in ev["checked"]]
     if ev.get("snippets"):
-        lines.append("App code snippets:")
+        lines.append("App text (strings shown by the site's own code):")
         lines += list(ev["snippets"])
+    lines += market_lines(entry, item) + team_lines(entry, ev)
     text = "\n".join(lines)
-    if len(text) > 9000:
-        keep = [ln for ln in lines if not ln.startswith("Page ")]
-        text = "\n".join(keep)
-    return text[:9000]
+    for p in ev["pages"]:
+        room = EVIDENCE_MAX - len(text) - len(p["url"]) - 8
+        if room < 200:
+            break
+        text += f"\nPage {p['url']}: {p['text'][:room]}"
+    return text[:EVIDENCE_MAX]
 
 
 # Lorenzo, 30/09: "il team anonimo mi interessa il giusto". An anonymous
@@ -454,6 +517,12 @@ def minor(p: dict) -> dict:
 
 def _norm(s: str) -> str:
     return " ".join(str(s or "").lower().split())
+
+
+def quoted(quote: str, normalized_evidence: str) -> bool:
+    """A real quote: long enough to mean something and found in the evidence."""
+    q = _norm(quote).strip(" .\"'…")
+    return len(q) >= QUOTE_MIN and q in normalized_evidence
 
 
 def parse(raw: str, points: list[dict], evidence: str = "") -> list[dict] | None:
@@ -474,10 +543,10 @@ def parse(raw: str, points: list[dict], evidence: str = "") -> list[dict] | None
         if it is None:
             out.append({**p, "status": "unverified", "note": "not answered", "evidence": ""})
             continue
-        status = it.get("status") if it.get("status") in ("confirmed", "unverified", "refuted") else "confirmed"
+        status = it.get("status") if it.get("status") in ("confirmed", "unverified", "refuted") else "unverified"
         quote = str(it.get("evidence") or "")[:160]
         note = str(it.get("note") or "")[:200]
-        if ev and status in ("confirmed", "refuted") and _norm(quote) not in ev:
+        if ev and status in ("confirmed", "refuted") and not quoted(quote, ev):
             status, note = "unverified", "no evidence quoted"
         out.append({**p, "status": status, "note": note, "evidence": quote})
     return out
@@ -517,7 +586,7 @@ async def recheck(entry: dict, item: dict, client: httpx.AsyncClient, ask=None) 
                 + "\n".join(f"{n} | {p['text']}" for n, p in enumerate(points)))
         try:
             raw = await ask([{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}],
-                            kind="research", max_tokens=600, json_mode=True, purpose="scout_recheck",
+                            kind="research", max_tokens=1600, json_mode=True, purpose="scout_recheck",
                             subject=f"{item.get('chain')}:{item.get('token_address')}")
             judged = parse(raw, points, text)
         except Exception as exc:
@@ -532,4 +601,4 @@ async def recheck(entry: dict, item: dict, client: httpx.AsyncClient, ask=None) 
             "refuted": [p for p in judged if p["status"] == "refuted"],
             "found": ev["found"],
             "checked": ev.get("checked") or [],
-            "evidence": text[:6000]}
+            "evidence": text}

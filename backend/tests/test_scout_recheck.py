@@ -25,11 +25,11 @@ def test_heuristic_keeps_absences_unverified_and_a_found_github_clears_them():
     assert out["no public GitHub found"] == "refuted"
 
 
-def test_parse_defaults_unknown_statuses_to_confirmed():
-    pts = sr.red_points(_entry())[:2]
+def test_parse_defaults_unknown_and_missing_statuses_to_unverified():
+    pts = sr.red_points(_entry())[:3]
     raw = json.dumps({"items": [{"i": 0, "status": "refuted", "note": "repo a/b found"}, {"i": 1, "status": "maybe"}]})
     out = sr.parse(raw, pts)
-    assert [p["status"] for p in out] == ["refuted", "confirmed"] and out[0]["note"] == "repo a/b found"
+    assert [p["status"] for p in out] == ["refuted", "unverified", "unverified"] and out[0]["note"] == "repo a/b found"
     assert sr.parse("not json", pts) is None
 
 
@@ -58,8 +58,9 @@ def test_recheck_uses_deepseek_on_the_evidence(monkeypatch):
     async def ask(messages, **kw):
         seen["user"] = messages[1]["content"]
         return json.dumps({"items": [{"i": 0, "status": "unverified"}, {"i": 1, "status": "unverified"},
-                                     {"i": 2, "status": "confirmed", "note": "$3k"}, {"i": 3, "status": "unverified"},
-                                     {"i": 4, "status": "refuted", "note": "docs read"}]})
+                                     {"i": 2, "status": "confirmed", "note": "$3k", "evidence": "cap $0, liquidity $0"},
+                                     {"i": 3, "status": "unverified"},
+                                     {"i": 4, "status": "refuted", "note": "docs read", "evidence": "page read: https://docs.x.io"}]})
 
     e = _entry()
     rc = asyncio.run(sr.recheck(e, {"chain": "robinhood", "token_address": "0xA", "website": "https://x.io"}, None, ask=ask))
@@ -117,3 +118,69 @@ def test_an_anonymous_team_is_never_a_red_point():
     assert sr.minor(p)["status"] == "unverified" and sr.minor(p)["note"].startswith("Minor")
     other = {**p, "text": "Mint enabled"}
     assert sr.minor(other)["status"] == "confirmed"
+
+
+def test_parse_wants_a_real_quote_for_confirmed_and_refuted():
+    pts = sr.red_points(_entry())[:3]
+    ev = "Checked sources:\napp code: found — index.js: token address\nliquidity $4,000 against a $900,000 cap"
+    raw = json.dumps({"items": [
+        {"i": 0, "status": "refuted", "evidence": "app code: found — index.js: token address"},
+        {"i": 1, "status": "confirmed", "evidence": "the team is hidden"},
+        {"i": 2, "status": "confirmed", "evidence": ""}]})
+    out = sr.parse(raw, pts, ev)
+    assert [p["status"] for p in out] == ["refuted", "unverified", "unverified"]
+    assert out[1]["note"] == "no evidence quoted"
+
+
+def _client(routes):
+    import httpx
+
+    def handler(req):
+        body = routes.get(str(req.url))
+        if body is None:
+            return httpx.Response(404, text="")
+        if isinstance(body, dict):
+            return httpx.Response(200, json=body)
+        return httpx.Response(200, text=body, headers={"content-type": "application/javascript"})
+    return httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+
+ADDR = "0xAA5751Ff3Fb61e613993B2EB4EAb1fce017081fc"
+
+
+def test_app_probe_reads_the_bundle_and_the_live_api():
+    bundle = (f'const t="{ADDR.lower()}";fetch("/api/assets");'
+              'const c="Trade tokenized stocks from Ondo and xStocks";')
+    routes = {"https://dex.app/": '<html><script type="module" src="/assets/index-a1.js"></script></html>',
+              "https://dex.app/assets/index-a1.js": bundle,
+              "https://dex.app/api/assets": {"assets": ["x" * 2000]}}
+
+    async def go():
+        async with _client(routes) as c:
+            return await sr.app_probe({"website": "https://dex.app/", "token_address": ADDR}, c)
+    out = asyncio.run(go())
+    assert "token contract address in the app code (index-a1.js)" in out["found"]
+    assert any(f.startswith("live API /api/assets: 200") for f in out["found"])
+    assert "Trade tokenized stocks from Ondo and xStocks" in out["snippets"]
+
+
+def test_app_probe_never_raises_on_a_dead_bundle():
+    routes = {"https://dex.app/": '<script src="/gone.js"></script>'}
+
+    async def go():
+        async with _client(routes) as c:
+            return await sr.app_probe({"website": "https://dex.app/", "token_address": ADDR}, c)
+    out = asyncio.run(go())
+    assert out["found"] == [] and any(r["source"] == "app code" and r["result"] == "unreadable" for r in out["checked"])
+
+
+def test_x_profile_finds_the_address_in_the_bio():
+    routes = {"https://api.fxtwitter.com/hyperdex_app": {"user": {
+        "followers": 1015, "tweets": 68, "joined": "Wed Sep 16 2026", "description": f"Marketplace {ADDR}"}}}
+
+    async def go():
+        async with _client(routes) as c:
+            return await sr.x_profile({"token_address": ADDR,
+                                       "socials": [{"type": "twitter", "url": "https://x.com/hyperdex_app"}]}, c)
+    out = asyncio.run(go())
+    assert "token address in the X bio" in out["found"] and out["checked"][0]["result"] == "found"

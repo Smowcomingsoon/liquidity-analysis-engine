@@ -334,13 +334,21 @@ function deepBlock(e) {
   const wait = e.deepWait ?? 0;
   let body = "";
   if (d) {
-    const good = (d.strengths ?? []).map((x) => `<li data-tone="good">${escapeHtml(x)}</li>`).join("");
-    const bad = (d.problems ?? []).map((x) => `<li data-tone="bad">${escapeHtml(x)}</li>`).join("");
-    body = `<ul class="why-list">
-      <li data-tone="${d.keep ? "good" : "bad"}">${d.keep ? "Kept" : "Dropped"}: ${escapeHtml(d.reason ?? "")}</li>
-      ${good}${bad}
-      <li class="muted">${d.cleared ?? 0} cleared · ${d.unverified ?? 0} unverified · ${d.confirmed ?? 0} confirmed · ${escapeHtml(ago(d.at))}</li>
-    </ul>`;
+    // Every point carries the quote that backs it (#464); old results are plain strings.
+    const why = (x) => (typeof x === "string" ? { text: x } : x ?? {});
+    const quote = (q) => (q ? `<small>“${escapeHtml(q)}”</small>` : "");
+    const row = (tone, label, x) => `<li data-tone="${tone}">${label}${escapeHtml(why(x).text ?? "")}${quote(why(x).evidence || why(x).note)}</li>`;
+    const head = d.unsupported ? row("warn", "Unverified: ", { text: d.reason })
+      : row(d.keep ? "good" : "bad", d.keep ? "Kept: " : "Dropped: ", { text: d.reason });
+    const claims = d.claims ?? [];
+    const tone = { refuted: ["good", "Cleared: "], confirmed: ["bad", ""], unverified: ["warn", "Unverified: "] };
+    const count = (k) => (claims.length ? claims.filter((c) => c.status === k).length : d[k === "refuted" ? "cleared" : k] ?? 0);
+    body = `<ul class="why-list">${head}
+      ${(d.strengths ?? []).map((x) => row("good", "", x)).join("")}
+      ${(d.problems ?? []).map((x) => row("bad", "", x)).join("")}
+      ${claims.map((c) => row(tone[c.status]?.[0] ?? "warn", tone[c.status]?.[1] ?? "", { text: c.text, evidence: c.evidence || c.note })).join("")}
+    </ul>
+    <p class="muted">${count("refuted")} cleared · ${count("unverified")} unverified · ${count("confirmed")} confirmed · ${escapeHtml(ago(d.at))}</p>`;
   }
   let label = "Re-check with DeepSeek";
   let disabled = "";
