@@ -337,7 +337,11 @@ async def github_by_name(item: dict, client: httpx.AsyncClient) -> tuple[str, st
             if it.get("fork"):
                 continue
             full = it.get("full_name") or ""
-            if not full:
+            # A README naming the site is not enough: crawlers and lists name
+            # thousands (trial 01/10: a news crawler for a meme, a bot list for
+            # BV7X). The repo or its owner must carry the project's name.
+            stems = {x for x in (symbol.lower(), host.split(".")[0] if host else "") if len(x) >= 3}
+            if not full or not any(st in full.lower() for st in stems):
                 continue
             try:
                 rr = await client.get(f"https://api.github.com/repos/{full}/readme",
@@ -586,6 +590,8 @@ def market_lines(entry: dict, item: dict, ev: dict | None = None) -> list[str]:
     gecko = (ev or {}).get("gecko")
     if gecko:
         out.append(gecko_line(gecko))
+        if item.get("volume_24h") and float(item["volume_24h"]) > gecko["volume_24h"]:
+            out.append("Volume: GeckoTerminal indexes fewer pools; its lower figure does not lower DexScreener's")
         if not item.get("volume_24h") and gecko["volume_24h"] > 0:
             out.append(f"Volume: DexScreener and GeckoTerminal disagree; use GeckoTerminal's "
                        f"${gecko['volume_24h']:,.0f}")

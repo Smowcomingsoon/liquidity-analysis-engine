@@ -271,3 +271,16 @@ def test_rules_reach_every_review_and_name_each_chain_lockers():
         assert "never call a chain empty" in system and "HoodLock" in system and "Streamflow" in system
     lines = sr.market_lines({}, {"chain": "solana", "token_address": "x"})
     assert any(line.startswith("LP lock data (GoPlus): does not cover solana; lockers used there: Streamflow") for line in lines)
+
+
+def test_github_by_name_skips_a_crawler_that_only_names_the_site():
+    routes = {
+        "https://api.github.com/search/repositories?q=%22pfwa.fun%22+in%3Areadme&per_page=5": {"items": [
+            {"full_name": "ehsong/newscrawler", "html_url": "https://github.com/ehsong/newscrawler", "fork": False}]},
+        "https://api.github.com/repos/ehsong/newscrawler/readme": "sites: pfwa.fun, yna.co.kr",
+    }
+
+    async def go():
+        async with _client(routes) as c:
+            return await sr.github_by_name({"symbol": "PFWA", "website": "https://www.pfwa.fun"}, c)
+    assert asyncio.run(go()) is None
