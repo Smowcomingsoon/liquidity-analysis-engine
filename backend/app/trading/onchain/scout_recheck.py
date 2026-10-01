@@ -577,7 +577,8 @@ def parse(raw: str, points: list[dict], evidence: str = "") -> list[dict] | None
     return out
 
 
-CONTRACT_POINT = re.compile(r"(?i)\b(contract (link|address)|cites_contract|contract_link|no contract)\b")
+# Where the contract is published, not whether it is audited or verified.
+CONTRACT_POINT = re.compile(r"(?i)\b(contract (link|address)|cites_contract|contract_link|no contract)\b(?![^.]{0,20}\b(audit|verif|source|code|owner))")
 X_POINT = re.compile(r"(?i)\b(no|without|missing)\b[^.]{0,30}\b(x|twitter)\b")
 
 

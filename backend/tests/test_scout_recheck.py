@@ -204,3 +204,9 @@ def test_a_healthy_pool_is_not_thin():
     assert out[0]["status"] == "unverified" and "19%" in out[0]["note"]
     out = sr.facts_win(pts, {"found": []}, {"liquidity_usd": 5_000, "market_cap": 262_000})
     assert out[0]["status"] == "confirmed"
+
+
+def test_an_address_found_does_not_clear_an_audit_point():
+    pts = [{"text": "No contract audit published", "from": "judge", "status": "confirmed", "note": ""}]
+    out = sr.facts_win(pts, {"found": ["token contract address in the app code (a.js)"]})
+    assert out[0]["status"] == "confirmed"
