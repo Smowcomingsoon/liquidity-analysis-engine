@@ -2501,8 +2501,8 @@
   },
   "seed-0246": {
     "status": "risolto",
-    "at": 1790838695,
-    "summary": "Nella scheda Why di ogni token c'e' il tasto 'Re-check with DeepSeek': rifa' la seconda ricerca sui punti rossi (GitHub, pagine non lette, liquidita') e chiede a DeepSeek un parere dedicato solo su quel token (tenere/scartare, punteggio, verdetto, punti forti e problemi). Il risultato resta sotto la review. Se DeepSeek ora lo tiene, la vecchia esclusione 'DeepSeek review' viene tolta e il token puo' rientrare in classifica; se lo scarta, l'esclusione si aggiorna col nuovo motivo. Limite: una volta ogni 6 ore per token, 40 al giorno in tutto.",
+    "at": 1790844863,
+    "summary": "Nella scheda Why di ogni token c'e' il tasto 'Re-check with DeepSeek': rifa' la seconda ricerca sui punti rossi (GitHub, pagine non lette, liquidita') e chiede a DeepSeek un parere dedicato solo su quel token (tenere/scartare, punteggio, verdetto, punti forti e problemi). Il risultato resta sotto la review. Se DeepSeek ora lo tiene, la vecchia esclusione 'DeepSeek review' viene tolta e il token puo' rientrare in classifica; se lo scarta, l'esclusione si aggiorna col nuovo motivo. Limite: una volta ogni 6 ore per token, 40 al giorno in tutto. Dal 01/10 il ricontrollo e' rigoroso: legge anche il codice dell'app, le sue API e la bio di X, e ogni punto deve citare la prova; uno scarto senza un fatto misurato non cambia la classifica.",
     "detail": "backend/app/trading/onchain/deep_recheck.py, POST /api/onchain/token/recheck, issue #459 (bozza DeepSeek corretta da Claude). Test: tests/test_deep_recheck.py."
   }
 }

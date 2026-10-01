@@ -195,3 +195,12 @@ def test_measured_contract_and_x_beat_the_model():
     out = sr.facts_win(pts, ev)
     assert [p["status"] for p in out] == ["refuted", "refuted", "confirmed"]
     assert out[0]["evidence"].startswith("token contract address")
+
+
+def test_a_healthy_pool_is_not_thin():
+    pts = [{"text": "Only 6 days old with $48k liquidity: extremely early and thin", "from": "judge",
+            "status": "confirmed", "note": ""}]
+    out = sr.facts_win(pts, {"found": []}, {"liquidity_usd": 49_600, "market_cap": 262_000})
+    assert out[0]["status"] == "unverified" and "19%" in out[0]["note"]
+    out = sr.facts_win(pts, {"found": []}, {"liquidity_usd": 5_000, "market_cap": 262_000})
+    assert out[0]["status"] == "confirmed"

@@ -581,20 +581,28 @@ CONTRACT_POINT = re.compile(r"(?i)\b(contract (link|address)|cites_contract|cont
 X_POINT = re.compile(r"(?i)\b(no|without|missing)\b[^.]{0,30}\b(x|twitter)\b")
 
 
-def facts_win(judged: list[dict], ev: dict) -> list[dict]:
+THIN_POINT = re.compile(r"(?i)\b(thin|tiny|shallow|low|small)\b[^.]{0,25}\bliquidity\b|\bliquidity\b[^.]{0,40}\b(thin|tiny|shallow|low)\b")
+
+
+def facts_win(judged: list[dict], ev: dict, item: dict | None = None) -> list[dict]:
     """What we measured beats the model: a point that says the contract or the
     X account is missing is refuted when we read them (HYDX, 01/10: "no
     contract link" stayed red while the app code and the X bio carried it)."""
-    found = " ; ".join(ev.get("found") or [])
     where = next((f for f in ev.get("found") or [] if f.startswith(("token contract address in the app code",
                                                                        "token address in the X bio"))), "")
     x = next((f for f in ev.get("found") or [] if f.startswith("X: ")), "")
+    liq, cap = (item or {}).get("liquidity_usd"), (item or {}).get("market_cap")
+    ratio = float(liq) / float(cap) if liq is not None and cap else None
     out = []
     for p in judged:
         if p["status"] != "refuted" and where and CONTRACT_POINT.search(p["text"]) and ABSENCE.search(p["text"]):
             p = {**p, "status": "refuted", "note": f"Measured: {where}", "evidence": where}
-        elif p["status"] != "refuted" and x and X_POINT.search(p["text"]) and "x" in found.lower():
+        elif p["status"] != "refuted" and x and X_POINT.search(p["text"]):
             p = {**p, "status": "refuted", "note": f"Measured: {x}", "evidence": x}
+        elif p["status"] == "confirmed" and ratio is not None and ratio >= LIQ_TO_CAP_MIN and THIN_POINT.search(p["text"]):
+            # The pool can still be young or small in dollars: not refuted, but not a red point either.
+            p = {**p, "status": "unverified", "note": f"Measured: liquidity / cap {ratio:.0%}, above the "
+                 f"system's {LIQ_TO_CAP_MIN:.0%} minimum", "evidence": ""}
         out.append(p)
     return out
 
@@ -642,7 +650,7 @@ async def recheck(entry: dict, item: dict, client: httpx.AsyncClient, ask=None) 
         judged = heuristic(points, ev)
     else:
         _cache[key] = (time.time(), {"items": judged})
-    judged = [minor(p) for p in facts_win(judged, ev)]
+    judged = [minor(p) for p in facts_win(judged, ev, item)]
     return {"confirmed": [p for p in judged if p["status"] == "confirmed"],
             "unverified": [p for p in judged if p["status"] == "unverified"],
             "refuted": [p for p in judged if p["status"] == "refuted"],
