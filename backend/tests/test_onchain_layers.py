@@ -12,6 +12,7 @@ from app.trading.onchain import depth, layers, projects_db, research
 from app.trading.onchain import leaderboard as lb
 
 T0 = 1_790_000_000.0
+_REAL_CG_SLOT = layers._cg_slot
 
 
 @pytest.fixture(autouse=True)
@@ -21,6 +22,10 @@ def _clean(monkeypatch, tmp_path):
     monkeypatch.setattr(layers, "_STORE_FILE", tmp_path / "onchain_layers.json")
     monkeypatch.setattr(layers, "CG_GAP_S", 0)
     monkeypatch.setattr(layers, "RETRY_429_S", 0)
+
+    async def no_wait():
+        return None
+    monkeypatch.setattr(layers, "_cg_slot", no_wait)
     yield
     layers.reset_for_tests()
     lb.reset_for_tests()
@@ -176,3 +181,12 @@ def test_a_run_with_no_candidates_is_not_stamped_done():
     assert layers.snapshot()["last_run"] == 0
     # a 429 from CoinGecko is tried twice before giving up
     assert sum("category=layer-1" in u for u in calls) == 2
+
+
+
+def test_cg_slot_takes_discovery_turn(monkeypatch):
+    import time
+    from app.trading.onchain import discovery
+    monkeypatch.setitem(discovery._state, "cg_next_at", 0)
+    asyncio.run(_REAL_CG_SLOT())
+    assert discovery._state["cg_next_at"] >= time.time() + discovery.CG_GAP_S - 1

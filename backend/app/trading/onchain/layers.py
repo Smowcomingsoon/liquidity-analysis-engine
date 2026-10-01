@@ -289,11 +289,27 @@ def final_score(pillars: list[dict]) -> float:
 RETRY_429_S = 65            # CoinGecko's free minute, shared with discovery.py
 
 
+async def _cg_slot() -> None:
+    """Wait for discovery.py's next CoinGecko slot and take it. On 01/10 the
+    two plus the board's cap check asked ~9 times a minute and every layer
+    call got 429: now layer calls replace discovery calls, they never add."""
+    from app.trading.onchain import discovery
+    while True:
+        now = time.time()
+        nxt = discovery._state.get("cg_next_at") or 0
+        if now >= nxt:
+            discovery._state["cg_next_at"] = now + max(CG_GAP_S, discovery.CG_GAP_S)
+            return
+        await asyncio.sleep(nxt - now + 0.1)
+
+
 async def _fetch_json(client: httpx.AsyncClient, url: str) -> object:
     """GET as JSON. A CoinGecko 429 waits out the minute and tries once more:
     discovery.py spends the same free budget, so a first 429 is normal."""
     r = await client.get(url)
     if r.status_code == 429 and url.startswith(COINGECKO):
+        from app.trading.onchain import discovery
+        discovery._state["cg_next_at"] = time.time() + RETRY_429_S     # discovery backs off too
         await asyncio.sleep(RETRY_429_S)
         r = await client.get(url)
     r.raise_for_status()
@@ -319,7 +335,7 @@ async def _caps_by_ids(client: httpx.AsyncClient, ids: list[str]) -> dict[str, d
     before spending a detail call on Ethereum or Solana."""
     out: dict[str, dict] = {}
     for i in range(0, len(ids), IDS_PER_CALL):
-        await asyncio.sleep(CG_GAP_S)
+        await _cg_slot()
         try:
             rows = await _fetch_json(client, f"{COINGECKO}/coins/markets?vs_currency=usd&per_page=250"
                                              f"&ids={','.join(ids[i:i + IDS_PER_CALL])}") or []
@@ -342,7 +358,7 @@ async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
     except (httpx.HTTPError, ValueError):
         logger.exception("layers: llama chains failed")
     for cat in CG_CATEGORIES:
-        await asyncio.sleep(CG_GAP_S)
+        await _cg_slot()
         try:
             rows = await _fetch_json(
                 client, f"{COINGECKO}/coins/markets?vs_currency=usd&category={cat}"
@@ -389,7 +405,7 @@ async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
     done = 0
     for c in todo:
         gid = c["id"]
-        await asyncio.sleep(CG_GAP_S)
+        await _cg_slot()
         try:
             coin = await _fetch_json(
                 client, f"{COINGECKO}/coins/{gid}?localization=false&tickers=false"
