@@ -1250,9 +1250,10 @@ def _deepseek_memory() -> list[str]:
     return out
 
 
-async def _deepseek_context(chat_id: str) -> str:
+async def _deepseek_context(chat_id: str, user: User | None = None) -> str:
     """What the Telegram assistant knows: the system, the latest alerts, and
-    (when the chat belongs to an account) that account's wallet and autotrader."""
+    (when the chat belongs to an account) that account's wallet and autotrader.
+    `user`: the account asking from the site (/api/agent/ask)."""
     parts = []
     for kind in ("meme", "gem"):
         b = onchain_alert_track.board(kind, limit=12)
@@ -1263,7 +1264,7 @@ async def _deepseek_context(chat_id: str) -> str:
             sv = it.get("system") or {}
             parts.append(f"  {it['symbol']} ({it['chain']}) {it['age_h']}h fa: ora {it['now']}, max {it['max']}, "
                          f"sistema {sv.get('state')} ret {sv.get('ret')}{' RUG' if it['gone'] else ''}")
-    user = next((u for u in auth.list_users() if u.telegram_chat_id and u.telegram_chat_id == chat_id), None)
+    user = user or next((u for u in auth.list_users() if u.telegram_chat_id and u.telegram_chat_id == chat_id), None)
     if user:
         try:
             snap = await asyncio.wait_for(_wallet_snapshot(user), 20)
@@ -1386,7 +1387,33 @@ def _deepseek_tools() -> dict:
         "token": ({"name": "token", "description": "The alert(s) on a token by symbol or address prefix, plus what the rug memory knows about it.",
                    "parameters": {"type": "object", "properties": {"query": str_arg("symbol like PEPE or address prefix")}, "required": ["query"]}},
                   lambda query: _deepseek_token(query)),
+        "portafoglio_top50": ({"name": "portafoglio_top50", "description": "The simulated Top 50 wallet ($10,000 replayed on every trade of the Top 50 backtests): equity, return, drawdown, win rate, open positions and the last closed trades.",
+                               "parameters": {"type": "object", "properties": {}}},
+                              lambda: _deepseek_top50()),
+        "layer_engine": ({"name": "layer_engine", "description": "The layer 0/1/2 chains kept by the layer engine ($500k-$100M cap), best score first: CoinGecko id, layer type, score, status, exchange pair. Details of one: cerca_progetti with its name.",
+                          "parameters": {"type": "object", "properties": {"n": {"type": "integer", "description": "how many, max 20"}}}},
+                         lambda n=10: _deepseek_layers(n)),
     }
+
+
+def _deepseek_top50() -> dict:
+    """The Top 50 wallet without live marks (tools are sync): the last
+    computed view if the site built one, else a replay at cost."""
+    from app.trading.onchain import sim_backtest
+    d = _top_wallet_cache.get("data") or sim_backtest.replay(sim_backtest.ledger_tokens(), sim_backtest.DEFAULT_CAPITAL)
+    keep = ("symbol", "chain", "at", "entry_price", "exit_at", "ret", "stake", "value", "pnl", "strategy")
+    return {**{k: d.get(k) for k in ("capital", "equity", "cash", "ret", "max_dd", "trades", "wins", "win_rate",
+                                       "skipped", "slippage_usd", "tokens", "from")},
+            "open": [{k: r.get(k) for k in keep if k in r} for r in (d.get("open") or [])[:15]],
+            "closed_last": [{k: r.get(k) for k in keep if k in r} for r in (d.get("closed") or [])[:15]]}
+
+
+def _deepseek_layers(n: int = 10) -> dict:
+    snap = onchain_layers.snapshot()
+    kept = [x for x in snap.get("found") or [] if x.get("status") != "rejected"]
+    return {"last_run": snap.get("last_run"), "kept": len(kept),
+            "found": [{k: x.get(k) for k in ("id", "type", "score", "status", "why", "cex")}
+                      for x in kept[:min(int(n or 10), 20)]]}
 
 
 def _deepseek_strategie(n: int = 30) -> list:
@@ -5073,6 +5100,48 @@ async def agent_journey(q: str = "", chain: str = "", token: str = "",
     matches = journey.resolve(q)
     one = journey.journey(matches[0]["chain"], matches[0]["token"]) if len(matches) == 1 else None
     return {"matches": matches, "journey": one}
+
+
+class AskRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=1500)
+    voice: bool = False
+
+
+ASK_PER_HOUR = 30
+_ask_log: dict[str, list[float]] = {}
+
+_ASK_NOTE = ("Domanda dall'app del sito (liquidityengine.app), non da Telegram. {voice}"
+             "Rispondi in testo semplice, senza markdown pesante: righe brevi, elenchi solo se servono.")
+
+
+@app.post("/api/agent/ask")
+async def agent_ask(body: AskRequest, user: User = Depends(auth.get_current_user)) -> dict:
+    """The app's mic button: the same DeepSeek assistant as the Telegram chat,
+    with the same read-only tools over the database (Lorenzo, 01/10: "deve
+    avere accesso a tutto [...] mi possa rispondere su qualsiasi cosa").
+    Nothing here writes, trades or reads a secret; the daily DeepSeek cap
+    (deepseek_desk) still applies, plus a per-account hourly limit."""
+    if guest_links.is_guest(user):
+        raise HTTPException(status_code=403, detail="Guest mode: sign in to ask the agent.")
+    if not settings.deepseek_api_key:
+        raise HTTPException(status_code=503, detail="The agent is not configured on this server.")
+    now = _time.time()
+    recent = [t for t in _ask_log.get(user.id, []) if now - t < 3600]
+    if len(recent) >= ASK_PER_HOUR:
+        raise HTTPException(status_code=429, detail=f"Limit of {ASK_PER_HOUR} questions per hour reached. Try again later.")
+    _ask_log[user.id] = recent + [now]
+    deepseek_desk.note("chat", "Answering a question from the app")
+    voice = ("Il testo e' dettato a voce e trascritto dal browser: puo' avere parole storpiate, "
+             "soprattutto i nomi dei token (es. 'drag' = DREGG); interpreta e, se il token non e' chiaro, cercalo. "
+             if body.voice else "")
+    context = _ASK_NOTE.format(voice=voice) + "\n" + await _deepseek_context("", user=user)
+    try:
+        reply = await deepseek_desk.answer(f"web:{user.id}", body.text.strip(), context,
+                                           tools=_deepseek_tools(), can_teach=_is_admin(user))
+    except Exception as exc:
+        logger.exception("deepseek app chat")
+        raise HTTPException(status_code=502, detail=f"DeepSeek is not answering right now ({type(exc).__name__}).")
+    return {"answer": reply}
 
 
 @app.get("/api/agent/calls")

@@ -165,6 +165,9 @@ def _resolutions() -> dict[str, dict]:
 
 
 _SEED = [
+    ("seed-0248", "Tasto microfono nell'app: parlare e farsi rispondere da DeepSeek su qualsiasi cosa del sito",
+     "Lorenzo, 01/10: 'possiamo aggiungere il tasto di registrare un audio per parlare o meglio trascrivere l'audio mentre lo [dico], lo invio e poi [il testo] arriva direttamente a DeepSeek che mi risponde [...] deve avere accesso a tutto [...] mi possa rispondere su qualsiasi cosa'.",
+     "media"),
     ("seed-0247", "Trovare layer 0, layer 1 e layer 2 con chain propria: lo scanner cerca solo contratti",
      "Lorenzo, 01/10: 'dobbiamo scovare i layer one e i layer zero [...] col sistema attuale non li possiamo trovare perche' cerchiamo i contratti [...] anche i layer 2 con blockchain propria [...] API gratuite [...] pochi al giorno e' sufficiente [...] i risultati vanno a finire [...] database, top 50'. Fascia: 'usiamo da 500k di market cap fino a 100mln'.",
      "alta"),

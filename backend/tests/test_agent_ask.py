@@ -1,0 +1,62 @@
+"""The app's mic button (POST /api/agent/ask): same assistant and read-only
+tools as the Telegram chat, per-account hourly limit, no guests."""
+from __future__ import annotations
+
+import json
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app import auth, main
+
+
+@pytest.fixture
+def client(tmp_path, monkeypatch):
+    monkeypatch.setattr(auth, "_USERS_FILE", tmp_path / "users.json")
+    auth._users.clear()
+    monkeypatch.setattr(main.settings, "deepseek_api_key", "test")
+    main._ask_log.clear()
+    seen = {}
+
+    async def _answer(chat_id, text, context, tools=None, can_teach=False):
+        seen.update(chat_id=chat_id, text=text, context=context, tools=tools, can_teach=can_teach)
+        return "risposta"
+
+    async def _ctx(chat_id, user=None):
+        return f"ctx for {user.email}"
+
+    monkeypatch.setattr(main.deepseek_desk, "answer", _answer)
+    monkeypatch.setattr(main, "_deepseek_context", _ctx)
+    user = auth.create_user("asker@example.com", "correct-horse-battery-9")
+    main.app.dependency_overrides[auth.get_current_user] = lambda: auth.get_user(user.id)
+    with TestClient(main.app) as c:
+        c.seen, c.user_id = seen, user.id
+        yield c
+    main.app.dependency_overrides.clear()
+
+
+def test_ask_answers_with_the_database_tools(client):
+    r = client.post("/api/agent/ask", json={"text": "come va la top 50?", "voice": True})
+    assert r.status_code == 200 and r.json() == {"answer": "risposta"}
+    s = client.seen
+    assert s["chat_id"] == f"web:{client.user_id}"
+    assert "ctx for asker@example.com" in s["context"] and "dettato a voce" in s["context"]
+    assert {"portafoglio_top50", "layer_engine", "classifica_gemme"} <= set(s["tools"])
+    assert s["can_teach"] is False
+
+
+def test_ask_is_rate_limited(client):
+    for _ in range(main.ASK_PER_HOUR):
+        assert client.post("/api/agent/ask", json={"text": "x"}).status_code == 200
+    assert client.post("/api/agent/ask", json={"text": "x"}).status_code == 429
+
+
+def test_ask_rejects_empty_and_long(client):
+    assert client.post("/api/agent/ask", json={"text": ""}).status_code == 422
+    assert client.post("/api/agent/ask", json={"text": "a" * 1501}).status_code == 422
+
+
+def test_new_tools_serialize_on_empty_stores():
+    tools = main._deepseek_tools()
+    json.dumps(tools["portafoglio_top50"][1](), default=str)
+    json.dumps(tools["layer_engine"][1](), default=str)

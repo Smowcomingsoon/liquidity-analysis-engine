@@ -1,4 +1,10 @@
 {
+  "seed-0248": {
+    "status": "risolto",
+    "at": 1790860192,
+    "summary": "Su ogni schermata c'e' un tasto microfono: si parla, il testo compare mentre parli (trascrizione nel browser, italiano o inglese), lo controlli e lo invii. Risponde lo stesso DeepSeek della chat Telegram, con gli stessi strumenti di sola lettura sul database (progetti, Top 50 e classifica, alert, strategie, backtest, laboratorio, review, scanner, diario, rug) piu' il portafoglio simulato Top 50 e il motore layer. Non puo' fare trade, cambiare impostazioni ne' leggere chiavi; massimo 30 domande l'ora per account, dentro il tetto giornaliero di DeepSeek.",
+    "detail": "POST /api/agent/ask in backend/app/main.py, frontend/static/onchain/ask.js, test tests/test_agent_ask.py."
+  },
   "_README": "Scritto da Claude, versionato in git, distribuito col deploy. Le chiavi sono gli id delle segnalazioni. Non modificare a mano dall'app: verrebbe sovrascritto al deploy successivo.",
   "ee624db5": {
     "status": "risolto",

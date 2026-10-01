@@ -34,6 +34,7 @@ import * as phantom from "@onchain/phantomlink.js";
 import { loadLinked } from "@onchain/userswap.js";
 import { mountMemes } from "@onchain/memes.js";
 import { mountAgent, mountAgentView } from "@onchain/agent.js";
+import { mountAsk } from "@onchain/ask.js";
 import { mountTop } from "@onchain/top.js";
 import { mountSignals } from "@onchain/signals.js";
 import { mountTrack } from "@onchain/track.js";
@@ -681,6 +682,7 @@ phantom.takeAnswer().then(async (ans) => {
 });
 // Picks (memes.js) retired: Lorenzo wants no meme coins promoted; Top replaces it.
 mountAgent();
+mountAsk();
 mountTop();
 // Lorenzo, 30/09: the meme screens and the backtest hall of fame are gone.
 // The "meme" view now holds Signals, the "top" view the Track record (the

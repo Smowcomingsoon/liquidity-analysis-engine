@@ -232,3 +232,6 @@ export const setWatchlistAutoTrade = (id, strategyName, enabled) =>
 export const getQuant = () => request("/api/agent/quant");
 export const getQuantProject = (chain, token) => request(`/api/agent/quant/project?chain=${encodeURIComponent(chain)}&token=${encodeURIComponent(token)}`);
 export const getQuantReport = (id) => request(`/api/agent/quant/reports/${encodeURIComponent(id)}`);
+// The mic button (ask.js): DeepSeek may read the database a few times before answering.
+export const askAgent = (text, voice = false) =>
+  request("/api/agent/ask", { method: "POST", body: { text, voice }, timeoutMs: 120000 });
