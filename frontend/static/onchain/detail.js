@@ -348,7 +348,7 @@ function deepBlock(e) {
       ${(d.problems ?? []).map((x) => row("bad", "", x)).join("")}
       ${claims.map((c) => row(tone[c.status]?.[0] ?? "warn", tone[c.status]?.[1] ?? "", { text: c.text, evidence: c.evidence || c.note })).join("")}
     </ul>
-    <p class="muted">${count("refuted")} cleared · ${count("unverified")} unverified · ${count("confirmed")} confirmed · ${escapeHtml(ago(d.at))}</p>`;
+    <p class="muted">${count("refuted")} cleared · ${count("unverified")} unverified · ${count("confirmed")} confirmed · ${d.auto ? "weekly re-check " : ""}${escapeHtml(ago(d.at))}</p>`;
   }
   let label = "Re-check with DeepSeek";
   let disabled = "";

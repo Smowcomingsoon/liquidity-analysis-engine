@@ -177,3 +177,16 @@ def test_account_holders_recheck_whenever_they_want(monkeypatch):
     asyncio.run(deep_recheck.run("solana", "tok9", None, now=now + deep_recheck.TAP_GAP_S + 1, ask=ask, limited=False))
     assert deep_recheck.wait_s("solana", "tok9", now + 3600, limited=False) == 0
     assert deep_recheck.wait_s("solana", "tok9", now + 3600) > 0
+
+
+def test_weekly_sweep_walks_the_board_once_a_week():
+    t0 = 1_800_000_000.0
+    keys = ["solana:a", "robinhood:b"]
+    assert deep_recheck.next_in_sweep(keys, t0) == "solana:a"
+    deep_recheck._sweep_done("solana:a")
+    assert deep_recheck.next_in_sweep(keys, t0 + 90) == "robinhood:b"
+    deep_recheck._sweep_done("robinhood:b")
+    assert deep_recheck.next_in_sweep(keys, t0 + 180) is None
+    assert deep_recheck.next_in_sweep(keys + ["base:c"], t0 + 86400) is None
+    assert deep_recheck.next_in_sweep(keys + ["base:c"], t0 + deep_recheck.WEEK_S) == "solana:a"
+    assert deep_recheck._state["sweep"]["keys"] == keys + ["base:c"]

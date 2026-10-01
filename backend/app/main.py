@@ -1580,6 +1580,8 @@ async def lifespan(app: FastAPI):
                    asyncio.create_task(onchain_listings.listings_loop()),
                    asyncio.create_task(onchain_radar.listings_backtest_loop()),
                    asyncio.create_task(onchain_leaderboard.leaderboard_loop()),
+                   asyncio.create_task(onchain_deep_recheck.sweep_loop(
+                       lambda: [f"{e['chain']}:{e['token_address']}" for e in _top_entries(50)])),
                    asyncio.create_task(onchain_outcomes.outcomes_loop()),
                    asyncio.create_task(onchain_backtest_lab.lab_loop()),
                    asyncio.create_task(onchain_strategy_lab.lab_loop(_top_entries)),
