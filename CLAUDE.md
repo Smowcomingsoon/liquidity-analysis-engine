@@ -149,6 +149,16 @@ con la difficolta'. Regole che Lorenzo ha chiesto esplicitamente:
 
 ## DeepSeek scrive, Claude rivede
 
+**Aggiornato 01/10.** Lorenzo: "fagli fare soltanto delle cose banali,
+semplici [...] la mente devi essere tu e l'intelligenza ce la devi mettere
+te [...] non vale la pena far scrivere codice con troppa libertà a lui" e
+"revisiona in modo meticoloso tutto il codice scritto da DeepSeek [...] fai
+in modo che apprenda da ogni errore". Quindi a DeepSeek solo compiti
+banali e ripetitivi, gia' decisi fin nel dettaglio (nomi, firme, dove va
+ogni riga); progetto, logica, prompt, regole e tutto cio' che e' delicato
+li scrive Claude. Ogni riga di DeepSeek si rilegge, e ogni errore diventa
+una lezione in `LESSONS.md`. Quanto segue vale per quei compiti banali.
+
 Lorenzo, 27/09: "devi usare deepseek assiduamente, voglio ridurre
 drasticamente il consumo di token con te [...] comunicarci tramite github".
 Ribadito in apertura di chat nuova: "usa sempre deepseek e tu revisiona il
