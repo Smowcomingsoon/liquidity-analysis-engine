@@ -97,3 +97,35 @@ def test_board_entry_gets_deep_review(monkeypatch):
     asyncio.run(deep_recheck.run("solana", "tok5", None, ask=ask))
     assert leaderboard._entries["solana:tok5"]["review"]["deep"] is True
     leaderboard._entries.pop("solana:tok5", None)
+
+
+def test_double_tap_asks_once(monkeypatch):
+    _row("tok6")
+    monkeypatch.setattr(scout_recheck, "recheck", _fake_recheck(
+        {"confirmed": [], "unverified": [], "refuted": [], "found": [], "evidence": ""}))
+    calls = []
+
+    async def ask(messages, **kw):
+        calls.append(1)
+        await asyncio.sleep(0.01)
+        return json.dumps({"keep": True, "score": 60, "verdict": "watch", "reason": "ok"})
+
+    async def both():
+        return await asyncio.gather(deep_recheck.run("solana", "tok6", None, ask=ask),
+                                    deep_recheck.run("solana", "tok6", None, ask=ask), return_exceptions=True)
+
+    res = asyncio.run(both())
+    assert len(calls) == 1
+    assert sum(isinstance(r, deep_recheck.TooSoon) for r in res) == 1
+
+
+def test_failed_second_search_still_asks(monkeypatch):
+    _row("tok7")
+
+    async def boom(*a, **kw):
+        raise ValueError("network")
+
+    monkeypatch.setattr(scout_recheck, "recheck", boom)
+    res = asyncio.run(deep_recheck.run("solana", "tok7", None, ask=_fake_ask(
+        {"keep": False, "score": 20, "verdict": "avoid", "reason": "thin"})))
+    assert res["keep"] is False

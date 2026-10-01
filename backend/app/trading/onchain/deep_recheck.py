@@ -49,6 +49,7 @@ def _load() -> dict:
 
 
 _state = _load()
+_running: set[str] = set()   # a double tap must not pay DeepSeek twice
 
 
 def _save() -> None:
@@ -121,6 +122,17 @@ def _parse(raw: str) -> dict:
 
 
 async def run(chain: str, token: str, client, now: float | None = None, ask=None) -> dict:
+    key = _key(chain, token)
+    if key in _running or _state["calls"].get(_day(now or time.time()), 0) + len(_running) >= DAILY_MAX:
+        raise TooSoon(max(60, wait_s(chain, token, now)))
+    _running.add(key)
+    try:
+        return await _run(chain, token, client, now, ask)
+    finally:
+        _running.discard(key)
+
+
+async def _run(chain: str, token: str, client, now: float | None = None, ask=None) -> dict:
     from app.trading.onchain import leaderboard, judge, projects_db
 
     now = now or time.time()
@@ -144,7 +156,11 @@ async def run(chain: str, token: str, client, now: float | None = None, ask=None
             copy["judge"] = j
     item = projects_db.as_item(p) if p is not None else copy
 
-    rc = await scout_recheck.recheck(copy, item, client)
+    try:
+        rc = await scout_recheck.recheck(copy, item, client)
+    except Exception as exc:
+        logger.info("deep recheck: second search failed: %s", exc)
+        rc = None
     if rc is None:
         rc = scout_recheck.quick(copy)
     if rc is None:
