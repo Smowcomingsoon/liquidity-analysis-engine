@@ -28,8 +28,8 @@ def test_parse_pool():
     assert cex_candles.parse_pool(None) is None
 
 
-def test_hour_12_merges_from_1h(monkeypatch):
-    rows = [[i * 3600, 1.0 + i, 2.0 + i, 0.5 + i, 1.5 + i, 10.0] for i in range(24)]
+def test_hour_6_merges_from_1h(monkeypatch):
+    rows = [[i * 3600, 1.0 + i, 2.0 + i, 0.5 + i, 1.5 + i, 10.0] for i in range(12)]
     calls = {}
 
     class Fake:
@@ -38,12 +38,13 @@ def test_hour_12_merges_from_1h(monkeypatch):
             return _df(rows)
 
     monkeypatch.setattr(cex_candles, "_provider", lambda ex: Fake())
-    out = asyncio.run(cex_candles.candles("mexc:KASUSDT", "hour", 12, 1e12, 10))
+    out = asyncio.run(cex_candles.candles("mexc:KASUSDT", "hour", 6, 1e12, 10))
     assert calls["interval"] == "1h"
     assert len(out) == 2
-    assert out[0][0] == 0 and out[0][1] == 1.0 and out[0][2] == 13.0 and out[0][3] == 0.5 and out[0][4] == 12.5
-    assert out[0][5] == 120.0
-    assert out[1][0] == 12 * 3600
+    assert out[0][0] == 0 and out[0][1] == 1.0 and out[0][2] == 7.0 and out[0][3] == 0.5 and out[0][4] == 6.5
+    assert out[0][5] == 60.0
+    assert cex_candles._native("hour", 12) == ("4h", 43200) and cex_candles._native("day", 7) == ("1d", 604800)
+    assert out[1][0] == 6 * 3600
 
 
 def test_before_and_limit_cut(monkeypatch):
@@ -91,3 +92,10 @@ def test_price(monkeypatch):
     monkeypatch.setattr(cex_candles.httpx, "AsyncClient", fake_client)
     assert asyncio.run(cex_candles.price("mexc:KASUSDT")) == 0.1234
     assert asyncio.run(cex_candles.price("nope")) is None
+
+
+def test_strategy_lab_backtests_layer_entries():
+    from app.trading.onchain import strategy_lab
+    e = {"chain": "layer", "token_address": "kaspa", "pair_address": "mexc:KASUSDT"}
+    assert strategy_lab.next_due([e], 1e10) is e
+    assert strategy_lab._net("layer") == "cex"

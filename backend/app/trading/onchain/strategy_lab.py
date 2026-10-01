@@ -25,7 +25,7 @@ import httpx
 
 from app.notify import deepseek_desk
 from app.sniper.scanner import GECKO_NETWORKS
-from app.trading.onchain import alert_track, candle_archive, priority, sim_backtest, system
+from app.trading.onchain import alert_track, candle_archive, priority, projects_db, sim_backtest, system
 from app.trading.onchain.storage import data_file
 from app.atomic_write import write_text_atomic
 
@@ -150,7 +150,7 @@ def next_due(entries: list[dict], now: float) -> dict | None:
     oltre REFRESH_S. Solo reti che GeckoTerminal conosce."""
     due = []
     for e in entries:
-        if not e.get("token_address") or not GECKO_NETWORKS.get(e.get("chain")):
+        if not e.get("token_address") or not (e.get("chain") == "layer" or GECKO_NETWORKS.get(e.get("chain"))):
             continue
         r = _results.get(key_of(e["chain"], e["token_address"]))
         at = (r or {}).get("at") or 0

@@ -145,17 +145,14 @@ def test_run_records_a_layer_outside_the_gem_pipeline(monkeypatch):
     assert [x["id"] for x in snap["found"]] == ["kaspa"] and snap["last_run"] == T0
 
 
-def test_layer_row_with_cex_shows_in_top_entries(monkeypatch):
-    projects_db.upsert("layer", "kaspa", {"symbol": "KAS", "name": "Kaspa", "chain": "layer",
-                                          "overall": {"cex": {"exchange": "mexc", "pair": "KASUSDT"}}})
-    projects_db.record("layer", "kaspa", {"status": "studied", "score": 80, "mcap": 20_000_000,
-                                          "analyzed_at": T0, "overall": {"cex": {"exchange": "mexc",
-                                                                                 "pair": "KASUSDT"}}})
-    projects_db.upsert("layer", "noc", {"symbol": "NOC", "name": "NoCex", "chain": "layer", "overall": {}})
-    projects_db.record("layer", "noc", {"status": "studied", "score": 90, "mcap": 20_000_000,
-                                        "analyzed_at": T0, "overall": {}})
-    monkeypatch.setattr("app.main.time.time", lambda: T0 + 60)
+def test_layer_row_with_cex_shows_in_top_entries():
+    import time
+    now = time.time()
+    for gid, sym, cex in (("kaspa", "KAS", {"exchange": "mexc", "pair": "KASUSDT"}), ("noc", "NOC", None)):
+        item = {"chain": "layer", "token_address": gid, "symbol": sym, "name": sym, "market_cap": 20_000_000}
+        projects_db.upsert(item, "layers", now)
+        projects_db.record({**item, "pillars": [], "overall": {"score": 80, "cex": cex}}, "studied", score=80, now=now)
     out = _top_entries(50)
     kas = [e for e in out if e["token_address"] == "kaspa"]
-    assert kas and kas[0]["pair_address"] == "mexc:KASUSDT"
+    assert kas and kas[0]["pair_address"] == "mexc:KASUSDT" and kas[0]["market_cap"] == 20_000_000
     assert not [e for e in out if e["token_address"] == "noc"]

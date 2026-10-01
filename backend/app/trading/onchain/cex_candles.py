@@ -42,6 +42,8 @@ def _native(tf: str, agg: int) -> tuple[str, int] | None:
         return "4h", agg * 3600
     if tf == "hour":
         return "1h", agg * 3600
+    if tf == "day":
+        return "1d", agg * 86400
     return None
 
 
@@ -87,7 +89,9 @@ async def candles(pool, tf: str, agg: int, before: float, limit: int) -> list | 
         df = await _provider(exchange).fetch_ohlcv(pair, interval, want)
     except ProviderError as exc:
         text = str(exc).lower()
-        if "invalid" in text or "unknown" in text or "not found" in text:
+        # "does not recognize" (MEXC), "invalid symbol" (Binance), "no data":
+        # the pair is not there. A broken response is a network problem.
+        if "recognize" in text or "invalid symbol" in text or "no data" in text:
             return []
         return None
     except Exception:
