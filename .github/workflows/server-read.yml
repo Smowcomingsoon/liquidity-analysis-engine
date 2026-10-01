@@ -1,0 +1,31 @@
+name: Server read (layers)
+
+# Read-only look at what the layer engine found on the server (Lorenzo,
+# 01/10: "vai con l'action"): the engine's own store and the layer rows of
+# the project database, opened read-only. Nothing is written. Run by hand.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Layer engine state
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            docker exec deploy-app-1 python - <<'PY'
+            import sqlite3, time
+            from app.trading.onchain import layers, projects_db
+            s = layers.snapshot()
+            print("last_run", time.strftime("%Y-%m-%d %H:%M", time.gmtime(s["last_run"])) if s["last_run"] else "never")
+            for x in s["found"]:
+                print("found", x["id"], x.get("type"), x.get("status"), x.get("score"), (x.get("cex") or {}).get("pair"), x.get("why") or "")
+            db = sqlite3.connect(f"file:{projects_db._DB_FILE}?mode=ro", uri=True)
+            for r in db.execute("SELECT token, symbol, status, score, mcap, rank, why FROM projects WHERE chain = 'layer' ORDER BY score DESC"):
+                print("db", *r)
+            PY
