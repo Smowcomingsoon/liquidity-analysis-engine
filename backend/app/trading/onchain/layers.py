@@ -46,7 +46,7 @@ RUN_EVERY_S = 24 * 3600
 DETAILS_PER_RUN = 20
 CG_GAP_S = 30
 DETAIL_TTL_S = 7 * 86400
-IDS_PER_CALL = 100           # 250 ids make a URL CoinGecko answers 403
+IDS_PER_CALL = 50            # 250 ids make a URL CoinGecko answers 403
 CHAIN = "layer"
 
 LLAMA_CHAINS = "https://api.llama.fi/v2/chains"
@@ -303,6 +303,16 @@ async def _cg_slot() -> None:
         await asyncio.sleep(nxt - now + 0.1)
 
 
+def _image(coin: dict) -> str:
+    """CoinGecko's detail page gives {"thumb", "small", "large"}, the markets
+    list a plain URL: the database takes a string (01/10, the first detail
+    on the server crashed the run on the dict)."""
+    img = coin.get("image")
+    if isinstance(img, dict):
+        img = img.get("large") or img.get("small") or img.get("thumb")
+    return img if isinstance(img, str) else ""
+
+
 async def _fetch_json(client: httpx.AsyncClient, url: str) -> object:
     """GET as JSON. A CoinGecko 429 waits out the minute and tries once more:
     discovery.py spends the same free budget, so a first 429 is normal."""
@@ -459,7 +469,7 @@ async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
             gh["facts"]["commit_count_4_weeks"] = (coin.get("developer_data") or {}).get("commit_count_4_weeks")
         pillars.append(gh)
         item = {"chain": CHAIN, "token_address": gid, "symbol": symbol, "name": name,
-                "image": coin.get("image") or "", "description": (coin.get("description") or {}).get("en") or "",
+                "image": _image(coin), "description": (coin.get("description") or {}).get("en") or "",
                 "website": legit.pick_website(links.get("homepage") or []),
                 "github": repos[0] if repos else "", "market_cap": cap, "launched_at": launched_at}
         try:
@@ -478,15 +488,19 @@ async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
         if cex is None:
             flags.append("no USDT pair on MEXC/Binance")
         cats = [layer_type] + [str(x) for x in (coin.get("categories") or [])]
-        projects_db.upsert({**item, "cg_id": gid, "categories": cats}, "layers", now)
         status = "rejected" if fatal else "studied"
-        projects_db.record({**item, "cg_id": gid, "pillars": pillars,
-                            "overall": {"score": score, "layer": layer_type, "cex": cex, "flags": flags}},
-                           status, fatal, score=score,
-                           traction={"tvl": tvl, "tvl_30d": tvl_30d,
-                                     "stables_usd": ex.get("stables_usd") or 0,
-                                     "fees_30d": ex.get("fees_30d") or 0,
-                                     "l2beat": l2beat.get(name.lower()) or {}}, now=now)
+        try:    # one bad row must not end the run (01/10: a dict image did)
+            projects_db.upsert({**item, "cg_id": gid, "categories": cats}, "layers", now)
+            projects_db.record({**item, "cg_id": gid, "pillars": pillars,
+                                "overall": {"score": score, "layer": layer_type, "cex": cex, "flags": flags}},
+                               status, fatal, score=score,
+                               traction={"tvl": tvl, "tvl_30d": tvl_30d,
+                                         "stables_usd": ex.get("stables_usd") or 0,
+                                         "fees_30d": ex.get("fees_30d") or 0,
+                                         "l2beat": l2beat.get(name.lower()) or {}}, now=now)
+        except Exception:
+            logger.exception("layers: database write for %s failed", gid)
+            continue
         found[gid] = {"at": now, "type": layer_type, "score": score, "status": status,
                       "why": fatal, "cex": cex}
         _state["found"] = found

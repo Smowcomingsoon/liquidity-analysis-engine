@@ -33,6 +33,7 @@ def _clean(monkeypatch, tmp_path):
 
 def _coin(cats, cap=20_000_000, fdv=30_000_000, circ=800, total=1000, mx=None, name="Kaspa", symbol="kas"):
     return {"id": name.lower(), "symbol": symbol, "name": name, "categories": cats,
+            "image": {"thumb": "t.png", "small": "s.png", "large": "l.png"},
             "links": {"homepage": ["https://kaspa.org"], "repos_url": {"github": ["https://github.com/kaspanet/rusty-kaspa"]}},
             "genesis_date": "2021-11-07", "description": {"en": "A proof-of-work blockDAG."},
             "developer_data": {"commit_count_4_weeks": 120},
@@ -143,7 +144,7 @@ def test_run_records_a_layer_outside_the_gem_pipeline(monkeypatch):
 
     assert asyncio.run(go()) == 1
     p = projects_db.get("layer", "kaspa")
-    assert p["status"] == "studied" and p["score"] and p["categories"][0] == "L1"
+    assert p["status"] == "studied" and p["score"] and p["categories"][0] == "L1" and p["image"] == "l.png"
     assert (p["overall"] or {}).get("cex") == {"exchange": "mexc", "pair": "KASUSDT"}
     assert "layer" not in projects_db.stale_market(50, T0 + 30 * 86400)
     assert projects_db.due_for_analysis(50, now=T0 + 30 * 86400) == []
