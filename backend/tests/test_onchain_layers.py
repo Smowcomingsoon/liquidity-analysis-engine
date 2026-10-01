@@ -20,6 +20,7 @@ def _clean(monkeypatch, tmp_path):
     layers.reset_for_tests()
     monkeypatch.setattr(layers, "_STORE_FILE", tmp_path / "onchain_layers.json")
     monkeypatch.setattr(layers, "CG_GAP_S", 0)
+    monkeypatch.setattr(layers, "RETRY_429_S", 0)
     yield
     layers.reset_for_tests()
     lb.reset_for_tests()
@@ -156,3 +157,22 @@ def test_layer_row_with_cex_shows_in_top_entries():
     kas = [e for e in out if e["token_address"] == "kaspa"]
     assert kas and kas[0]["pair_address"] == "mexc:KASUSDT" and kas[0]["market_cap"] == 20_000_000
     assert not [e for e in out if e["token_address"] == "noc"]
+
+
+def test_a_run_with_no_candidates_is_not_stamped_done():
+    calls = []
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        calls.append(str(req.url))
+        if "coingecko" in str(req.url):
+            return httpx.Response(429)
+        return httpx.Response(200, json=[] if "chains" in str(req.url) else {})
+
+    async def go():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            return await layers.run(client, T0)
+
+    assert asyncio.run(go()) == 0
+    assert layers.snapshot()["last_run"] == 0
+    # a 429 from CoinGecko is tried twice before giving up
+    assert sum("category=layer-1" in u for u in calls) == 2

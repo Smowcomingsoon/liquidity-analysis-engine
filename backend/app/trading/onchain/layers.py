@@ -286,8 +286,16 @@ def final_score(pillars: list[dict]) -> float:
     return round(num / den, 2) if den else 0.0
 
 
+RETRY_429_S = 65            # CoinGecko's free minute, shared with discovery.py
+
+
 async def _fetch_json(client: httpx.AsyncClient, url: str) -> object:
+    """GET as JSON. A CoinGecko 429 waits out the minute and tries once more:
+    discovery.py spends the same free budget, so a first 429 is normal."""
     r = await client.get(url)
+    if r.status_code == 429 and url.startswith(COINGECKO):
+        await asyncio.sleep(RETRY_429_S)
+        r = await client.get(url)
     r.raise_for_status()
     return r.json()
 
@@ -365,6 +373,13 @@ async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
     for c in cg_candidates(cg_rows):
         merged.setdefault(c["id"], {}).update(c)
 
+    if not merged:
+        # Every list failed (CoinGecko busy): not a finished run, the loop
+        # tries again within the hour. On 01/10 the first run ended here and
+        # was stamped done for a day.
+        logger.warning("layers: no candidates (llama %d, coingecko %d rows), retrying later",
+                       len(llama_rows), len(cg_rows))
+        return 0
     found = _state.get("found") or {}
     todo = [c for c in merged.values()
             if now - (found.get(c["id"], {}).get("at") or 0) >= DETAIL_TTL_S]
@@ -471,7 +486,7 @@ async def layers_loop() -> None:
     await asyncio.sleep(120)
     while True:
         try:
-            if time.time() - (_state.get("last_run") or 0) >= RUN_EVERY_S:
+            if not _state.get("found") or time.time() - (_state.get("last_run") or 0) >= RUN_EVERY_S:
                 async with httpx.AsyncClient(timeout=20) as client:
                     await run(client)
         except Exception:
