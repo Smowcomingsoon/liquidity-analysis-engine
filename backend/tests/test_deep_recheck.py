@@ -160,3 +160,20 @@ def test_a_drop_on_gaps_alone_changes_nothing(monkeypatch):
                          {"text": "Docs not readable", "evidence": "https://x.io/docs: unreadable — no text"}]}
     res = asyncio.run(deep_recheck.run("solana", "tok10", None, ask=_fake_ask(gaps)))
     assert res["unsupported"] is True and len(res["problems"]) == 2
+
+
+def test_account_holders_recheck_whenever_they_want(monkeypatch):
+    _row("tok9")
+    monkeypatch.setattr(scout_recheck, "recheck", _fake_recheck(
+        {"confirmed": [], "unverified": [], "refuted": [], "found": [], "evidence": ""}))
+    ask = _fake_ask({"keep": True, "score": 60, "verdict": "watch", "reason": "fine",
+                     "strengths": [], "problems": []})
+    now = time.time()
+    day = time.strftime("%Y-%m-%d", time.gmtime(now))
+    deep_recheck._state["calls"][day] = deep_recheck.DAILY_MAX
+    asyncio.run(deep_recheck.run("solana", "tok9", None, now=now, ask=ask, limited=False))
+    with pytest.raises(deep_recheck.TooSoon):   # a double tap
+        asyncio.run(deep_recheck.run("solana", "tok9", None, now=now + 2, ask=ask, limited=False))
+    asyncio.run(deep_recheck.run("solana", "tok9", None, now=now + deep_recheck.TAP_GAP_S + 1, ask=ask, limited=False))
+    assert deep_recheck.wait_s("solana", "tok9", now + 3600, limited=False) == 0
+    assert deep_recheck.wait_s("solana", "tok9", now + 3600) > 0

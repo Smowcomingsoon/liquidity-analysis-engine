@@ -18,8 +18,9 @@ from app.trading.onchain.judge import CHECK_RULES
 
 logger = logging.getLogger(__name__)
 
-COOLDOWN_S = 6 * 3600
+COOLDOWN_S = 6 * 3600     # guests only; account holders re-check whenever they want
 DAILY_MAX = 40
+TAP_GAP_S = 10             # everyone: a double tap must not pay DeepSeek twice
 
 SYSTEM = (
     "You are giving a dedicated second opinion on ONE small-cap crypto project (Solana or Robinhood Chain, "
@@ -90,8 +91,11 @@ def _day(now: float) -> str:
     return time.strftime("%Y-%m-%d", time.gmtime(now))
 
 
-def wait_s(chain: str, token: str, now: float | None = None) -> int:
+def wait_s(chain: str, token: str, now: float | None = None, limited: bool = True) -> int:
     now = now or time.time()
+    if not limited:
+        res = _state["results"].get(_key(chain, token))
+        return max(0, int(res["at"] + TAP_GAP_S - now)) if res and res.get("at") else 0
     day = _day(now)
     if _state["calls"].get(day, 0) >= DAILY_MAX:
         midnight = (int(now // 86400) + 1) * 86400
@@ -181,22 +185,24 @@ def prompt(copy: dict, rc: dict) -> tuple[str, list[dict], str]:
     return user, claims, brief + "\n" + evidence
 
 
-async def run(chain: str, token: str, client, now: float | None = None, ask=None) -> dict:
+async def run(chain: str, token: str, client, now: float | None = None, ask=None, limited: bool = True) -> dict:
     key = _key(chain, token)
-    if key in _running or _state["calls"].get(_day(now or time.time()), 0) + len(_running) >= DAILY_MAX:
+    if key in _running:
+        raise TooSoon(TAP_GAP_S)
+    if limited and _state["calls"].get(_day(now or time.time()), 0) + len(_running) >= DAILY_MAX:
         raise TooSoon(max(60, wait_s(chain, token, now)))
     _running.add(key)
     try:
-        return await _run(chain, token, client, now, ask)
+        return await _run(chain, token, client, now, ask, limited)
     finally:
         _running.discard(key)
 
 
-async def _run(chain: str, token: str, client, now: float | None = None, ask=None) -> dict:
+async def _run(chain: str, token: str, client, now: float | None = None, ask=None, limited: bool = True) -> dict:
     from app.trading.onchain import leaderboard, judge, projects_db
 
     now = now or time.time()
-    left = wait_s(chain, token, now)
+    left = wait_s(chain, token, now, limited)
     if left > 0:
         raise TooSoon(left)
     if not settings.deepseek_api_key:

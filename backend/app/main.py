@@ -4257,7 +4257,7 @@ async def onchain_token(chain: str, token: str, user: User = Depends(auth.get_cu
     return {"entry": entry, "alerts": onchain_alert_track.for_token(chain, token),
             "backtests": onchain_strategy_lab.get(chain, token),
             "deep": onchain_deep_recheck.get(chain, token),
-            "deep_wait_s": onchain_deep_recheck.wait_s(chain, token)}
+            "deep_wait_s": onchain_deep_recheck.wait_s(chain, token, limited=guest_links.is_guest(user))}
 
 
 @app.post("/api/onchain/token/recheck")
@@ -4266,7 +4266,8 @@ async def onchain_token_recheck(chain: str, token: str, user: User = Depends(aut
     _require_onchain_enabled()
     async with httpx.AsyncClient(timeout=15.0) as client:
         try:
-            result = await onchain_deep_recheck.run(chain, token, client)
+            # Lorenzo, 01/10: "voglio poterlo fare quando voglio": only guests keep the limits.
+            result = await onchain_deep_recheck.run(chain, token, client, limited=guest_links.is_guest(user))
         except onchain_deep_recheck.TooSoon as exc:
             raise HTTPException(status_code=429, detail={"wait_s": exc.wait_s})
         except LookupError:
