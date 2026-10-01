@@ -292,3 +292,12 @@ def test_a_quote_with_an_ellipsis_needs_every_part_real():
     assert not sr.quoted("dex pumpfun, 24h change 33% ... pools reserve $9,999", ev)
     assert not sr.quoted("dex pumpfun ... $3", ev)
     assert not sr.quoted("...", ev)
+
+
+def test_gecko_volume_without_the_field_is_unknown(monkeypatch):
+    import app.providers.dexscreener as dx
+
+    async def fake(url, params=None):
+        return {"data": {"attributes": {"total_reserve_in_usd": "900"}}}
+    monkeypatch.setattr(dx, "gecko_get", fake)
+    assert asyncio.run(sr.gecko_volume({"chain": "solana", "token_address": "x"}, None)) is None

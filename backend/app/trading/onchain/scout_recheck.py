@@ -306,6 +306,9 @@ async def _code_search(address: str, client: httpx.AsyncClient) -> str | None:
     return next((u for u in repos if u), None)
 
 
+_GENERIC_STEMS = {"app", "www", "api", "docs", "web", "dapp", "home", "token"}
+
+
 async def github_by_name(item: dict, client: httpx.AsyncClient) -> tuple[str, str] | None:
     """A repository whose README names the site or carries the token address.
     A name match alone is never enough: any repo can be called "pfwa"."""
@@ -340,7 +343,8 @@ async def github_by_name(item: dict, client: httpx.AsyncClient) -> tuple[str, st
             # A README naming the site is not enough: crawlers and lists name
             # thousands (trial 01/10: a news crawler for a meme, a bot list for
             # BV7X). The repo or its owner must carry the project's name.
-            stems = {x for x in (symbol.lower(), host.split(".")[0] if host else "") if len(x) >= 3}
+            stems = {x for x in (symbol.lower(), host.split(".")[0] if host else "")
+                     if len(x) >= 3 and x not in _GENERIC_STEMS}
             if not full or not any(st in full.lower() for st in stems):
                 continue
             try:
@@ -377,6 +381,8 @@ async def gecko_volume(item: dict, client: httpx.AsyncClient) -> dict | None:
     except Exception:
         return None
     attrs = ((data or {}).get("data") or {}).get("attributes") or {}
+    if (attrs.get("volume_usd") or {}).get("h24") is None:
+        return None   # a missing field is unknown, not $0
     try:
         return {"volume_24h": float((attrs.get("volume_usd") or {}).get("h24") or 0),
                 "reserve_usd": float(attrs.get("total_reserve_in_usd") or 0)}
