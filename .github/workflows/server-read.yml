@@ -18,7 +18,7 @@ jobs:
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
-            docker exec deploy-app-1 python - <<'PY'
+            docker exec -i deploy-app-1 python - <<'PY'
             import sqlite3, time
             from app.trading.onchain import layers, projects_db
             s = layers.snapshot()
