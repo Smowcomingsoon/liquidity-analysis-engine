@@ -1355,9 +1355,7 @@ html, body { overflow-x: clip; }
 }
 @layer skin {
   [data-fx="strike"] { position: relative; }
-  [data-fx="strike"]::after { content: ""; position: absolute; inset-inline: 0; inset-block-start: 50%; block-size: 1.5px;
-    background: currentColor; transform-origin: left; transform: scaleX(0);
-    animation: fx-strike 260ms cubic-bezier(.2, .7, .2, 1) forwards; }
-  @keyframes fx-strike { to { transform: scaleX(1); } }
-  @media (prefers-reduced-motion: reduce) { [data-fx="strike"]::after { animation: none; } }
+  .fx-strike { position: absolute; block-size: 1.5px; margin-block-start: -.75px; background: currentColor;
+    transform-origin: left; transform: scaleX(0); pointer-events: none; }
+  .fx-canvas { position: fixed; inset: 0; inline-size: 100vw; block-size: 100vh; pointer-events: none; z-index: 2147483000; }
 }

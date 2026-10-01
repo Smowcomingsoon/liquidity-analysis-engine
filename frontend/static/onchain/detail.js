@@ -427,6 +427,7 @@ function paintTabs() {
   dlg.querySelectorAll("[data-dtab]").forEach((b) => b.toggleAttribute("aria-current", b.dataset.dtab === tab));
   const e = current.e;
   const body = dlg.querySelector("[data-pane-body]");
+  const pending = loading.has(current.id);
   if (tab === "why") { body.innerHTML = whyHtml(e); return; }
   if (tab === "info") { body.innerHTML = e.info || infoFallback(e); return; }
   // Gems: only the daily trend follower, not the alerts' 5-minute tracks.
