@@ -13,5 +13,6 @@ jobs:
       - run: pip install -q -r backend/requirements.txt
       - run: cd backend && PYTHONPATH=. python ../.github/trial/recheck_trial.py
         env:
+          GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           DEEPSEEK_MODEL: ${{ vars.DEEPSEEK_MODEL || 'deepseek-chat' }}

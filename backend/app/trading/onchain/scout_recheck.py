@@ -322,9 +322,9 @@ async def github_by_name(item: dict, client: httpx.AsyncClient) -> tuple[str, st
         queries.append(f'"{host}" in:readme')
     if address:
         queries.append(f"{address} in:readme")
-    if len(symbol) >= 3:
+    if len(symbol) >= 3 and not host:
         queries.append(f"{symbol.lower()} contracts")
-    for q in queries[:3]:
+    for q in queries[:2]:   # search allows 10 calls a minute without a token, 30 with
         try:
             r = await client.get("https://api.github.com/search/repositories",
                                  params={"q": q, "per_page": 5}, headers=legit._gh_headers(), timeout=10.0)
