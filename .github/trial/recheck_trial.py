@@ -25,6 +25,15 @@ async def main():
     items += [json.loads(line) for line in open("../.github/trial/items.jsonl") if line.strip()]
     async with httpx.AsyncClient(follow_redirects=True, headers={"User-Agent": "Mozilla/5.0"}) as c:
         for it in items:
+            # The market fields a production item carries (projects_db), from the deepest pair.
+            d = (await c.get(f"https://api.dexscreener.com/latest/dex/tokens/{it['token_address']}")).json()
+            ps = sorted(d.get("pairs") or [], key=lambda q: -((q.get("liquidity") or {}).get("usd") or 0))
+            if ps:
+                q = ps[0]
+                it.update({"volume_24h": (q.get("volume") or {}).get("h24"), "dex": q.get("dexId"),
+                           "liquidity_usd": (q.get("liquidity") or {}).get("usd"), "market_cap": q.get("marketCap"),
+                           "created_at": (q.get("pairCreatedAt") or 0) / 1000 or None,
+                           "change_24h": (q.get("priceChange") or {}).get("h24")})
             points = HYDX_POINTS if it["symbol"] == "HYDX" else GENERIC
             entry = {**it, "pillars": {}, "judge": {"verdict": "avoid", "score": 30, "problems": points},
                      "review": {"keep": False, "reason": "first board review dropped it"}}

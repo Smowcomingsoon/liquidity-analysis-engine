@@ -371,11 +371,16 @@ async def gather(entry: dict, item: dict, client: httpx.AsyncClient) -> dict:
             pages.append({"url": page.get("final_url") or u, "text": page["text"][:EXCERPT]})
             found.append(f"page read: {page.get('final_url') or u}")
             checked.append({"source": u, "result": "found", "detail": f"{len(page['text'].split())} words"})
+        elif page.get("status") in (404, 410):
+            checked.append({"source": u, "result": "not found", "detail": f"responds {page['status']}"})
         else:
-            checked.append({"source": u, "result": "not found", "detail": "no readable text"})
+            # A page with no text is usually drawn by JavaScript: we could not read it, nothing more.
+            checked.append({"source": u, "result": "unreadable",
+                            "detail": page.get("error") or "no text in the HTML (drawn by JavaScript or empty)"})
     if gh.get("score") is None:
         checked.append({"source": "GitHub", "result": "found" if any(f.startswith("GitHub found") for f in found)
-                        else "not found", "detail": "search by socials, site name, token address"})
+                        else "not found", "detail": "no public repository found by socials, site name or token "
+                        "address (public code is a plus, not a requirement)"})
     return {"found": found, "pages": pages, "checked": checked, "snippets": snippets}
 
 
@@ -431,9 +436,12 @@ def market_lines(entry: dict, item: dict) -> list[str]:
     out = []
     created = item.get("created_at") or item.get("launched_at")
     age = f"{(time.time() - float(created)) / 86400:.1f} days" if created else "unknown"
-    out.append(f"Market (DexScreener): pool age {age}, 24h volume ${float(item.get('volume_24h') or 0):,.0f}, "
-               f"liquidity ${float(item.get('liquidity_usd') or 0):,.0f}, dex {item.get('dex') or '?'}, "
-               f"24h change {item.get('change_24h')}%")
+    # Unknown is not zero: "24h volume $0" for a field we never read made the
+    # judge drop live tokens (trial on HYDX, 01/10).
+    usd = lambda v: f"${float(v):,.0f}" if v is not None else "unknown"  # noqa: E731
+    out.append(f"Market (DexScreener): pool age {age}, 24h volume {usd(item.get('volume_24h'))}, "
+               f"liquidity {usd(item.get('liquidity_usd'))}, dex {item.get('dex') or 'unknown'}, "
+               f"24h change {item.get('change_24h') if item.get('change_24h') is not None else 'unknown'}%")
     llama = traction.lookup(item.get("chain") or "", item.get("token_address") or "")
     if llama:
         out.append("DefiLlama: " + json.dumps({k: llama.get(k) for k in ("name", "tvl", "fees_30d", "change_7d")

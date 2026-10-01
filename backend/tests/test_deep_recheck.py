@@ -148,3 +148,15 @@ def test_a_drop_needs_a_problem_backed_by_a_real_quote(monkeypatch):
                                      "evidence": "liquidity $3,100 against a $2,400,000 cap"}]}
     res = asyncio.run(deep_recheck.run("solana", "tok9", None, ask=_fake_ask(real)))
     assert res["keep"] is False and res["problems"][0]["evidence"].startswith("liquidity $3,100")
+
+
+def test_a_drop_on_gaps_alone_changes_nothing(monkeypatch):
+    _row("tok10")
+    ev = "Checked sources:\nGitHub: not found — no public repository found\nhttps://x.io/docs: unreadable — no text"
+    monkeypatch.setattr(scout_recheck, "recheck", _fake_recheck(
+        {"confirmed": [], "unverified": [], "refuted": [], "found": [], "evidence": ev}))
+    gaps = {"keep": False, "score": 20, "verdict": "avoid", "reason": "no code",
+            "problems": [{"text": "No public GitHub", "evidence": "GitHub: not found — no public repository found"},
+                         {"text": "Docs not readable", "evidence": "https://x.io/docs: unreadable — no text"}]}
+    res = asyncio.run(deep_recheck.run("solana", "tok10", None, ask=_fake_ask(gaps)))
+    assert res["unsupported"] is True and len(res["problems"]) == 2

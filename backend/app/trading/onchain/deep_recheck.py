@@ -33,7 +33,12 @@ SYSTEM = (
     "of a problem. Every strength and every problem is an object {\"text\": \"...\", \"evidence\": \"exact "
     "quote copied from the project line or the evidence block\"} (never from the red points: they are the claims "
     "under review). A strength or problem without such a quote is discarded. A problem that is only 'X is missing' is allowed only if the Checked "
-    "sources show X was read and not found; never drop a project for something no source checked. The reason "
+    "sources show X was read and not found; never drop a project for something no source checked. "
+    "Never a reason to drop: no public GitHub (public code is a plus, not a requirement), an anonymous team, "
+    "pages we could not read (unreadable means our reader failed, not that the page is empty), no DefiLlama TVL "
+    "for a project that does not take deposits, and any market figure written as unknown. A drop must rest on "
+    "a measured negative fact (thin pool against the cap, a copy of another project, a meme or borrowed name, "
+    "no product at all on pages that WERE read, a dangerous contract or holder fact). The reason "
     "must name the decisive evidence. Answer with one JSON object only: "
     "{\"keep\": true|false, \"score\": 0-100, \"verdict\": \"gem|watch|avoid|scam\", \"reason\": \"<= 20 words\", "
     "\"strengths\": [{\"text\": \"...\", \"evidence\": \"...\"}], \"problems\": [{\"text\": \"...\", \"evidence\": \"...\"}]}."
@@ -144,8 +149,11 @@ def _parse(raw: str, evidence: str = "") -> dict:
     keep = out["keep"]
     reason = _cut(out.get("reason"), 160)
     unsupported = False
-    if not keep and not problems:
-        keep, verdict, reason, unsupported = True, "watch", "No problem backed by evidence", True
+    # A drop needs at least one problem that is a measured fact, not a gap in
+    # what we could read (trial 01/10: four live projects dropped for "no
+    # docs", "no GitHub", "$0 volume" that was an unread field).
+    if not keep and not any(not scout_recheck.ABSENCE.search(p["text"]) for p in problems):
+        keep, verdict, reason, unsupported = True, "watch", "No measured problem backed by evidence", True
     return {"keep": keep, "score": score, "verdict": verdict, "reason": reason,
             "strengths": strengths, "problems": problems, "unsupported": unsupported}
 
