@@ -2504,5 +2504,11 @@
     "at": 1790844863,
     "summary": "Nella scheda Why di ogni token c'e' il tasto 'Re-check with DeepSeek': rifa' la seconda ricerca sui punti rossi (GitHub, pagine non lette, liquidita') e chiede a DeepSeek un parere dedicato solo su quel token (tenere/scartare, punteggio, verdetto, punti forti e problemi). Il risultato resta sotto la review. Se DeepSeek ora lo tiene, la vecchia esclusione 'DeepSeek review' viene tolta e il token puo' rientrare in classifica; se lo scarta, l'esclusione si aggiorna col nuovo motivo. Limite: una volta ogni 6 ore per token, 40 al giorno in tutto. Dal 01/10 il ricontrollo e' rigoroso: legge anche il codice dell'app, le sue API e la bio di X, e ogni punto deve citare la prova; uno scarto senza un fatto misurato non cambia la classifica.",
     "detail": "backend/app/trading/onchain/deep_recheck.py, POST /api/onchain/token/recheck, issue #459 (bozza DeepSeek corretta da Claude). Test: tests/test_deep_recheck.py."
+  },
+  "seed-0247": {
+    "status": "risolto",
+    "at": 1790858315,
+    "summary": "Un motore a parte cerca ogni giorno le chain L0/L1/L2 col loro token (DefiLlama, categorie Layer di CoinGecko, L2BEAT; tutto gratuito), tiene quelle fra $500k e $100M di cap con FDV al massimo 5 volte la cap, e le valuta con gli stessi GitHub e sito delle gemme, la supply e un pilastro di uso (TVL, fee, stablecoin rispetto alla cap). Finiscono nel database e, se hanno una coppia USDT su MEXC o Binance, nella Top 50: grafico, backtest della strategia e prezzo del portafoglio arrivano dall'exchange.",
+    "detail": "backend/app/trading/onchain/layers.py e cex_candles.py, GET /api/onchain/layers, issue #474 e #478 (bozze DeepSeek corrette da Claude). Design: /mnt/project-files/layer-engine/design.md. Test: tests/test_onchain_layers.py, tests/test_cex_candles.py."
   }
 }

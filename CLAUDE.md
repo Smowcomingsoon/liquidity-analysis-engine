@@ -158,6 +158,13 @@ reale passa da DeepSeek. Claude scrive a mano solo quelle, i ritocchi al
 diff di DeepSeek in revisione, e i file di memoria (CLAUDE.md, HANDOVER.md,
 resolutions.json):
 
+**Limite (Lorenzo, 01/10):** "fagli fare soltanto delle cose banali, semplici
+[...] la mente devi essere tu e l'intelligenza ce la devi mettere te". A
+DeepSeek solo codice ripetitivo e semplice; progetto, scelte, filtri,
+integrazioni fra moduli e regole li scrive Claude. Ogni riga di DeepSeek si
+rivede (il 01/10, #474 e #478: entrambi falliti, e #478 aveva mancato il
+filtro che bloccava ogni backtest dei layer).
+
 1. apri una issue con etichetta `deepseek` (corpo: il compito in poche righe,
    poi `Files:` con i file o `file:inizio-fine`, poi `Tests:`);
 2. l'Action `deepseek-task.yml` fa scrivere il codice a DeepSeek, fa girare

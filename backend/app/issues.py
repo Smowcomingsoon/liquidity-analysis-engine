@@ -165,6 +165,9 @@ def _resolutions() -> dict[str, dict]:
 
 
 _SEED = [
+    ("seed-0247", "Trovare layer 0, layer 1 e layer 2 con chain propria: lo scanner cerca solo contratti",
+     "Lorenzo, 01/10: 'dobbiamo scovare i layer one e i layer zero [...] col sistema attuale non li possiamo trovare perche' cerchiamo i contratti [...] anche i layer 2 con blockchain propria [...] API gratuite [...] pochi al giorno e' sufficiente [...] i risultati vanno a finire [...] database, top 50'. Fascia: 'usiamo da 500k di market cap fino a 100mln'.",
+     "alta"),
     ("seed-0246", "Nella review di ogni token serve un tasto per un ricontrollo approfondito con DeepSeek",
      "Lorenzo, 01/10: 'in ogni review metti un tasto per forzare un ricontrollo approfondito dedicato con deepseek' (screenshot HYDX: 'Not on the board: DeepSeek review: Six-day-old generic DEX...').",
      "media"),

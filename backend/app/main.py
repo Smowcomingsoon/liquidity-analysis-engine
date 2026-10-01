@@ -105,6 +105,7 @@ from app.trading.onchain import execute as onchain_execute
 from app.trading.onchain import send as onchain_send
 from app.trading.onchain import jito as onchain_jito
 from app.trading.onchain import keys as onchain_keys
+from app.trading.onchain import layers as onchain_layers
 from app.trading.onchain import legit as onchain_legit
 from app.trading.onchain import consistency as onchain_consistency_audit
 from app.trading.onchain import gem_track as onchain_gem_track
@@ -1584,6 +1585,7 @@ async def lifespan(app: FastAPI):
                    asyncio.create_task(onchain_strategy_lab.lab_loop(_top_entries)),
                    asyncio.create_task(onchain_candle_archive.archive_loop(lambda: _top_entries(50))),
                    asyncio.create_task(onchain_ladder_watch.watch_loop()),
+                   asyncio.create_task(onchain_layers.layers_loop()),
                    asyncio.create_task(_onchain_signals_loop()),
                    asyncio.create_task(_wealth_loop())] if settings.onchain_radar_enabled else []
     sniper_tasks: list[asyncio.Task] = []
@@ -4189,8 +4191,10 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
         if (row.get("overall") or {}).get("fatal") or onchain_leaderboard.no_name(row.get("symbol")):
             continue
         # The board's ceiling holds here too: bridged AAVE sat first (Lorenzo, 28/09).
-        if onchain_leaderboard.too_big({"symbol": row.get("symbol"), "name": row.get("name"),
-                                        "market_cap": row.get("mcap"), "global_cap": row.get("cg_mcap")}):
+        # Layer chains have their own band (LAYER_CAP_MIN-MAX), checked below.
+        if row["chain"] != onchain_layers.CHAIN and onchain_leaderboard.too_big(
+                {"symbol": row.get("symbol"), "name": row.get("name"),
+                 "market_cap": row.get("mcap"), "global_cap": row.get("cg_mcap")}):
             continue
         key = f"{row['chain']}:{row['token']}"
         if key in seen:
@@ -4205,8 +4209,20 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
         # (projects_db.sync_top), so the Database no longer contradicts the Top.
         if (row.get("why") or "").startswith("DeepSeek"):
             continue
+        # Layer chains (layers.py) have no DEX pool: their pool is the
+        # exchange pair, and the gem ceiling does not apply to them.
+        pair_address = None
+        if row["chain"] == onchain_layers.CHAIN:
+            cex = (row.get("overall") or {}).get("cex")
+            if not cex or not cex.get("exchange") or not cex.get("pair"):
+                continue
+            pair_address = f"{cex['exchange']}:{cex['pair']}"
+            mcap = row.get("mcap")
+            if mcap is None or not (onchain_layers.LAYER_CAP_MIN <= mcap <= onchain_layers.LAYER_CAP_MAX):
+                continue
         seen.add(key)
-        out.append({"chain": row["chain"], "token_address": row["token"], "pair_address": None, "pair_url": None,
+        out.append({"chain": row["chain"], "token_address": row["token"], "pair_address": pair_address,
+                    "pair_url": None,
                     "symbol": row.get("symbol"), "name": row.get("name"), "image": row.get("image"),
                     "market_cap": row.get("mcap"), "liquidity_usd": row.get("liq"), "change_24h": None,
                     "launched_at": row.get("launched_at"), "score": row.get("score"), "early": None, "on_board": False})
@@ -4286,6 +4302,15 @@ async def onchain_projects_view(q: str = "", status: str = "", sort: str = "scor
     _require_onchain_enabled()
     return {**onchain_projects_db.search(q, status, sort, limit, offset, band, narrative),
             "stats": onchain_projects_db.stats()}
+
+
+@app.get("/api/onchain/layers")
+async def onchain_layers_view(user: User = Depends(auth.get_current_user)) -> dict:
+    """I progetti layer 0/1/2 trovati dal layer engine (fase 1: solo
+    scoperta e punteggio, non ancora in classifica). Vedi
+    app/trading/onchain/layers.py."""
+    _require_onchain_enabled()
+    return onchain_layers.snapshot()
 
 
 class ProjectReadRequest(BaseModel):
@@ -5360,7 +5385,8 @@ async def onchain_ai_review_view(user: User = Depends(auth.get_current_user)) ->
 
 @app.get("/api/onchain/chart")
 async def onchain_token_chart(
-    chain: str, pool: str = Query(..., pattern=r"^[0-9A-Za-z]{20,66}$"), symbol: str = Query("", max_length=40),
+    chain: str, pool: str = Query(..., pattern=r"^([0-9A-Za-z]{20,66}|(mexc|binance):[A-Z0-9]{2,20}USDT)$"),
+    symbol: str = Query("", max_length=40),
     interval: Literal["1m", "5m", "15m", "1h", "4h", "1d", "1w"] = "15m", peek: bool = False,
     user: User = Depends(auth.get_current_user),
 ) -> dict:

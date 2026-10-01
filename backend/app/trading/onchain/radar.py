@@ -762,8 +762,23 @@ _lite_cache: dict[tuple[str, str, str], tuple[float, list[dict]]] = {}
 _refreshing: set[tuple[str, str, str]] = set()
 
 
+# The token page's intervals -> (tf, aggregate) for the exchange candles.
+_CEX_TF = {"1m": ("minute", 1), "5m": ("minute", 5), "15m": ("minute", 15), "1h": ("hour", 1),
+           "4h": ("hour", 4), "1d": ("day", 1), "1w": ("day", 7)}
+
+
 async def _fetch_lite(chain: str, pool: str, symbol: str, interval: str, urgent: bool) -> list[dict]:
     key = (chain, pool, interval)
+    if chain == "layer":
+        from app.trading.onchain import cex_candles
+        tf, agg = _CEX_TF.get(interval, ("minute", 5))
+        rows = await cex_candles.candles(pool, tf, agg, time.time() + 60, CANDLES_LITE)
+        candles = [{"time": int(r[0]), "close": float(r[4])} for r in rows or []]
+        _lite_cache[key] = (time.time(), candles)
+        if len(_lite_cache) > 400:
+            for k in sorted(_lite_cache, key=lambda k: _lite_cache[k][0])[:100]:
+                _lite_cache.pop(k, None)
+        return candles
     gecko_urgent.set(urgent)
     df = await DexScreenerProvider().fetch_ohlcv(make_symbol(symbol, chain, pool), interval, CANDLES_LITE)
     candles = [{"time": int(ts.timestamp()), "close": float(r.close)} for ts, r in df.iterrows()]

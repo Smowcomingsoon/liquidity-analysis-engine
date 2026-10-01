@@ -175,6 +175,20 @@ async def _onchain(client: httpx.AsyncClient, chain: str, keys: list[tuple[str, 
 
 async def _refresh(keys: list[tuple[str, str]]) -> None:
     async with httpx.AsyncClient(timeout=4.0) as client:
+        # 0. layer chains: no DEX pool, the price comes from the exchange
+        from app.trading.onchain import cex_candles, projects_db
+        layer = [k for k in keys if k[0] == "layer"]
+        if layer:
+            now = _clock()
+            for _, addr in layer:
+                row = await asyncio.to_thread(projects_db.get, "layer", addr)
+                cex = (row.get("overall") or {}).get("cex") if row else None
+                if not cex or not cex.get("exchange") or not cex.get("pair"):
+                    continue
+                p = await cex_candles.price(f"{cex['exchange']}:{cex['pair']}")
+                if p is not None:
+                    _cache[("layer", addr)] = (p, now, "cex")
+        keys = [k for k in keys if k[0] != "layer"]
         # 1. the fast sources: pools on-chain (EVM), Jupiter (Solana)
         evm: dict[str, list[tuple[str, str]]] = {}
         for k in keys:

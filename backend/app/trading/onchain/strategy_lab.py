@@ -25,7 +25,7 @@ import httpx
 
 from app.notify import deepseek_desk
 from app.sniper.scanner import GECKO_NETWORKS
-from app.trading.onchain import alert_track, candle_archive, priority, sim_backtest, system
+from app.trading.onchain import alert_track, candle_archive, priority, projects_db, sim_backtest, system
 from app.trading.onchain.storage import data_file
 from app.atomic_write import write_text_atomic
 
@@ -150,7 +150,7 @@ def next_due(entries: list[dict], now: float) -> dict | None:
     oltre REFRESH_S. Solo reti che GeckoTerminal conosce."""
     due = []
     for e in entries:
-        if not e.get("token_address") or not GECKO_NETWORKS.get(e.get("chain")):
+        if not e.get("token_address") or not (e.get("chain") == "layer" or GECKO_NETWORKS.get(e.get("chain"))):
             continue
         r = _results.get(key_of(e["chain"], e["token_address"]))
         at = (r or {}).get("at") or 0
@@ -168,10 +168,23 @@ def status(entries: list[dict], now: float | None = None) -> dict:
             "last_tick": _state["last_tick"], "error": _state["error"]}
 
 
+def _net(chain: str) -> str:
+    """The GeckoTerminal network name: layer chains live on the exchange."""
+    if chain == "layer":
+        return "cex"
+    return GECKO_NETWORKS[chain]
+
+
 async def _pair_of(client: httpx.AsyncClient, e: dict) -> str | None:
     """Il pool su cui provare: quello della Top, o il piu' liquido del token."""
     if e.get("pair_address"):
         return e["pair_address"]
+    if e["chain"] == "layer":
+        row = projects_db.get("layer", e["token_address"])
+        cex = (row.get("overall") or {}).get("cex") if row else None
+        if cex and cex.get("exchange") and cex.get("pair"):
+            return f"{cex['exchange']}:{cex['pair']}"
+        return None
     try:
         r = await client.get(DEX_TOKENS.format(chain=e["chain"], token=e["token_address"]))
         pairs = r.json() if r.status_code == 200 else []
@@ -307,7 +320,7 @@ async def run_one(client: httpx.AsyncClient, e: dict, now: float) -> dict | None
     if not pair:
         _results[key] = {"at": now, "symbol": symbol, "pair": None, "error": "no pool"}
         return _results[key]
-    bars = await alert_track._candles(client, GECKO_NETWORKS[e["chain"]], pair, "minute", 5, now, BARS,
+    bars = await alert_track._candles(client, _net(e["chain"]), pair, "minute", 5, now, BARS,
                                       e["token_address"])
     if bars is None:
         return None
@@ -315,7 +328,7 @@ async def run_one(client: httpx.AsyncClient, e: dict, now: float) -> dict | None
         _results[key] = {"at": now, "symbol": symbol, "pair": pair, "error": "no candles"}
         return _results[key]
     try:     # the archive keeps them past the 1000-candle window
-        await asyncio.to_thread(candle_archive.put, candle_archive.key(GECKO_NETWORKS[e["chain"]], pair, "minute", 5,
+        await asyncio.to_thread(candle_archive.put, candle_archive.key(_net(e["chain"]), pair, "minute", 5,
                                                                        e["token_address"]), bars, now)
     except Exception:
         logger.exception("strategy lab: archivio 5m di %s fallito", symbol)
@@ -323,7 +336,7 @@ async def run_one(client: httpx.AsyncClient, e: dict, now: float) -> dict | None
     _results[key] = {"at": now, "symbol": symbol, "pair": pair, "backtests": bt}
     if sim_backtest.needs_relabel(e["chain"], e["token_address"]):
         try:    # old Top 50 wallet trades saved without their strategy: rerun each listed one on the same candles
-            old = await asyncio.to_thread(candle_archive.get, candle_archive.key(GECKO_NETWORKS[e["chain"]], pair,
+            old = await asyncio.to_thread(candle_archive.get, candle_archive.key(_net(e["chain"]), pair,
                                                                                  "minute", 5, e["token_address"]))
             full = sorted({int(b[0]): b for b in [*(old or []), *bars]}.values())
             times = await asyncio.to_thread(system.trend_trade_times, full)
@@ -332,7 +345,7 @@ async def run_one(client: httpx.AsyncClient, e: dict, now: float) -> dict | None
             logger.exception("strategy lab: rietichettatura di %s fallita", symbol)
     # Il daily e' un di piu': se fallisce il 5 minuti resta.
     try:
-        daily = await run_daily(client, GECKO_NETWORKS[e["chain"]], pair, e["token_address"], now, bars)
+        daily = await run_daily(client, _net(e["chain"]), pair, e["token_address"], now, bars)
     except Exception:
         logger.exception("strategy lab: daily di %s fallito", symbol)
         daily = None

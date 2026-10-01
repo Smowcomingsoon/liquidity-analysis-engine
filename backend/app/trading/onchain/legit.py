@@ -48,7 +48,8 @@ logger = logging.getLogger(__name__)
 RUGCHECK_REPORT = "https://api.rugcheck.xyz/v1/tokens/{mint}/report"
 GOPLUS_TOKEN = "https://api.gopluslabs.io/api/v1/token_security/{chain_id}"
 GOPLUS_CHAIN = {"robinhood": "4663", "base": "8453", "bsc": "56", "ethereum": "1"}
-CHAIN_LABEL = {"solana": "Solana", "robinhood": "Robinhood", "base": "Base", "bsc": "BSC", "ethereum": "Ethereum"}
+CHAIN_LABEL = {"solana": "Solana", "robinhood": "Robinhood", "base": "Base", "bsc": "BSC", "ethereum": "Ethereum",
+               "layer": "Layer"}
 # Which chains each hunt covers (Lorenzo: "BSC per le Meme insieme a Sol e
 # Robinhood. Poi Eth e Base solo per le Gemme"). Slugs are DexScreener's.
 MEME_CHAINS = ("solana", "robinhood", "bsc")

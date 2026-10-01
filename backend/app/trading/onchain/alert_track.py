@@ -280,6 +280,9 @@ async def _candles(client, net: str, pool: str, tf: str, aggregate: int, before:
                    token: str = "") -> list | None:
     """Candles through the shared GeckoTerminal limiter. [] = the pool is
     unknown there; None = no answer now (try again on the next start)."""
+    if net == "cex":
+        from app.trading.onchain import cex_candles
+        return await cex_candles.candles(pool, tf, aggregate, before, limit)
     from app.providers.dexscreener import gecko_get
     params = {"aggregate": aggregate, "before_timestamp": int(before), "limit": limit, "currency": "usd"}
     if token:

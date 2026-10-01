@@ -363,7 +363,8 @@ def stale_market(limit: int, now: float | None = None) -> dict[str, list[str]]:
     now = now or time.time()
     with _lock:
         rows = _db().execute(
-            "SELECT chain, token FROM projects WHERE market_at IS NULL OR market_at < ?"
+            "SELECT chain, token FROM projects WHERE chain != 'layer'"
+            " AND (market_at IS NULL OR market_at < ?)"
             " ORDER BY COALESCE(market_at, 0) LIMIT ?", (now - MARKET_TTL_S, limit)).fetchall()
     out: dict[str, list[str]] = {}
     for r in rows:
@@ -373,7 +374,7 @@ def stale_market(limit: int, now: float | None = None) -> dict[str, list[str]]:
 
 def _band_sql() -> str:
     return (f"mcap BETWEEN {CAP_MIN} AND {CAP_MAX} AND COALESCE(liq, 0) >= {LIQ_MIN}"
-            f" AND COALESCE(cg_mcap, 0) <= {CAP_MAX}")
+            f" AND COALESCE(cg_mcap, 0) <= {CAP_MAX} AND chain != 'layer'")
 
 
 def need_detail(limit: int, now: float | None = None) -> list[dict]:
