@@ -157,3 +157,11 @@ def test_wants_reading_when_prompt_changed():
     judge._cache["solana:OLD"]["v"] = judge.PROMPT_VERSION
     assert not judge.wants_reading(e, "")
     judge._cache.pop("solana:OLD")
+
+def test_review_brief_carries_the_telegram_numbers():
+    e = _entry(judge={"verdict": "watch", "score": 60, "problems": [], "x": None,
+                      "tg": {"handle": "abc", "subs": 500}})
+    brief = judge.review_brief([e])
+    line = json.loads(brief.splitlines()[1])
+    assert line["judge"]["tg"] == {"handle": "abc", "subs": 500}
+    assert '"subs": 500' in brief

@@ -149,6 +149,24 @@ def _ts(value: str) -> float | None:
         return None
 
 
+def _posts(page: str) -> list[dict]:
+    """The message blocks of a t.me/s page, oldest first: id, time, views, text."""
+    posts = []
+    for block in page.split('class="tgme_widget_message_wrap')[1:]:
+        when = re.search(r'<time datetime="([^"]+)"', block)
+        at = _ts(when.group(1)) if when else None
+        if at is None:
+            continue
+        pid = re.search(r'data-post="[^/"]+/(\d+)"', block)
+        views = re.search(r'class="tgme_widget_message_views">([^<]*)<', block)
+        body = re.search(r'class="tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>', block, re.S)
+        posts.append({"id": int(pid.group(1)) if pid else None, "at": at,
+                      "views": _num(views.group(1)) if views else None,
+                      "text": _text(body.group(1)) if body else ""})
+    posts.sort(key=lambda p: p["at"])
+    return posts
+
+
 def parse_channel(page: str, now: float) -> dict:
     """The preview page of a public channel: subscribers and recent posts."""
     subs = None
@@ -156,17 +174,7 @@ def parse_channel(page: str, now: float) -> dict:
         if kind.strip().lower() in ("subscribers", "subscriber", "members", "member"):
             subs = _num(value)
             break
-    posts = []
-    for block in page.split('class="tgme_widget_message_wrap')[1:]:
-        when = re.search(r'<time datetime="([^"]+)"', block)
-        at = _ts(when.group(1)) if when else None
-        if at is None:
-            continue
-        views = re.search(r'class="tgme_widget_message_views">([^<]*)<', block)
-        body = re.search(r'class="tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>', block, re.S)
-        posts.append({"at": at, "views": _num(views.group(1)) if views else None,
-                      "text": _text(body.group(1)) if body else ""})
-    posts.sort(key=lambda p: p["at"])
+    posts = _posts(page)
     ages = [(now - p["at"]) / 86400 for p in posts]
     views = [p["views"] for p in posts if p["views"] is not None]
     oldest_in_30 = bool(posts) and ages[0] <= 30
@@ -261,6 +269,57 @@ def compact(tg: dict | None) -> dict | None:
         return None
     return {k: tg.get(k) for k in ("handle", "kind", "subs", "posts_7d", "posts_30d", "last_post_days", "median_views")
             if tg.get(k) is not None}
+
+
+# --- history -----------------------------------------------------------------
+
+HISTORY_PAGES = 5
+HISTORY_DAYS = 90
+HISTORY_CHARS = 1500
+
+
+async def history(name: str, now: float, client: httpx.AsyncClient,
+                  max_pages: int = HISTORY_PAGES, days: int = HISTORY_DAYS,
+                  after_id: int | None = None) -> list[dict]:
+    """Page back through a public channel's posts, up to `max_pages` pages,
+    stopping at posts older than `days`, at `after_id` (already read), or
+    when a page adds nothing new. Each page counts in the same daily budget
+    as `lookup`."""
+    day = time.strftime("%Y-%m-%d", time.gmtime(now))
+    cutoff = now - days * 86400
+    seen: dict[int, dict] = {}
+    before: int | None = None
+    for _ in range(max_pages):
+        if _calls.get(day, 0) >= DAILY_MAX:
+            break
+        _calls[day] = _calls.get(day, 0) + 1
+        url = f"{BASE}/s/{name}" + (f"?before={before}" if before else "")
+        r = await _get(client, url)
+        if r.status_code != 200 or "tgme_widget_message_wrap" not in r.text:
+            break
+        page = _posts(r.text)
+        if not page:
+            break
+        added = 0
+        for p in page:
+            if p["id"] is None or p["id"] in seen:
+                continue
+            seen[p["id"]] = p
+            added += 1
+        ids = [p["id"] for p in page if p["id"] is not None]
+        if not ids:
+            break
+        oldest = min(ids)
+        if added == 0:
+            break
+        before = oldest
+        if page[0]["at"] < cutoff or (after_id is not None and oldest <= after_id):
+            break
+    out = [p for p in seen.values() if p["at"] >= cutoff]
+    out.sort(key=lambda p: p["at"])
+    for p in out:
+        p["text"] = p["text"][:HISTORY_CHARS]
+    return out
 
 
 _load()
