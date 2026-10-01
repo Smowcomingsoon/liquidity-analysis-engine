@@ -105,6 +105,7 @@ from app.trading.onchain import execute as onchain_execute
 from app.trading.onchain import send as onchain_send
 from app.trading.onchain import jito as onchain_jito
 from app.trading.onchain import keys as onchain_keys
+from app.trading.onchain import layers as onchain_layers
 from app.trading.onchain import legit as onchain_legit
 from app.trading.onchain import consistency as onchain_consistency_audit
 from app.trading.onchain import gem_track as onchain_gem_track
@@ -4205,6 +4206,10 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
         # tokens left). Rows that stay become "ranked" and lose that text
         # (projects_db.sync_top), so the Database no longer contradicts the Top.
         if (row.get("why") or "").startswith("DeepSeek"):
+            continue
+        # Layer chains (layers.py) wait for exchange candles before the Top:
+        # every row there must show a real backtest.
+        if row["chain"] == onchain_layers.CHAIN:
             continue
         seen.add(key)
         out.append({"chain": row["chain"], "token_address": row["token"], "pair_address": None, "pair_url": None,

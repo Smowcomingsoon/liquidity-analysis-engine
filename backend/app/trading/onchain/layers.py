@@ -7,7 +7,11 @@ Solana/EVM, quindi una moneta nativa di un L1 (KAS, TIA...) non viene mai
 trovata: qui le fonti sono pensate per le chain, non per i pool.
 
 Fase 1: solo scoperta, punteggio e righe nel database. I layer NON entrano
-ancora nella Top 50 (fase 2: prima servono le candele CEX).
+ancora nella Top 50 (fase 2: prima servono le candele CEX): `main._top_entries`
+salta `chain == "layer"`.
+
+Fascia (Lorenzo, 01/10: "usiamo da 500k di market cap fino a 100mln"): il
+tetto $10M delle gemme non vale, una L1 seria raramente sta sotto.
 
 Fonti (tutte gratuite):
 - DefiLlama `/v2/chains`: una chain per `gecko_id`, con il suo TVL.
@@ -35,13 +39,14 @@ logger = logging.getLogger(__name__)
 
 _STORE_FILE = storage.data_file("onchain_layers.json")
 
-LAYER_CAP_MIN = 5_000_000
-LAYER_CAP_MAX = 300_000_000
+LAYER_CAP_MIN = 500_000
+LAYER_CAP_MAX = 100_000_000
 LAYER_FDV_MAX_RATIO = 5.0
 RUN_EVERY_S = 24 * 3600
 DETAILS_PER_RUN = 20
 CG_GAP_S = 30
 DETAIL_TTL_S = 7 * 86400
+IDS_PER_CALL = 100           # 250 ids make a URL CoinGecko answers 403
 CHAIN = "layer"
 
 LLAMA_CHAINS = "https://api.llama.fi/v2/chains"
@@ -188,7 +193,8 @@ def classify(coin: dict, l2beat: dict[str, dict] | None = None) -> tuple[str | N
     md = coin.get("market_data") or {}
     cap = (md.get("market_cap") or {}).get("usd") or 0
     if not (LAYER_CAP_MIN <= cap <= LAYER_CAP_MAX):
-        return None, f"market cap ${cap:,.0f} outside $5M-$300M"
+        return None, (f"market cap ${cap:,.0f} outside"
+                      f" ${LAYER_CAP_MIN / 1e6:g}M-${LAYER_CAP_MAX / 1e6:g}M")
     fdv = (md.get("fully_diluted_valuation") or {}).get("usd") or 0
     if cap and fdv > LAYER_FDV_MAX_RATIO * cap:
         return None, f"FDV {fdv / cap:.1f} times the cap"
@@ -207,7 +213,10 @@ def score_tokenomics(coin: dict) -> dict:
     total = (md.get("total_supply") or 0) or 0
     max_s = (md.get("max_supply") or 0) or 0
     denom = max_s or total
-    ratio = (circ / denom) if denom else 0
+    if not circ or not denom:
+        return depth._pillar("tokenomics", None, {"circulating": circ, "total": total, "max": max_s},
+                             ["no supply data"])
+    ratio = min(1.0, circ / denom)
     if ratio >= 0.8:
         score = 90
     elif ratio >= 0.6:
@@ -297,6 +306,22 @@ async def _fetch_cex(client: httpx.AsyncClient, url: str, statuses: tuple[str, .
     return out
 
 
+async def _caps_by_ids(client: httpx.AsyncClient, ids: list[str]) -> dict[str, dict]:
+    """Market rows for DefiLlama's gecko ids, 250 per call: the band is checked
+    before spending a detail call on Ethereum or Solana."""
+    out: dict[str, dict] = {}
+    for i in range(0, len(ids), IDS_PER_CALL):
+        await asyncio.sleep(CG_GAP_S)
+        try:
+            rows = await _fetch_json(client, f"{COINGECKO}/coins/markets?vs_currency=usd&per_page=250"
+                                             f"&ids={','.join(ids[i:i + IDS_PER_CALL])}") or []
+        except (httpx.HTTPError, ValueError):
+            logger.exception("layers: coingecko markets by id failed")
+            continue
+        out.update({r["id"]: r for r in rows if isinstance(r, dict) and r.get("id")})
+    return out
+
+
 async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
     """Un giro: raccoglie le candidate, ne dettaglia fino a DETAILS_PER_RUN."""
     now = now or time.time()
@@ -309,6 +334,7 @@ async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
     except (httpx.HTTPError, ValueError):
         logger.exception("layers: llama chains failed")
     for cat in CG_CATEGORIES:
+        await asyncio.sleep(CG_GAP_S)
         try:
             rows = await _fetch_json(
                 client, f"{COINGECKO}/coins/markets?vs_currency=usd&category={cat}"
@@ -330,8 +356,12 @@ async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
     binance = await _fetch_cex(client, BINANCE_EXCHANGE_INFO, ("TRADING",))
 
     merged: dict[str, dict] = {}
-    for c in llama_candidates(llama_rows):
-        merged[c["id"]] = c
+    llama = llama_candidates(llama_rows)
+    caps = await _caps_by_ids(client, [c["id"] for c in llama]) if llama else {}
+    in_band = {r["id"] for r in cg_candidates(list(caps.values()))}
+    for c in llama:
+        if c["id"] in in_band:
+            merged[c["id"]] = c
     for c in cg_candidates(cg_rows):
         merged.setdefault(c["id"], {}).update(c)
 
@@ -344,14 +374,16 @@ async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
     done = 0
     for c in todo:
         gid = c["id"]
+        await asyncio.sleep(CG_GAP_S)
         try:
             coin = await _fetch_json(
                 client, f"{COINGECKO}/coins/{gid}?localization=false&tickers=false"
                         "&market_data=true&community_data=false&developer_data=true")
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 429:
+                # Not a finished run: the loop tries again within the hour.
                 logger.warning("layers: coingecko 429, stopping run")
-                break
+                return done
             logger.exception("layers: coingecko detail %s failed", gid)
             continue
         except (httpx.HTTPError, ValueError):
@@ -362,7 +394,6 @@ async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
             found[gid] = {"at": now, "type": None, "score": 0, "status": "rejected", "why": why, "cex": None}
             _state["found"] = found
             _save()
-            await asyncio.sleep(CG_GAP_S)
             continue
         md = coin.get("market_data") or {}
         cap = (md.get("market_cap") or {}).get("usd") or 0
@@ -430,7 +461,6 @@ async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
         _state["found"] = found
         _save()
         done += 1
-        await asyncio.sleep(CG_GAP_S)
     _state["last_run"] = now
     _save()
     return done
