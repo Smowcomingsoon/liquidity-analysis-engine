@@ -22,7 +22,7 @@ async def main():
     items = [{"chain": "robinhood", "token_address": "0xAA5751Ff3Fb61e613993B2EB4EAb1fce017081fc", "symbol": "HYDX",
               "name": "HyperDex", "website": "https://hyperdex.app", "market_cap": 242000, "liquidity_usd": 48000,
               "socials": [{"type": "twitter", "url": "https://x.com/hyperdex_app"}]}]
-    items += [json.loads(line) for line in open("../.github/trial/items.jsonl")]
+    items += [json.loads(line) for line in open("../.github/trial/items.jsonl") if line.strip()]
     async with httpx.AsyncClient(follow_redirects=True, headers={"User-Agent": "Mozilla/5.0"}) as c:
         for it in items:
             points = HYDX_POINTS if it["symbol"] == "HYDX" else GENERIC
