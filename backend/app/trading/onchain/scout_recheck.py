@@ -577,6 +577,28 @@ def parse(raw: str, points: list[dict], evidence: str = "") -> list[dict] | None
     return out
 
 
+CONTRACT_POINT = re.compile(r"(?i)\b(contract (link|address)|cites_contract|contract_link|no contract)\b")
+X_POINT = re.compile(r"(?i)\b(no|without|missing)\b[^.]{0,30}\b(x|twitter)\b")
+
+
+def facts_win(judged: list[dict], ev: dict) -> list[dict]:
+    """What we measured beats the model: a point that says the contract or the
+    X account is missing is refuted when we read them (HYDX, 01/10: "no
+    contract link" stayed red while the app code and the X bio carried it)."""
+    found = " ; ".join(ev.get("found") or [])
+    where = next((f for f in ev.get("found") or [] if f.startswith(("token contract address in the app code",
+                                                                       "token address in the X bio"))), "")
+    x = next((f for f in ev.get("found") or [] if f.startswith("X: ")), "")
+    out = []
+    for p in judged:
+        if p["status"] != "refuted" and where and CONTRACT_POINT.search(p["text"]) and ABSENCE.search(p["text"]):
+            p = {**p, "status": "refuted", "note": f"Measured: {where}", "evidence": where}
+        elif p["status"] != "refuted" and x and X_POINT.search(p["text"]) and "x" in found.lower():
+            p = {**p, "status": "refuted", "note": f"Measured: {x}", "evidence": x}
+        out.append(p)
+    return out
+
+
 def quick(entry: dict) -> dict | None:
     """When the second search runs out of time: absences stay unverified,
     never red (a timeout is not evidence)."""
@@ -620,7 +642,7 @@ async def recheck(entry: dict, item: dict, client: httpx.AsyncClient, ask=None) 
         judged = heuristic(points, ev)
     else:
         _cache[key] = (time.time(), {"items": judged})
-    judged = [minor(p) for p in judged]
+    judged = [minor(p) for p in facts_win(judged, ev)]
     return {"confirmed": [p for p in judged if p["status"] == "confirmed"],
             "unverified": [p for p in judged if p["status"] == "unverified"],
             "refuted": [p for p in judged if p["status"] == "refuted"],

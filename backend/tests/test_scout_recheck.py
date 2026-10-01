@@ -184,3 +184,14 @@ def test_x_profile_finds_the_address_in_the_bio():
                                        "socials": [{"type": "twitter", "url": "https://x.com/hyperdex_app"}]}, c)
     out = asyncio.run(go())
     assert "token address in the X bio" in out["found"] and out["checked"][0]["result"] == "found"
+
+
+def test_measured_contract_and_x_beat_the_model():
+    pts = [{"text": "No public GitHub and no contract link on the site (contract_link: false)", "from": "judge",
+            "status": "confirmed", "note": ""},
+           {"text": "No X or Telegram data provided", "from": "judge", "status": "unverified", "note": ""},
+           {"text": "liquidity is tiny", "from": "judge", "status": "confirmed", "note": ""}]
+    ev = {"found": ["token contract address in the app code (hyperToken.js)", "X: 1017 followers, 68 posts, joined x"]}
+    out = sr.facts_win(pts, ev)
+    assert [p["status"] for p in out] == ["refuted", "refuted", "confirmed"]
+    assert out[0]["evidence"].startswith("token contract address")
