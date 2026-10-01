@@ -34,6 +34,7 @@ export function mountAsk() {
   fab.id = "ask-fab";
   fab.className = "ask-fab";
   fab.setAttribute("aria-label", "Ask the agent");
+  fab.setAttribute("aria-expanded", "false");
   fab.innerHTML = MIC;
 
   const sheet = document.createElement("section");
@@ -126,6 +127,7 @@ export function mountAsk() {
     try {
       const res = await api.askAgent(question, voice);
       wait.innerHTML = escapeHtml(res?.answer || "No answer.");
+      if (sheet.hidden) fab.classList.add("has-new");
     } catch (err) {
       wait.className = "ask-msg ask-err";
       wait.textContent = err?.message || "The agent is not answering.";
@@ -138,15 +140,16 @@ export function mountAsk() {
 
   function open() {
     sheet.hidden = false;
-    document.documentElement.classList.add("ask-open");
+    fab.setAttribute("aria-expanded", "true");
+    fab.classList.remove("has-new");
     if (SR && !text.value.trim()) startListening(); else text.focus();
   }
 
-  function close() {
+  function close({ refocus = true } = {}) {
     stopListening();
     sheet.hidden = true;
-    document.documentElement.classList.remove("ask-open");
-    fab.focus();
+    fab.setAttribute("aria-expanded", "false");
+    if (refocus) fab.focus({ preventScroll: true });
   }
 
   fab.addEventListener("click", () => (sheet.hidden ? open() : close()));
@@ -180,6 +183,11 @@ export function mountAsk() {
     sync();
     ask(q, voice);
   });
+  // Non-blocking: the page stays usable, and a tap outside folds the panel
+  // (the conversation and a pending answer stay; the tab shows a dot).
+  document.addEventListener("pointerdown", (event) => {
+    if (!sheet.hidden && !sheet.contains(event.target) && !fab.contains(event.target)) close({ refocus: false });
+  }, true);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !sheet.hidden) close();
   });

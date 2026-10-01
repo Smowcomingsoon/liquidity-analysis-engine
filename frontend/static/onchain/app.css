@@ -1348,16 +1348,20 @@ html, body { overflow-x: clip; }
 }
 
 /* --- ask the agent (ask.js) ------------------------------------------- */
-.ask-fab { position: fixed; z-index: 41; inline-size: 56px; block-size: 56px; border-radius: 50%;
-  inset: auto auto calc(78px + env(safe-area-inset-bottom)) calc(50% - (var(--dock-w) + 64px) / 2 + var(--dock-w) + 8px);
-  display: grid; place-items: center; border: 1px solid rgb(255 255 255 / .08); color: var(--k-text); cursor: pointer;
-  background: rgb(44 46 46 / .72); backdrop-filter: blur(20px) saturate(140%); -webkit-backdrop-filter: blur(20px) saturate(140%);
-  box-shadow: 0 8px 24px rgb(0 0 0 / .5); transition: transform .2s ease;
-  & svg { inline-size: 24px; block-size: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-  &:active { transform: scale(.94); }
-  &.is-listening { color: var(--k-hot); } }
+/* A small tab on the right edge, never over the dock; the panel floats above
+   the dock with no backdrop, and a tap anywhere else folds it away. */
+.ask-fab { position: fixed; z-index: 42; inset: auto 0 calc(30dvh + env(safe-area-inset-bottom)) auto;
+  inline-size: 30px; block-size: 44px; padding: 0 0 0 4px; border-radius: 12px 0 0 12px;
+  display: grid; place-items: center; border: 1px solid rgb(255 255 255 / .08); border-inline-end: 0; color: var(--k-text-2); cursor: pointer;
+  background: rgb(44 46 46 / .6); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  opacity: .7; transition: opacity .2s ease, transform .2s ease;
+  & svg { inline-size: 18px; block-size: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  &:hover, &[aria-expanded="true"] { opacity: 1; color: var(--k-text); }
+  &.is-listening { color: var(--k-hot); opacity: 1; }
+  &.has-new::after { content: ""; position: absolute; inset: 6px auto auto 6px; inline-size: 7px; block-size: 7px;
+    border-radius: 50%; background: var(--k-hot); } }
 html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { display: none; }
-.ask-sheet { position: fixed; z-index: 60; inset: auto 8px calc(8px + env(safe-area-inset-bottom)); max-block-size: 72dvh;
+.ask-sheet { position: fixed; z-index: 41; inset: auto 8px calc(78px + env(safe-area-inset-bottom)); max-block-size: 46dvh;
   display: flex; flex-direction: column; border-radius: 20px; background: var(--k-card); border: 1px solid rgb(255 255 255 / .08);
   box-shadow: 0 16px 48px rgb(0 0 0 / .6); animation: ask-in .22s ease-out;
   &[hidden] { display: none; } }
@@ -1390,8 +1394,7 @@ html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { d
 .ask-sheet.is-listening .ask-mic { background: var(--k-hot); animation: ask-pulse 1.2s infinite ease-in-out; }
 @keyframes ask-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
 @media (min-width: 1100px) {
-  .ask-fab { inset: auto 24px 24px auto; }
-  .ask-sheet { inset: auto 24px 92px auto; inline-size: 420px; }
+  .ask-sheet { inset: auto 40px 24px auto; inline-size: 400px; max-block-size: 60dvh; }
   html.detail-open .ask-fab { display: grid; }
 }
 @media (prefers-reduced-motion: reduce) {
