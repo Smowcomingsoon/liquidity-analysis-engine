@@ -215,7 +215,7 @@ def test_an_address_found_does_not_clear_an_audit_point():
 
 def test_github_by_name_wants_the_readme_to_name_the_site():
     routes = {
-        "https://api.github.com/search/repositories?q=pfwa&per_page=5": {"items": [
+        "https://api.github.com/search/repositories?q=%22pfwa.fun%22+in%3Areadme&per_page=5": {"items": [
             {"full_name": "a/pfwa", "html_url": "https://github.com/a/pfwa", "fork": False},
             {"full_name": "b/pfwa", "html_url": "https://github.com/b/pfwa", "fork": False}]},
         "https://api.github.com/repos/a/pfwa/readme": "nothing here",
@@ -230,7 +230,7 @@ def test_github_by_name_wants_the_readme_to_name_the_site():
 
 
 def test_github_by_name_returns_none_on_a_403():
-    routes = {"https://api.github.com/search/repositories?q=pfwa&per_page=5": None}
+    routes = {"https://api.github.com/search/repositories?q=%22pfwa.fun%22+in%3Areadme&per_page=5": None}
 
     async def go():
         async with _client(routes) as c:

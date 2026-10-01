@@ -315,12 +315,16 @@ async def github_by_name(item: dict, client: httpx.AsyncClient) -> tuple[str, st
     host = (urlparse(site).hostname or "").removeprefix("www.")
     address = (item.get("token_address") or "").lower()
     symbol = re.sub(r"[^A-Za-z0-9]", "", item.get("symbol") or "")
+    # A bare "pfwa" returns pfwall, pfWarp...: ask for READMEs that name the
+    # site or the address first (PFWA's repo sits under MirakoolDev).
     queries = []
+    if host:
+        queries.append(f'"{host}" in:readme')
+    if address:
+        queries.append(f"{address} in:readme")
     if len(symbol) >= 3:
-        queries.append(symbol.lower())
-    if host and host.split(".")[0] not in queries:
-        queries.append(host.split(".")[0])
-    for q in queries[:2]:
+        queries.append(f"{symbol.lower()} contracts")
+    for q in queries[:3]:
         try:
             r = await client.get("https://api.github.com/search/repositories",
                                  params={"q": q, "per_page": 5}, headers=legit._gh_headers(), timeout=10.0)
@@ -470,9 +474,10 @@ async def gather(entry: dict, item: dict, client: httpx.AsyncClient) -> dict:
             checked.append({"source": u, "result": "unreadable",
                             "detail": page.get("error") or "no text in the HTML (drawn by JavaScript or empty)"})
     if gh.get("score") is None:
-        checked.append({"source": "GitHub", "result": "found" if any(f.startswith("GitHub found") for f in found)
-                        else "not found", "detail": "no public repository found by socials, site name or token "
-                        "address (public code is a plus, not a requirement)"})
+        hit = next((f for f in found if f.startswith("GitHub found")), None)
+        checked.append({"source": "GitHub", "result": "found" if hit else "not found",
+                        "detail": hit or "no public repository found by socials, site name, token address or a "
+                        "README naming the site (public code is a plus, not a requirement)"})
     gecko = None
     try:
         gecko = await gecko_volume(item, client)

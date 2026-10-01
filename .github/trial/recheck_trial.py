@@ -34,7 +34,7 @@ async def main():
     items += [json.loads(line) for line in open("../.github/trial/items.jsonl") if line.strip()]
     async with httpx.AsyncClient(follow_redirects=True, headers={"User-Agent": "Mozilla/5.0"}) as c:
         from app.trading.onchain import legit
-        r = await c.get("https://api.github.com/search/repositories", params={"q": "pfwa", "per_page": 5},
+        r = await c.get("https://api.github.com/search/repositories", params={"q": "\"pfwa.fun\" in:readme", "per_page": 5},
                         headers=legit._gh_headers())
         print("GH SEARCH", r.status_code, [i.get("full_name") for i in (r.json().get("items") or [])] if r.status_code == 200 else r.text[:300])
         print("GH BY NAME", await scout_recheck.github_by_name({"symbol": "PFWA", "website": "https://www.pfwa.fun/"}, c))
