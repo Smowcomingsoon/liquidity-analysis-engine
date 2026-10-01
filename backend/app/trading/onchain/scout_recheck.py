@@ -657,8 +657,11 @@ def _norm(s: str) -> str:
 
 def quoted(quote: str, normalized_evidence: str) -> bool:
     """A real quote: long enough to mean something and found in the evidence."""
-    q = _norm(quote).strip(" .\"'…")
-    return len(q) >= QUOTE_MIN and q in normalized_evidence
+    # "a ... b" is two quotes (trial 01/10: a pump.fun drop was lost on the
+    # ellipsis): every part must be real, and long enough on its own.
+    parts = [x.strip(" .\"'") for x in re.split(r"\.\.\.|…", _norm(quote))]
+    parts = [x for x in parts if x]
+    return bool(parts) and all(len(x) >= QUOTE_MIN and x in normalized_evidence for x in parts)
 
 
 def parse(raw: str, points: list[dict], evidence: str = "") -> list[dict] | None:

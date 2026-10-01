@@ -284,3 +284,11 @@ def test_github_by_name_skips_a_crawler_that_only_names_the_site():
         async with _client(routes) as c:
             return await sr.github_by_name({"symbol": "PFWA", "website": "https://www.pfwa.fun"}, c)
     assert asyncio.run(go()) is None
+
+
+def test_a_quote_with_an_ellipsis_needs_every_part_real():
+    ev = sr._norm("Market: dex pumpfun, 24h change 33% and more. Cross-check: pools reserve $3,083")
+    assert sr.quoted("dex pumpfun, 24h change 33% ... pools reserve $3,083", ev)
+    assert not sr.quoted("dex pumpfun, 24h change 33% ... pools reserve $9,999", ev)
+    assert not sr.quoted("dex pumpfun ... $3", ev)
+    assert not sr.quoted("...", ev)
