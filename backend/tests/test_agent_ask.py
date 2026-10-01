@@ -67,3 +67,37 @@ def test_new_tools_serialize_on_empty_stores():
     tools = main._deepseek_tools()
     json.dumps(tools["portafoglio_top50"][1](), default=str)
     json.dumps(tools["layer_engine"][1](), default=str)
+
+
+def test_speak_without_installed_voice_is_503(client, tmp_path, monkeypatch):
+    from app.notify import voice
+    monkeypatch.setattr(voice, "VOICES_DIR", tmp_path / "none")
+    assert client.post("/api/agent/speak", json={"text": "ciao"}).status_code == 503
+
+
+def test_speak_returns_wav(client, monkeypatch):
+    from app.notify import voice
+
+    async def _speak(text, lang="it"):
+        return b"RIFFfake"
+    monkeypatch.setattr(voice, "speak", _speak)
+    r = client.post("/api/agent/speak", json={"text": "ciao", "lang": "it"})
+    assert r.status_code == 200 and r.headers["content-type"] == "audio/wav" and r.content == b"RIFFfake"
+
+
+def test_app_guide_explains_without_secret_modules():
+    from app.notify import app_guide
+    files = {e["file"] for e in app_guide.index()}
+    assert "trading/onchain/system.py" in files
+    assert not any(f in files for f in ("auth.py", "config.py", "trading/crypto.py", "trading/onchain/keys.py"))
+    out = main._deepseek_tools()["come_funziona"][1](query="trend EMA")
+    assert out["passages"] and len(json.dumps(out)) < 8000
+
+
+def test_carlo_introduces_himself_only_at_the_start(client, monkeypatch):
+    monkeypatch.setattr(main.deepseek_desk, "_memory", {})
+    client.post("/api/agent/ask", json={"text": "ciao"})
+    assert "Ti chiami Carlo" in client.seen["context"]
+    main.deepseek_desk._memory[f"web:{client.user_id}"] = [{"role": "user", "content": "ciao"}]
+    client.post("/api/agent/ask", json={"text": "e la top 50?"})
+    assert "Ti chiami Carlo" not in client.seen["context"]

@@ -7,8 +7,11 @@
  *
  * Talk mode (Lorenzo, 01/10: "voglio un botta e risposta [...] lui deve
  * avere una voce"): a pause in speech sends the question, the answer is read
- * aloud (speechSynthesis, the device's own voice), then the mic reopens for
- * the next turn until the panel is closed. Tapping the mic cuts the voice off.
+ * aloud, then the mic reopens for the next turn until the panel is closed.
+ * Tapping the mic cuts the voice off. The voice is Piper on the server
+ * (POST /api/agent/speak, a neural voice); the device's own speechSynthesis
+ * is the fallback. While talk mode is on, listening is kept alive: phones
+ * end recognition at every pause, so it restarts until the question is sent.
  */
 import * as api from "@onchain/api.js";
 import { escapeHtml } from "@onchain/format.js";
@@ -18,7 +21,10 @@ const LANGS = ["it-IT", "en-US"];
 const LANG_KEY = "ask.lang";
 const TALK_KEY = "ask.talk";
 const TTS = window.speechSynthesis;
-const SILENCE_MS = 1400;        // a pause this long ends the spoken question
+const SILENCE_MS = 1700;        // a pause this long ends the spoken question
+const WATCHDOG_MS = 1500;       // talk mode: reopen the mic if it went quiet
+// A silent WAV: played on the opening tap so iOS lets later answers play.
+const SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
 const SPOKEN_MAX = 700;         // characters read aloud; the full text stays on screen
 
 const MIC = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>`;
@@ -58,9 +64,13 @@ export function mountAsk() {
   let spoken = false;           // the text came from the mic: the server is told to expect typos
   let base = "";                // text before this listening run
   let busy = false;
-  let talk = SR && TTS ? loadTalk() : false;
+  let talk = SR ? loadTalk() : false;
   let speaking = false;
   let silence = 0;
+  let blocked = false;          // mic refused, or it keeps dying: wait for a tap
+  let restarts = [];            // recent restarts that heard nothing
+  let serverVoice = true;       // false after the server says it has no voice
+  const player = new Audio();
 
   const fab = document.createElement("button");
   fab.type = "button";
@@ -77,7 +87,7 @@ export function mountAsk() {
   sheet.setAttribute("aria-label", "Ask the agent");
   sheet.innerHTML = `
     <header class="ask-head">
-      <strong>Ask the agent</strong>
+      <strong>Carlo</strong>
       <button type="button" class="ask-chip" data-ask-talk aria-pressed="false" title="Hands-free: it answers out loud">Voice</button>
       <button type="button" class="ask-chip" data-ask-lang aria-label="Speech language"></button>
       <button type="button" class="ask-chip" data-ask-clear>Clear</button>
@@ -100,11 +110,11 @@ export function mountAsk() {
   const talkBtn = $("[data-ask-talk]");
   mic.hidden = !SR;
   langBtn.hidden = !SR;
-  talkBtn.hidden = !(SR && TTS);
+  talkBtn.hidden = !SR;
   const hint = () => {
     text.placeholder = !SR ? "Type your question" : speaking ? "Speaking… tap the mic to cut in"
       : busy ? "Thinking…" : listening ? (talk ? "Listening… pause to send" : "Listening…")
-      : talk ? "Tap the mic and talk" : "Tap the mic and talk, then send";
+      : blocked ? "Tap the mic to talk" : talk ? "Tap the mic and talk" : "Tap the mic and talk, then send";
   };
   const showTalk = () => { talkBtn.setAttribute("aria-pressed", String(talk)); sheet.classList.toggle("is-talk", talk); hint(); };
   langBtn.textContent = lang.slice(0, 2).toUpperCase();
@@ -141,27 +151,48 @@ export function mountAsk() {
   function hush() {
     if (!speaking) return;
     setSpeaking(false);
+    player.pause();
     try { TTS.cancel(); } catch { /* nothing playing */ }
   }
 
   // Read the answer aloud, then hand the turn back to the mic.
-  function say(answer) {
+  function afterVoice() {
+    if (!speaking) return;              // cut off by a tap: the tap already reopened the mic
+    setSpeaking(false);
+    if (talk && !sheet.hidden) startListening();
+  }
+
+  async function say(answer) {
     const line = speakable(answer, lang);
-    if (!talk || !TTS || !line || sheet.hidden) return;
+    if (!talk || !line || sheet.hidden) return;
+    setSpeaking(true);
+    if (serverVoice) {
+      try {
+        const blob = await api.speakAgent(line, lang.slice(0, 2));
+        if (!speaking) return;
+        const url = URL.createObjectURL(blob);
+        player.onended = player.onerror = () => { URL.revokeObjectURL(url); afterVoice(); };
+        player.src = url;
+        await player.play();
+        return;
+      } catch (err) {
+        if (err?.status === 503) serverVoice = false;
+        if (!speaking) return;
+      }
+    }
+    sayLocally(line);
+  }
+
+  function sayLocally(line) {
+    if (!TTS) { afterVoice(); return; }
     const u = new SpeechSynthesisUtterance(line);
     u.lang = lang;
     const voice = pickVoice(lang);
     if (voice) u.voice = voice;
     u.rate = 1.05;
-    const next = () => {
-      if (!speaking) return;            // cut off by a tap: the tap already reopened the mic
-      setSpeaking(false);
-      if (talk && !sheet.hidden) startListening();
-    };
-    u.onend = next;
-    u.onerror = next;
+    u.onend = afterVoice;
+    u.onerror = afterVoice;
     try { TTS.cancel(); } catch { /* idle */ }
-    setSpeaking(true);
     TTS.speak(u);
   }
 
@@ -173,12 +204,16 @@ export function mountAsk() {
 
   function startListening() {
     if (!SR || listening || busy || speaking) return;
+    blocked = false;
     rec = new SR();
     rec.lang = lang;
     rec.continuous = true;
     rec.interimResults = true;
     base = text.value.trim() ? `${text.value.trim()} ` : "";
+    let heard = false;
     rec.onresult = (event) => {
+      if (busy) return;                 // a late result after the question left
+      heard = true;
       let finals = "", interim = "";
       for (let i = 0; i < event.results.length; i++) {
         const r = event.results[i];
@@ -192,12 +227,22 @@ export function mountAsk() {
     };
     rec.onerror = (event) => {
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        add("err", "Microphone blocked: allow it in the browser settings, or type.");
+        if (!blocked) add("err", "Microphone blocked: allow it in the browser settings, or type.");
+        blocked = true;
       }
     };
-    // Phones end recognition on their own at a pause: in talk mode that is the send.
-    rec.onend = () => { setListening(false); rec = null; sendSpoken(); };
-    try { rec.start(); setListening(true); } catch { setListening(false); }
+    // Phones end recognition at every pause. In talk mode the question goes
+    // out on the silence timer, not here: reopen the mic and keep the text.
+    rec.onend = () => {
+      setListening(false);
+      rec = null;
+      if (!talk || sheet.hidden || busy || speaking || blocked) return;
+      const now = Date.now();
+      restarts = heard ? [] : [...restarts.filter((t) => now - t < 10000), now];
+      if (restarts.length > 6) { blocked = true; hint(); return; }   // dying in a loop: wait for a tap
+      setTimeout(startListening, 120);
+    };
+    try { rec.start(); setListening(true); } catch { setListening(false); rec = null; }
   }
 
   function stopListening() {
@@ -231,8 +276,12 @@ export function mountAsk() {
     sheet.hidden = false;
     fab.setAttribute("aria-expanded", "true");
     fab.classList.remove("has-new");
-    // iOS plays speech only after a tap: an empty line now unlocks the voice.
-    if (talk) { try { TTS.speak(new SpeechSynthesisUtterance("")); } catch { /* no voice */ } }
+    // iOS plays sound only after a tap: unlock both voices on this one.
+    if (talk) {
+      player.src = SILENT_WAV;
+      player.play().catch(() => {});
+      try { TTS?.speak(new SpeechSynthesisUtterance("")); } catch { /* no voice */ }
+    }
     if (SR && !text.value.trim()) startListening(); else text.focus();
   }
 
@@ -248,7 +297,12 @@ export function mountAsk() {
   $("[data-ask-close]").addEventListener("click", close);
   mic.addEventListener("click", () => {
     if (speaking) { hush(); startListening(); return; }
-    if (listening) { stopListening(); return; }
+    if (listening) {
+      if (talk && text.value.trim()) { stopListening(); sendSpoken(); return; }   // done talking: send now
+      blocked = true;                   // otherwise a tap pauses the always-on mic
+      stopListening();
+      return;
+    }
     startListening();
   });
   talkBtn.addEventListener("click", () => {
@@ -293,6 +347,11 @@ export function mountAsk() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !sheet.hidden) close();
   });
+  // Talk mode keeps the mic open: if recognition went quiet without a
+  // question in flight or a voice speaking, reopen it.
+  setInterval(() => {
+    if (talk && !sheet.hidden && !busy && !speaking && !listening && !blocked) startListening();
+  }, WATCHDOG_MS);
   TTS?.getVoices();               // Chrome fills the list on first ask
   showTalk();
   sync();

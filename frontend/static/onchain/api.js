@@ -238,3 +238,13 @@ export const getQuantReport = (id) => request(`/api/agent/quant/reports/${encode
 // The mic button (ask.js): DeepSeek may read the database a few times before answering.
 export const askAgent = (text, voice = false, talk = false) =>
   request("/api/agent/ask", { method: "POST", body: { text, voice, talk }, timeoutMs: 120000 });
+// The agent's answer as speech (WAV from the server's Piper voice). Not
+// through `request`: the body is audio, not JSON.
+export async function speakAgent(text, lang = "it") {
+  const response = await fetch("/api/agent/speak", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, lang }), signal: AbortSignal.timeout(30000),
+  });
+  if (!response.ok) throw Object.assign(new ApiError(`error ${response.status}`), { status: response.status });
+  return response.blob();
+}

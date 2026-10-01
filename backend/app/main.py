@@ -8,6 +8,7 @@ import html as _html
 import httpx
 import itertools
 import math
+import random
 import json
 import logging
 import re
@@ -1387,6 +1388,9 @@ def _deepseek_tools() -> dict:
         "token": ({"name": "token", "description": "The alert(s) on a token by symbol or address prefix, plus what the rug memory knows about it.",
                    "parameters": {"type": "object", "properties": {"query": str_arg("symbol like PEPE or address prefix")}, "required": ["query"]}},
                   lambda query: _deepseek_token(query)),
+        "come_funziona": ({"name": "come_funziona", "description": "How the app works, from its own source documentation: what each part does and why, with the real numbers (thresholds, windows, caps, timeframes). Use it for every question on how something works: strategies (Trend EMA, Trend HF, RSI+BB), entries and exits, timeframe ladder, Top 50 and gem scores, reviews and judge rules, filters, simulated wallet, layer engine, alerts. Search with a few keywords (Italian or English, module names work); empty query lists every module. Explain only what the passages say.",
+                           "parameters": {"type": "object", "properties": {"query": str_arg("keywords, e.g. 'trend EMA ingresso uscita' or 'slippage portafoglio'")}}},
+                          lambda query="": _app_guide().search(query)),
         "portafoglio_top50": ({"name": "portafoglio_top50", "description": "The simulated Top 50 wallet ($10,000 replayed on every trade of the Top 50 backtests): equity, return, drawdown, win rate, open positions and the last closed trades.",
                                "parameters": {"type": "object", "properties": {}}},
                               lambda: _deepseek_top50()),
@@ -1394,6 +1398,11 @@ def _deepseek_tools() -> dict:
                           "parameters": {"type": "object", "properties": {"n": {"type": "integer", "description": "how many, max 20"}}}},
                          lambda n=10: _deepseek_layers(n)),
     }
+
+
+def _app_guide():
+    from app.notify import app_guide
+    return app_guide
 
 
 def _deepseek_top50() -> dict:
@@ -5122,12 +5131,33 @@ class AskRequest(BaseModel):
 
 
 ASK_PER_HOUR = 30
+
+# Lorenzo, 01/10: the agent is "Carlo"; when a conversation starts it
+# introduces itself as created by Lorenzo, its "god", with comic details,
+# never the same opening twice ("inventane un migliaio"), then answers as
+# usual. A random angle per greeting keeps the openings apart.
+_CARLO_ANGLES = (
+    "un trailer di un film epico", "un bollettino meteo", "una telecronaca di calcio", "un oroscopo",
+    "una ricetta di cucina", "un documentario sulla natura", "un comunicato stampa solenne",
+    "una confessione drammatica", "un annuncio all'aeroporto", "una lezione di filosofia",
+    "un'intervista da rockstar", "un discorso di premiazione agli Oscar", "una favola per bambini",
+    "un notiziario delle 20", "un rap improvvisato", "una poesia ermetica", "un messaggio in segreteria",
+    "un'opera lirica", "una pubblicità anni '90", "un diario di bordo spaziale", "una televendita",
+    "un giallo con colpo di scena", "una gita scolastica", "un tutorial di YouTube")
+_CARLO_INTRO = ("Ti chiami Carlo. Questa e' la prima domanda di una nuova conversazione: apri con una presentazione "
+                "comica di una o due frasi, in stile {angle}, in cui dici che sei Carlo e che sei stato creato da Lorenzo, "
+                "il tuo dio e unico creatore, che ti sta insegnando a vivere e a capire le cose perche' Claude ti reputa "
+                "stupido; aggiungi un dettaglio comico inventato ora, mai usato prima. Non ripetere aperture gia' viste. "
+                "Poi rispondi alla domanda come sempre. Nelle risposte successive niente presentazione.")
 _ask_log: dict[str, list[float]] = {}
 
 _ASK_NOTE = ("Domanda dall'app del sito (liquidityengine.app), non da Telegram. {voice}"
-             "Rispondi in testo semplice, senza markdown pesante: righe brevi, elenchi solo se servono.{talk}")
-_TALK_NOTE = (" La risposta viene letta ad alta voce in una conversazione parlata: al massimo 3 frasi brevi, "
-              "come parleresti a voce; niente elenchi, simboli, link o indirizzi; numeri arrotondati "
+             "Rispondi in testo semplice, senza markdown pesante: righe brevi, elenchi solo se servono. "
+             "Per spiegare come funziona qualcosa (una strategia, un punteggio, un filtro) usa sempre come_funziona e sii preciso: "
+             "regole, numeri e timeframe come stanno nel codice, senza inventare. Non nominare persone: le strategie si chiamano "
+             "Trend EMA, Trend HF e RSI+BB.{talk}")
+_TALK_NOTE = (" La risposta viene letta ad alta voce in una conversazione parlata: al massimo 3 frasi brevi "
+              "(fino a 8 se chiede di spiegare nel dettaglio come funziona qualcosa), come parleresti a voce; niente elenchi, simboli, link o indirizzi; numeri arrotondati "
               "(es. 'circa 12 per cento'). Se serve di piu', dai il punto principale e chiedi se vuole i dettagli.")
 
 
@@ -5148,17 +5178,54 @@ async def agent_ask(body: AskRequest, user: User = Depends(auth.get_current_user
         raise HTTPException(status_code=429, detail=f"Limit of {ASK_PER_HOUR} questions per hour reached. Try again later.")
     _ask_log[user.id] = recent + [now]
     deepseek_desk.note("chat", "Answering a question from the app")
+    if body.talk:
+        from app.notify import voice
+        if voice.available():
+            _fire(asyncio.to_thread(voice.warm))   # the voice loads while DeepSeek thinks
     voice = ("Il testo e' dettato a voce e trascritto dal browser: puo' avere parole storpiate, "
              "soprattutto i nomi dei token (es. 'drag' = DREGG); interpreta e, se il token non e' chiaro, cercalo. "
              if body.voice else "")
-    context = _ASK_NOTE.format(voice=voice, talk=_TALK_NOTE if body.talk else "") + "\n" + await _deepseek_context("", user=user)
+    chat_id = f"web:{user.id}"
+    intro = "" if deepseek_desk._memory.get(chat_id) else _CARLO_INTRO.format(angle=random.choice(_CARLO_ANGLES)) + "\n"
+    context = intro + _ASK_NOTE.format(voice=voice, talk=_TALK_NOTE if body.talk else "") + "\n" + await _deepseek_context("", user=user)
     try:
-        reply = await deepseek_desk.answer(f"web:{user.id}", body.text.strip(), context,
+        reply = await deepseek_desk.answer(chat_id, body.text.strip(), context,
                                            tools=_deepseek_tools(), can_teach=_is_admin(user))
     except Exception as exc:
         logger.exception("deepseek app chat")
         raise HTTPException(status_code=502, detail=f"DeepSeek is not answering right now ({type(exc).__name__}).")
     return {"answer": reply}
+
+
+class SpeakRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+    lang: str = "it"
+
+
+SPEAK_PER_HOUR = 120
+_speak_log: dict[str, list[float]] = {}
+
+
+@app.post("/api/agent/speak")
+async def agent_speak(body: SpeakRequest, user: User = Depends(auth.get_current_user)) -> Response:
+    """The agent's answer as speech (Piper on this server, app/notify/voice.py).
+    503 when the voice is not installed: the app falls back to the browser voice."""
+    from app.notify import voice
+    if guest_links.is_guest(user):
+        raise HTTPException(status_code=403, detail="Guest mode: sign in to talk to the agent.")
+    now = _time.time()
+    recent = [t for t in _speak_log.get(user.id, []) if now - t < 3600]
+    if len(recent) >= SPEAK_PER_HOUR:
+        raise HTTPException(status_code=429, detail="Voice limit reached for this hour.")
+    _speak_log[user.id] = recent + [now]
+    try:
+        audio = await voice.speak(body.text, body.lang)
+    except Exception:
+        logger.exception("piper voice")
+        audio = None
+    if not audio:
+        raise HTTPException(status_code=503, detail="Server voice not available.")
+    return Response(content=audio, media_type="audio/wav", headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/agent/calls")

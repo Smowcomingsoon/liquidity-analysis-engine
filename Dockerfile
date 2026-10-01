@@ -20,6 +20,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends chromium \
     && pip install --no-cache-dir "playwright>=1.47,<2"
 ENV CHROMIUM_PATH=/usr/bin/chromium
 
+# The agent's voice (app/notify/voice.py): Piper neural voices, Italian and
+# English, ~60 MB each. Lorenzo, 01/10: the browser voice was too robotic.
+# A failed download only leaves the browser voice: the build goes on.
+RUN mkdir -p /srv/voices && python -c "import urllib.request as u; \
+b='https://huggingface.co/rhasspy/piper-voices/resolve/main/'; \
+ps=('it/it_IT/paola/medium/it_IT-paola-medium', 'en/en_US/lessac/medium/en_US-lessac-medium'); \
+[u.urlretrieve(b + p + x, '/srv/voices/' + p.rsplit('/', 1)[1] + x) for p in ps for x in ('.onnx.json', '.onnx')]" \
+    || (echo 'piper voices not downloaded: browser voice only' && rm -f /srv/voices/*)
+
 COPY backend/app ./backend/app
 COPY backend/app_entry.py ./backend/app_entry.py
 COPY frontend ./frontend
