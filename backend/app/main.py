@@ -5110,13 +5110,17 @@ async def agent_journey(q: str = "", chain: str = "", token: str = "",
 class AskRequest(BaseModel):
     text: str = Field(min_length=1, max_length=1500)
     voice: bool = False
+    talk: bool = False              # the answer is read aloud (ask.js talk mode)
 
 
 ASK_PER_HOUR = 30
 _ask_log: dict[str, list[float]] = {}
 
 _ASK_NOTE = ("Domanda dall'app del sito (liquidityengine.app), non da Telegram. {voice}"
-             "Rispondi in testo semplice, senza markdown pesante: righe brevi, elenchi solo se servono.")
+             "Rispondi in testo semplice, senza markdown pesante: righe brevi, elenchi solo se servono.{talk}")
+_TALK_NOTE = (" La risposta viene letta ad alta voce in una conversazione parlata: al massimo 3 frasi brevi, "
+              "come parleresti a voce; niente elenchi, simboli, link o indirizzi; numeri arrotondati "
+              "(es. 'circa 12 per cento'). Se serve di piu', dai il punto principale e chiedi se vuole i dettagli.")
 
 
 @app.post("/api/agent/ask")
@@ -5139,7 +5143,7 @@ async def agent_ask(body: AskRequest, user: User = Depends(auth.get_current_user
     voice = ("Il testo e' dettato a voce e trascritto dal browser: puo' avere parole storpiate, "
              "soprattutto i nomi dei token (es. 'drag' = DREGG); interpreta e, se il token non e' chiaro, cercalo. "
              if body.voice else "")
-    context = _ASK_NOTE.format(voice=voice) + "\n" + await _deepseek_context("", user=user)
+    context = _ASK_NOTE.format(voice=voice, talk=_TALK_NOTE if body.talk else "") + "\n" + await _deepseek_context("", user=user)
     try:
         reply = await deepseek_desk.answer(f"web:{user.id}", body.text.strip(), context,
                                            tools=_deepseek_tools(), can_teach=_is_admin(user))

@@ -662,6 +662,15 @@ for (const el of [view.dock, view.shell]) {
 
 document.addEventListener("lae:go", (event) => setView(event.detail));
 
+// Lorenzo, 01/10: the scan box opened the phone keyboard as the app started.
+// It stays readonly (no keyboard) until a real tap or keystroke on it, and
+// goes back to readonly when it loses focus.
+const SCAN_INPUT = "[data-scan-form] input";
+const unlockScan = (event) => event.target.closest?.(SCAN_INPUT)?.removeAttribute("readonly");
+document.addEventListener("pointerdown", unlockScan, true);
+document.addEventListener("keydown", (event) => { if (event.key !== "Tab") unlockScan(event); }, true);
+document.addEventListener("focusout", (event) => event.target.closest?.(SCAN_INPUT)?.setAttribute("readonly", ""), true);
+
 mountPilot({ toast, onChange: refreshSniperCard });
 mountAgentView();
 mountLeaderboard();

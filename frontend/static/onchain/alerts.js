@@ -125,7 +125,7 @@ function scanHtml(f) {
 }
 
 const SCAN_FORM = `<form class="scan-form" data-scan-form role="search">
-  <input name="q" placeholder="Scan a token: ticker or address" autocomplete="off" spellcheck="false" aria-label="Ticker or address" />
+  <input name="q" placeholder="Scan a token: ticker or address" autocomplete="off" spellcheck="false" aria-label="Ticker or address" readonly />
   <button type="submit" aria-label="Scan"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></button></form>`;
 
 import { isHidden, onHiddenChange, withEntrance } from "@onchain/hidden.js";
@@ -172,7 +172,7 @@ function paintFeed() {
   if (kept) {
     const input = body.querySelector("[data-scan-form] input");
     input.value = kept.v;
-    if (kept.focus) input.focus();
+    if (kept.focus) { input.removeAttribute("readonly"); input.focus(); }
   }
 }
 

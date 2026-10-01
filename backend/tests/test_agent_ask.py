@@ -45,6 +45,13 @@ def test_ask_answers_with_the_database_tools(client):
     assert s["can_teach"] is False
 
 
+def test_talk_mode_asks_for_a_short_spoken_answer(client):
+    client.post("/api/agent/ask", json={"text": "e la top 50?", "talk": True})
+    assert "letta ad alta voce" in client.seen["context"]
+    client.post("/api/agent/ask", json={"text": "e la top 50?"})
+    assert "letta ad alta voce" not in client.seen["context"]
+
+
 def test_ask_is_rate_limited(client):
     for _ in range(main.ASK_PER_HOUR):
         assert client.post("/api/agent/ask", json={"text": "x"}).status_code == 200

@@ -1400,3 +1400,5 @@ html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { d
 @media (prefers-reduced-motion: reduce) {
   .ask-sheet, .ask-dots i, .ask-sheet.is-listening .ask-mic { animation: none; }
 }
+.ask-chip[aria-pressed="true"] { color: var(--k-text); border-color: var(--k-text-3); background: var(--k-surface-2); }
+.ask-sheet.is-speaking .ask-mic { background: var(--k-text); color: var(--k-bg); }
