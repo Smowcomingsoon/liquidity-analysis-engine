@@ -46,7 +46,10 @@ async function send(path, { method = "GET", body, timeoutMs = DEFAULT_TIMEOUT_MS
   let payload = null;
   try { payload = await response.json(); } catch { /* 204, o una risposta non-JSON */ }
 
-  if (!response.ok) throw new ApiError(payload?.detail || `error ${response.status}`);
+  if (!response.ok) {
+    const d = payload?.detail;
+    throw Object.assign(new ApiError(typeof d === "string" ? d : `error ${response.status}`), { status: response.status, detail: d });
+  }
   return payload;
 }
 

@@ -16,6 +16,12 @@ def _tmp(tmp_path, monkeypatch):
     deep_recheck.reset_for_tests()
 
 
+def _row(tok):
+    projects_db.upsert({"chain": "solana", "token_address": tok, "symbol": "T"}, "test", now=100)
+    projects_db.record({"chain": "solana", "token_address": tok, "pillars": {}}, "studied", why="DeepSeek review: old",
+                       score=40, now=100)
+
+
 def _fake_ask(payload):
     async def ask(messages, **kw):
         return json.dumps(payload)
@@ -29,7 +35,7 @@ def _fake_recheck(rc):
 
 
 def test_dropped_token_kept_clears_why(monkeypatch):
-    projects_db.set_standing("solana", "tok1", "studied", 40, None, why="DeepSeek review: old")
+    _row("tok1")
     monkeypatch.setattr(scout_recheck, "recheck", _fake_recheck(
         {"confirmed": [], "unverified": [], "refuted": [{"text": "x", "note": "ok"}], "found": [], "evidence": "ev"}))
     ask = _fake_ask({"keep": True, "score": 70, "verdict": "gem", "reason": "real product",
@@ -42,7 +48,7 @@ def test_dropped_token_kept_clears_why(monkeypatch):
 
 
 def test_second_call_within_cooldown(monkeypatch):
-    projects_db.set_standing("solana", "tok2", "studied", 40, None, why="DeepSeek review: old")
+    _row("tok2")
     monkeypatch.setattr(scout_recheck, "recheck", _fake_recheck(
         {"confirmed": [], "unverified": [], "refuted": [], "found": [], "evidence": ""}))
     ask = _fake_ask({"keep": False, "score": 10, "verdict": "avoid", "reason": "nothing",
@@ -54,7 +60,7 @@ def test_second_call_within_cooldown(monkeypatch):
 
 
 def test_daily_max(monkeypatch):
-    projects_db.set_standing("solana", "tok3", "studied", 40, None, why="DeepSeek review: old")
+    _row("tok3")
     monkeypatch.setattr(scout_recheck, "recheck", _fake_recheck(
         {"confirmed": [], "unverified": [], "refuted": [], "found": [], "evidence": ""}))
     ask = _fake_ask({"keep": False, "score": 10, "verdict": "avoid", "reason": "nothing",
@@ -66,7 +72,7 @@ def test_daily_max(monkeypatch):
 
 
 def test_unreadable_json_counts(monkeypatch):
-    projects_db.set_standing("solana", "tok4", "studied", 40, None, why="DeepSeek review: old")
+    _row("tok4")
     monkeypatch.setattr(scout_recheck, "recheck", _fake_recheck(
         {"confirmed": [], "unverified": [], "refuted": [], "found": [], "evidence": ""}))
 

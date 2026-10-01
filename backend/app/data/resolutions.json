@@ -2498,5 +2498,11 @@
     "at": 1790820794,
     "summary": "Il prezzo delle posizioni ora arriva spinto dal server appena cambia (ogni secondo), non piu' chiesto ogni 2 secondi. Su BSC, Base, Ethereum e Robinhood si legge direttamente dal pool on-chain a ogni blocco (1-3 s; Ethereum 12 s); su Solana dall'API prezzi di Jupiter (gratuita, ultimi scambi, aggiornata ogni ~5 s). DexScreener resta come riserva, senza la sua copia in cache.",
     "detail": "Causa misurata: DexScreener risponde da una cache CDN vecchia fino a 30 s (cache-control max-age=30, cf-cache-status HIT), quindi anche chiedendo ogni 2 s lo stesso prezzo restava fermo mezzo minuto, e con 4 cifre significative. Valutati: Birdeye e Codex hanno websocket ma solo a pagamento; Helius ha websocket Solana con piano gratuito ma serve una chiave. Il pool on-chain viene usato solo se il primo prezzo letto coincide con DexScreener entro il 5% (esclusi pool v4 e curve stabili). Test: tests/test_live_prices.py."
+  },
+  "seed-0246": {
+    "status": "risolto",
+    "at": 1790838695,
+    "summary": "Nella scheda Why di ogni token c'e' il tasto 'Re-check with DeepSeek': rifa' la seconda ricerca sui punti rossi (GitHub, pagine non lette, liquidita') e chiede a DeepSeek un parere dedicato solo su quel token (tenere/scartare, punteggio, verdetto, punti forti e problemi). Il risultato resta sotto la review. Se DeepSeek ora lo tiene, la vecchia esclusione 'DeepSeek review' viene tolta e il token puo' rientrare in classifica; se lo scarta, l'esclusione si aggiorna col nuovo motivo. Limite: una volta ogni 6 ore per token, 40 al giorno in tutto.",
+    "detail": "backend/app/trading/onchain/deep_recheck.py, POST /api/onchain/token/recheck, issue #459 (bozza DeepSeek corretta da Claude). Test: tests/test_deep_recheck.py."
   }
 }

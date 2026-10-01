@@ -165,6 +165,9 @@ def _resolutions() -> dict[str, dict]:
 
 
 _SEED = [
+    ("seed-0246", "Nella review di ogni token serve un tasto per un ricontrollo approfondito con DeepSeek",
+     "Lorenzo, 01/10: 'in ogni review metti un tasto per forzare un ricontrollo approfondito dedicato con deepseek' (screenshot HYDX: 'Not on the board: DeepSeek review: Six-day-old generic DEX...').",
+     "media"),
     ("seed-0245", "Il valore delle posizioni si aggiorna lento: serve il prezzo in tempo reale",
      "Lorenzo, 30/09: 'il saldo delle posizioni si aggiorni piu' velocemente possibile [...] trovare un servizio che ci permetta di avere queste informazioni in modo rapido [...] vedere in tempo reale i cambiamenti di prezzo e non dover aspettare diversi secondi'.",
      "alta"),

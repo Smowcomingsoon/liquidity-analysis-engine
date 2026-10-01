@@ -7,12 +7,13 @@ the scout's red points and the earlier board call in front of it.
 """
 from __future__ import annotations
 
+import copy as _copy
 import json
 import logging
 import time
 
 from app.config import settings
-from app.trading.onchain import scout_recheck
+from app.trading.onchain import scout_recheck, storage
 
 logger = logging.getLogger(__name__)
 
@@ -34,21 +35,12 @@ SYSTEM = (
     "\"strengths\": [\"...\"], \"problems\": [\"...\"]}."
 )
 
-_STORE = None
-
-
-def _store_path():
-    global _STORE
-    if _STORE is None:
-        from app.trading.onchain import projects_db
-        _STORE = projects_db._db_path().parent / "onchain_deep_recheck.json"
-    return _STORE
+_STORE = storage.data_file("onchain_deep_recheck.json")
 
 
 def _load() -> dict:
     try:
-        with open(_store_path(), "r", encoding="utf-8") as fh:
-            d = json.load(fh)
+        d = json.loads(_STORE.read_text(encoding="utf-8"))
         if isinstance(d, dict):
             return {"results": d.get("results") or {}, "calls": d.get("calls") or {}}
     except Exception:
@@ -56,13 +48,13 @@ def _load() -> dict:
     return {"results": {}, "calls": {}}
 
 
-_state = {"results": {}, "calls": {}}
+_state = _load()
 
 
 def _save() -> None:
     try:
         from app.atomic_write import write_text_atomic
-        write_text_atomic(_store_path(), json.dumps(_state, ensure_ascii=False))
+        write_text_atomic(_STORE, json.dumps(_state, ensure_ascii=False))
     except Exception as exc:
         logger.info("deep recheck: save failed: %s", exc)
 
@@ -145,7 +137,7 @@ async def run(chain: str, token: str, client, now: float | None = None, ask=None
         raise LookupError(key)
     if entry is None:
         entry = leaderboard.db_entry(p)
-    copy = dict(entry)
+    copy = _copy.deepcopy(entry)
     if not copy.get("judge"):
         j = judge.get(chain, token)
         if j:
@@ -171,10 +163,15 @@ async def run(chain: str, token: str, client, now: float | None = None, ask=None
             + "\n\nRed points:\n" + "\n".join(red)
             + "\n\n<evidence>\n" + (rc.get("evidence") or "") + "\n</evidence>")
 
-    raw = await ask([{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}],
-                    kind="research", max_tokens=1200, json_mode=True, purpose="deep_recheck", subject=key)
+    try:
+        raw = await ask([{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}],
+                        kind="research", max_tokens=1200, json_mode=True, purpose="deep_recheck", subject=key)
+    except Exception as exc:
+        logger.info("deep recheck: DeepSeek unavailable: %s", exc)
+        raise RuntimeError("DeepSeek unavailable") from exc
     day = _day(now)
     _state["calls"][day] = _state["calls"].get(day, 0) + 1
+    _save()
     parsed = _parse(raw)
 
     old = copy.get("review")

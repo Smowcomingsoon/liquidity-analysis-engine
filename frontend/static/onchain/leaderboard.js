@@ -284,39 +284,6 @@ function deepseekBlock(e) {
     <ul class="why-list">${edit}${admit}${code}${codeSummary}${codeGood}${codeBad}${good}${bad}${socialLines(j)}</ul></div>`;
 }
 
-function ago(at) {
-  if (!at) return "";
-  const s = Math.max(0, Math.floor(Date.now() / 1000 - at));
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
-}
-
-function deepBlock(e) {
-  const d = e.deep;
-  const wait = e.deepWait ?? 0;
-  let body = "";
-  if (d) {
-    const good = (d.strengths ?? []).map((x) => `<li data-tone="good">${escapeHtml(x)}</li>`).join("");
-    const bad = (d.problems ?? []).map((x) => `<li data-tone="bad">${escapeHtml(x)}</li>`).join("");
-    body = `<ul class="why-list">
-      <li data-tone="${d.keep ? "good" : "bad"}">${d.keep ? "Kept" : "Dropped"}: ${escapeHtml(d.reason ?? "")}</li>
-      ${good}${bad}
-      <li class="muted">${d.cleared ?? 0} cleared · ${d.unverified ?? 0} unverified · ${d.confirmed ?? 0} confirmed · ${escapeHtml(ago(d.at))}</li>
-    </ul>`;
-  }
-  let label = "Re-check with DeepSeek";
-  let disabled = "";
-  if (wait > 0) {
-    disabled = " disabled";
-    label = wait >= 3600 ? `Re-check in ${Math.round(wait / 3600)}h` : `Re-check in ${Math.max(1, Math.round(wait / 60))}m`;
-  }
-  return `<div class="ds-deep"><h5>Deep re-check${d ? ` <b>${escapeHtml(d.verdict ?? "")} · ${d.score ?? "—"}/100</b>` : ""}</h5>
-    ${body}
-    <button class="ds-recheck" type="button" data-deep-recheck${disabled}>${label}</button></div>`;
-}
-
 export function gemWhy(e) {
   const blocks = [...PILLARS, ["traction", "Traction"]].map(([k, label]) => {
     const v = k === "traction" ? e.traction?.traction : e.pillars?.[k]?.score;
@@ -329,7 +296,6 @@ export function gemWhy(e) {
     <ul class="bars">${blocks}</ul>
     ${e.summary ? `<p class="dt-summary">${escapeHtml(e.summary)}</p>` : ""}
     ${deepseekBlock(e)}
-    ${deepBlock(e)}
     ${(e.traction?.reasons ?? []).length ? `<ul class="why-list">${e.traction.reasons.map((r) => `<li data-tone="good">${escapeHtml(r)}</li>`).join("")}</ul>` : ""}
     ${flags.length ? `<ul class="why-list">${flags.map((f) => `<li data-tone="bad">${escapeHtml(f)}</li>`).join("")}</ul>` : ""}
     <p class="muted">Research, not advice.</p>`;

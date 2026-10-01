@@ -97,6 +97,8 @@ window.addEventListener("popstate", () => { if (dlg?.open && !history.state?.det
 async function onClick(event) {
   const t = event.target;
   if (t.closest("[data-back]")) { dlg.close(); return; }
+  const rc = t.closest("[data-deep-recheck]");
+  if (rc) { deepRecheck(rc); return; }
   const iv = t.closest("[data-iv]");
   if (iv) { interval = iv.dataset.iv; current.picked = true; paintChart(); paintChips(); return; }
   const tb = t.closest("[data-dtab]");
@@ -293,45 +295,82 @@ async function enrich(id, e) {
   if (e.kind === "gem" && !e.slip) {
     api.getSlippage(e.chain, e.token).then((p) => { e.slip = p; if (current?.id === id) paintTabs(); }).catch(() => {});
   }
-  if (dlg && !dlg.dataset.deepWired) {
-    dlg.dataset.deepWired = "1";
-    dlg.addEventListener("click", async (ev) => {
-      const btn = ev.target.closest("[data-deep-recheck]");
-      if (!btn || btn.disabled) return;
-      const cur = current;
-      if (!cur) return;
-      btn.disabled = true;
-      btn.textContent = "Re-checking…";
-      try {
-        const r = await api.recheckToken(cur.chain, cur.token);
-        cur.deep = r.deep;
-        cur.deepWait = 6 * 3600;
-        const lb = await import("@onchain/leaderboard.js");
-        cur.why = lb.gemWhy(cur.dossier ?? cur);
-        paintTabs();
-      } catch (err) {
-        const wait = err?.detail?.wait_s ?? err?.wait_s;
-        if (wait) {
-          cur.deepWait = wait;
-          const lb = await import("@onchain/leaderboard.js");
-          cur.why = lb.gemWhy(cur.dossier ?? cur);
-          paintTabs();
-        } else {
-          btn.textContent = "Re-check failed";
-          setTimeout(() => { btn.textContent = "Re-check with DeepSeek"; btn.disabled = false; }, 4000);
-        }
-      }
-    });
-  }
   if (r.deep) e.deep = r.deep;
   if (r.deep_wait_s != null) e.deepWait = r.deep_wait_s;
   if (r.entry) {
     const lb = await import("@onchain/leaderboard.js");
-    e.why ||= lb.gemWhy(r.entry) + (r.entry.on_board ? "" : `<p class="muted">Not on the board${r.entry.why ? `: ${escapeHtml(r.entry.why)}` : ""}.</p>`);
+    e.why ||= whyOf(lb, r.entry, e);
     e.info ||= lb.details(r.entry) + descriptionBlock(r.entry);
     e.dossier = r.entry;
   }
   if (current?.id === id) paintTabs();
+}
+
+// The Why tab of a dossier, with DeepSeek's dedicated re-check (Lorenzo,
+// 01/10). A newer re-check replaces the board review's drop line.
+function whyOf(lb, entry, e) {
+  const why = e.deep && String(entry.why ?? "").startsWith("DeepSeek") ? "" : entry.why;
+  const off = entry.on_board || (e.deep?.keep && !why) ? "" : `<p class="muted">Not on the board${why ? `: ${escapeHtml(why)}` : ""}.</p>`;
+  return lb.gemWhy(entry) + off;
+}
+
+function ago(at) {
+  if (!at) return "";
+  const s = Math.max(0, Math.floor(Date.now() / 1000 - at));
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
+
+function deepBlock(e) {
+  const d = e.deep;
+  const wait = e.deepWait ?? 0;
+  let body = "";
+  if (d) {
+    const good = (d.strengths ?? []).map((x) => `<li data-tone="good">${escapeHtml(x)}</li>`).join("");
+    const bad = (d.problems ?? []).map((x) => `<li data-tone="bad">${escapeHtml(x)}</li>`).join("");
+    body = `<ul class="why-list">
+      <li data-tone="${d.keep ? "good" : "bad"}">${d.keep ? "Kept" : "Dropped"}: ${escapeHtml(d.reason ?? "")}</li>
+      ${good}${bad}
+      <li class="muted">${d.cleared ?? 0} cleared · ${d.unverified ?? 0} unverified · ${d.confirmed ?? 0} confirmed · ${escapeHtml(ago(d.at))}</li>
+    </ul>`;
+  }
+  let label = "Re-check with DeepSeek";
+  let disabled = "";
+  if (e.deepBusy) { disabled = " disabled"; label = "Re-checking…"; }
+  else if (wait > 0) {
+    disabled = " disabled";
+    label = wait >= 3600 ? `Re-check in ${Math.round(wait / 3600)}h` : `Re-check in ${Math.max(1, Math.round(wait / 60))}m`;
+  }
+  return `<div class="ds-deep"><h5>Deep re-check${d ? ` <b>${escapeHtml(d.verdict ?? "")} · ${d.score ?? "—"}/100</b>` : ""}</h5>
+    ${body}
+    <button class="ds-recheck" type="button" data-deep-recheck${disabled}>${label}</button></div>`;
+}
+
+async function deepRecheck(btn) {
+  const cur = current;
+  const e = cur?.e;
+  if (!e?.dossier || btn.disabled) return;
+  e.deepBusy = true;
+  btn.disabled = true;
+  btn.textContent = "Re-checking…";
+  try {
+    const r = await api.recheckToken(e.chain, e.token);
+    e.deep = r.deep;
+    e.deepWait = 6 * 3600;
+  } catch (err) {
+    if (err?.detail?.wait_s) e.deepWait = err.detail.wait_s;
+    else {
+      btn.textContent = "Re-check failed";
+      setTimeout(() => { e.deepBusy = false; btn.textContent = "Re-check with DeepSeek"; btn.disabled = false; }, 4000);
+      return;
+    }
+  } finally {
+    if (e.deep || e.deepWait) e.deepBusy = false;
+  }
+  if (!e.dossier.on_board) e.why = whyOf(await import("@onchain/leaderboard.js"), e.dossier, e);
+  if (current === cur) paintTabs();
 }
 
 function descriptionBlock(p) {
@@ -370,7 +409,7 @@ function paintTabs() {
   const e = current.e;
   const body = dlg.querySelector("[data-pane-body]");
   const pending = loading.has(current.id);
-  if (tab === "why") { body.innerHTML = e.why || `<p class="muted">${pending ? "Loading…" : "Nothing to add yet."}</p>`; return; }
+  if (tab === "why") { body.innerHTML = (e.why || `<p class="muted">${pending ? "Loading…" : "Nothing to add yet."}</p>`) + (e.dossier ? deepBlock(e) : ""); return; }
   if (tab === "info") { body.innerHTML = e.info || infoFallback(e); return; }
   // Gems: only the daily trend follower, not the alerts' 5-minute tracks.
   const gem = e.kind === "gem";
