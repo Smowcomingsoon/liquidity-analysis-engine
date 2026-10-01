@@ -14,6 +14,7 @@ import time
 
 from app.config import settings
 from app.trading.onchain import scout_recheck, storage
+from app.trading.onchain.judge import CHECK_RULES
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +39,7 @@ SYSTEM = (
     "pages we could not read (unreadable means our reader failed, not that the page is empty), no DefiLlama TVL "
     "for a project that does not take deposits, any market figure written as unknown, the size of the site's HTML (a JavaScript app ships an almost empty "
     "page: what it does is in the app text and the APIs), an API that answered 5xx or timed out, and a "
-    "liquidity / cap ratio the evidence calls healthy. Never write that a chain has no users or no activity: "
-    "chain activity is not measured here and is not a project problem. A '0% LP locked' point is confirmed only "
-    "if the lock data covers the main pool (see the GoPlus coverage line). An official site plus a found GitHub "
-    "plus an X profile that was read means 'no team / no socials / thin docs' points are refuted or unverified, "
-    "never confirmed. A strength and a problem must not contradict each other "
+    "liquidity / cap ratio the evidence calls healthy. " + CHECK_RULES + "A strength and a problem must not contradict each other "
     "(a live API and \"no verifiable product\" cannot both stand). A drop must rest on "
     "a measured negative fact (thin pool against the cap, a copy of another project, a meme or borrowed name, "
     "no product at all on pages that WERE read, a dangerous contract or holder fact). The reason "

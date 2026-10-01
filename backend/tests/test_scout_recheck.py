@@ -248,3 +248,26 @@ def test_facts_win_refutes_missing_github_and_zero_volume():
     assert [p["status"] for p in out] == ["refuted", "refuted"]
     assert out[0]["evidence"].startswith("GitHub found")
     assert out[1]["evidence"].startswith("Cross-check (GeckoTerminal)")
+
+
+def test_facts_win_no_team_with_site_code_and_x_is_unverified():
+    pts = [{"text": "No team information", "from": "judge", "status": "confirmed", "note": ""},
+           {"text": "No socials", "from": "judge", "status": "confirmed", "note": ""}]
+    ev = {"found": ["GitHub found (repo whose README names the site): https://github.com/a/b",
+                    "X: @pfwafun, 900 followers"]}
+    out = sr.facts_win(pts, ev)
+    assert [p["status"] for p in out] == ["unverified", "refuted"]
+
+
+def test_zero_volume_stays_when_geckoterminal_agrees():
+    pts = [{"text": "24h volume $0", "from": "judge", "status": "confirmed", "note": ""}]
+    out = sr.facts_win(pts, {"found": [], "gecko": {"volume_24h": 0.0, "reserve_usd": 900.0}})
+    assert out[0]["status"] == "confirmed"
+
+
+def test_rules_reach_every_review_and_name_each_chain_lockers():
+    from app.trading.onchain import deep_recheck, judge
+    for system in (judge.REVIEW_SYSTEM, deep_recheck.SYSTEM, sr.SYSTEM):
+        assert "never call a chain empty" in system and "HoodLock" in system and "Streamflow" in system
+    lines = sr.market_lines({}, {"chain": "solana", "token_address": "x"})
+    assert any(line.startswith("LP lock data (GoPlus): does not cover solana; lockers used there: Streamflow") for line in lines)

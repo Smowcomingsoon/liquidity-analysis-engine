@@ -1,0 +1,17 @@
+name: recheck-trial (temporary, #464)
+on:
+  pull_request:
+    paths: [".github/trial/**"]
+jobs:
+  trial:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q -r backend/requirements.txt
+      - run: cd backend && PYTHONPATH=. python ../.github/trial/recheck_trial.py
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_MODEL: ${{ vars.DEEPSEEK_MODEL || 'deepseek-chat' }}

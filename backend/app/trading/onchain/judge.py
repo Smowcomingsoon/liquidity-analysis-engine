@@ -435,6 +435,29 @@ async def judge(e: dict, rules_why: str, now: float | None = None, ask=None,
 # review reads the board together, against the agreed filters, and can
 # drop a project or move it.
 REVIEW_TTL_S = 3 * 86400
+# Lockers each chain's projects use for their LP: GoPlus does not list them
+# all, so "0% locked" can be a lock we cannot see (PFWA, 01/10).
+LOCKERS = {
+    "solana": "Streamflow, Jupiter Lock, Meteora lock, or LP burned",
+    "ethereum": "UNCX (Unicrypt), Team Finance, PinkLock",
+    "base": "UNCX, Team Finance, PinkLock",
+    "bsc": "PinkLock, UNCX, Team Finance, Mudra",
+    "robinhood": "HoodLock, Team Finance, Titan, Genesis Locker",
+}
+
+# Lorenzo, 01/10, after a manual check of PFWA: "la logica vale per tutti i
+# progetti". Every review and re-check reads these.
+CHECK_RULES = (
+    "Rules for every project on every chain: never call a chain empty, dead or without users (chain activity "
+    "is not measured here and is not a project problem); a 24h volume of $0 or unknown is a missing field "
+    "unless a second aggregator (GeckoTerminal) agrees; an LP-lock figure counts only if the lock data covers "
+    "the token's main pool, and each chain has lockers that data can miss ("
+    + "; ".join(f"{c}: {v}" for c, v in LOCKERS.items())
+    + "), so '0% locked' without that coverage is unknown, not a red flag; a project with an official site, a "
+    "public GitHub and an active X profile is never 'no team', 'no socials' or 'thin docs'; a GitHub under "
+    "another account name is the project's when its README names the site or the token address. "
+)
+
 REVIEW_SYSTEM = (
     "You are the final editor of a ranking of serious small-cap crypto projects (Solana and Robinhood Chain, "
     "under $10M market cap). An automatic scorer produced the list below; your job is to challenge it. "
@@ -447,7 +470,7 @@ REVIEW_SYSTEM = (
     "weight unless a measured fact backs them. "
     "judge.tg is the project's own Telegram (subs, posts in 7/30 days, days since last post, median views); "
     "a dead channel (last post > 60 days) or a group with few members is weak community evidence, not proof "
-    "of a scam. judge.dc is the project's own Discord (members, online): a few online out of many members "
+    "of a scam. " + CHECK_RULES + "judge.dc is the project's own Discord (members, online): a few online out of many members "
     "means a quiet or inflated server, weak evidence too. Community liveness is judged by online counts "
     "(Telegram group online, Discord online) and the online/members ratio, not by subscriber or member "
     "totals: roughly 2-15% online is normal, under 1% with thousands of members suggests an inflated "
