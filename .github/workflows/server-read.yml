@@ -35,3 +35,4 @@ jobs:
             for r in db.execute("SELECT token, symbol, status, score, mcap, rank, why FROM projects WHERE chain = 'layer' ORDER BY score DESC"):
                 print("db", *r)
             PY
+            docker logs deploy-app-1 --since 3h 2>&1 | grep -i "layers" | tail -30
