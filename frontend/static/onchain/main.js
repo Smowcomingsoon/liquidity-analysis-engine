@@ -522,11 +522,11 @@ document.addEventListener("lae:wallet-menu", () => view.moreSheet?.showModal());
 // (the sniper radar plus its autopilot). Then Scambia and Portafoglio.
 // The home page picks the section (#gems or #meme); that is the first view.
 // Lorenzo, 07/10: "non voglio piu' vedere strategie automatiche [...] questa
-// parte di trading deve sparire". Signals, Record, the pilot, swaps and
+// parte di trading deve sparire". Signals, the pilot, swaps and
 // limit orders leave the app; <html data-trading="on"> brings them back,
 // together with onchain_trading_enabled on the server.
-const VIEWS = TRADING ? ["meme", "gems", "top", "agent", "profile", "wallet", "manual"] : ["gems", "agent", "profile", "wallet"];
-const DOCK = TRADING ? ["meme", "gems", "top", "agent", "profile"] : ["gems", "agent", "profile"];   // the wallet lives in the profile
+const VIEWS = TRADING ? ["meme", "gems", "top", "agent", "profile", "wallet", "manual"] : ["gems", "top", "agent", "profile", "wallet"];
+const DOCK = TRADING ? ["meme", "gems", "top", "agent", "profile"] : ["gems", "top", "agent", "profile"];   // the wallet lives in the profile
 
 function setView(name) {
   if (!VIEWS.includes(name)) return;
@@ -718,10 +718,8 @@ mountTop();
 // Lorenzo, 30/09: the meme screens and the backtest hall of fame are gone.
 // The "meme" view now holds Signals, the "top" view the Track record (the
 // view names stay: the home page links, the splash and the desk use them).
-if (TRADING) {
-  mountSignals();
-  mountTrack();
-}
+if (TRADING) mountSignals();
+mountTrack();   // the picks' track record (gem_track), not a backtest
 // The scanner, in Gems now that Signals is gone (it lived there).
 document.getElementById("gem-scan")?.addEventListener("submit", (event) => {
   event.preventDefault();
