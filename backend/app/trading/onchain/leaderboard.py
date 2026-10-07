@@ -87,7 +87,8 @@ RADAR_SOURCES = ("radar", "listing")   # before 25/09: fresh launches, now the M
 # Projects Lorenzo found himself: always examined, never pinned.
 REFERENCES = (
     {"chain": "solana", "token_address": "6SjVTj1VGwFSXn7wEjwFm77LvACeTqB7sQUebYKX8Ds5", "symbol": "ROUTER",
-     "name": "Solrouter", "website": "https://solrouter.com", "websites": ["https://docs.solrouter.com"]},
+     "name": "Solrouter", "website": "https://solrouter.com", "websites": ["https://docs.solrouter.com"],
+     "narratives_hint": ["privacy", "fhe_mpc_tee"]},
 )
 # A researcher's floor: a pool someone can trade. No age floor since 29/09
 # (Lorenzo: "il limite di data non ha granche' senso"): a project new on a

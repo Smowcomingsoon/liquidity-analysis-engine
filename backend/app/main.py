@@ -4200,7 +4200,7 @@ async def onchain_top(n: int = 15, narrative: str = "", user: User = Depends(aut
             e["backtests"] = None
         out = pool[:max(1, min(int(n), 50))]
         return {"entries": out, "on_board": sum(1 for e in out if e["on_board"]), "backtests": None,
-                "early": onchain_leaderboard.board().get("early") or [], **onchain_arenas.build(pool)}
+                "early": onchain_leaderboard.board().get("early") or [], **onchain_arenas.build(pool, prefer={k.strip() for k in narrative.split(",") if k.strip()})}
     out = []
     for e in _top_entries(50, narrative):
         e["backtests"] = _lab_summary(onchain_strategy_lab.get(e["chain"], e["token_address"]))

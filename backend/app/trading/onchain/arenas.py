@@ -36,6 +36,11 @@ CHAINS = "chains"                  # layer chains (layers.CHAIN), whatever their
 OTHER = "other"                    # projects with no narrative of their own
 LABELS = {CHAINS: "Chains L0/L1/L2", OTHER: "Other builders"}
 HEAT = {CHAINS: 2, OTHER: 0}
+# Privacy is one arena with its tools (Lorenzo, 07/10: "a me interessa molto
+# la privacy, progetti come Solrouter [...] DREGG"): zero knowledge and
+# FHE/MPC/TEE compete there, not in arenas of their own.
+GROUP = {"zero_knowledge": "privacy", "fhe_mpc_tee": "privacy"}
+FIRST = ("privacy",)               # shown first, whatever the heat
 LAYER_CHAIN = "layer"
 MIN_SIZE = 2                       # an arena of one has no peers: its project goes elsewhere
 SPREAD_MIN = 3                     # a spread needs at least three projects
@@ -61,17 +66,26 @@ def _catalog() -> dict[str, dict]:
     return {n["key"]: n for n in narratives.catalog()}
 
 
-def candidates(e: dict, cat: dict[str, dict] | None = None) -> list[str]:
-    """The arenas a project may compete in: its narratives (memes left out),
-    the chains arena for a layer, else OTHER."""
+def candidates(e: dict, cat: dict[str, dict] | None = None, prefer: set[str] | None = None) -> list[str]:
+    """The arenas a project may compete in: its narratives (memes left out,
+    GROUP folded), the chains arena for a layer, else OTHER. `prefer` (the
+    narratives the user filtered on) keeps a project in the arena asked for."""
     if e.get("chain") == LAYER_CHAIN:
         return [CHAINS]
     cat = _catalog() if cat is None else cat
     keys = []
     for n in e.get("narratives") or []:
         k = n.get("key") if isinstance(n, dict) else n
-        if k in cat and cat[k].get("kind") != "meme" and k not in keys:
-            keys.append(k)
+        if k in cat and cat[k].get("kind") != "meme":
+            k = GROUP.get(k, k)
+            if k not in keys:
+                keys.append(k)
+    if prefer:
+        wanted = [k for k in keys if k in {GROUP.get(p, p) for p in prefer}]
+        keys = wanted or keys
+    else:
+        # A privacy project counts there first, not where it would lead by more.
+        keys = [k for k in keys if k in FIRST] or keys
     return keys or [OTHER]
 
 
@@ -83,12 +97,12 @@ def _heat(key: str, cat: dict[str, dict]) -> int:
     return HEAT[key] if key in HEAT else int((cat.get(key) or {}).get("heat") or 0)
 
 
-def assign(entries: list[dict], cat: dict[str, dict] | None = None) -> dict[str, str]:
+def assign(entries: list[dict], cat: dict[str, dict] | None = None, prefer: set[str] | None = None) -> dict[str, str]:
     """entry id -> arena key. Each project goes where it leads its peers by
     the most; an arena left with fewer than MIN_SIZE projects is dropped and
     its projects try their next arena, OTHER as the last resort."""
     cat = _catalog() if cat is None else cat
-    cands = {entry_id(e): candidates(e, cat) for e in entries}
+    cands = {entry_id(e): candidates(e, cat, prefer) for e in entries}
     by_id = {entry_id(e): e for e in entries}
     dropped: set[str] = set()
     for _ in range(len(entries) + 1):
@@ -109,11 +123,11 @@ def assign(entries: list[dict], cat: dict[str, dict] | None = None) -> dict[str,
     return out
 
 
-def build(entries: list[dict], ladder: dict | None = None) -> dict:
+def build(entries: list[dict], ladder: dict | None = None, prefer: set[str] | None = None) -> dict:
     """The arenas and the pound-for-pound podium for the Top's entries
     (already gated and scored by _top_entries)."""
     cat = _catalog()
-    where = assign(entries, cat)
+    where = assign(entries, cat, prefer)
     ladder = load() if ladder is None else ladder
     ratings = ladder.get("ratings") or {}
     groups: dict[str, list[dict]] = {}
@@ -138,7 +152,7 @@ def build(entries: list[dict], ladder: dict | None = None) -> dict:
         lead = rows[0]
         if lead["z"] is not None and lead["z"] > 0 and key != OTHER:
             p4p.append({**lead, "arena": key, "arena_label": label})
-    arenas.sort(key=lambda a: (a["key"] == OTHER, -a["heat"], -_score(a["entries"][0])))
+    arenas.sort(key=lambda a: (a["key"] not in FIRST, a["key"] == OTHER, -a["heat"], -_score(a["entries"][0])))
     p4p.sort(key=lambda e: -e["z"])
     return {"arenas": arenas, "p4p": p4p[:P4P_SIZE],
             "ladder": {"nights": ladder.get("nights") or 0, "ready": (ladder.get("nights") or 0) >= LADDER_READY_NIGHTS}}

@@ -126,4 +126,4 @@ def is_benchmark(chain: str, token: str) -> bool:
 def seed_item() -> dict:
     """DREGG come voce della classifica, anche prima che il radar lo porti."""
     return {"chain": CHAIN, "token_address": TOKEN, "symbol": NAME, "name": "Dragon's Egg",
-            "website": WEBSITE, "github": GITHUB}
+            "website": WEBSITE, "github": GITHUB, "narratives_hint": ["zero_knowledge"]}

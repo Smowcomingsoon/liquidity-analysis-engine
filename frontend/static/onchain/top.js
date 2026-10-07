@@ -30,6 +30,10 @@ let p4p = [];
 let labStatus = null;
 let filtered = false;   // the last load was narrowed by narrative
 let labels = {};        // narrative key -> label, from the coverage
+// One arena on its own, bench open (Lorenzo, 07/10: "la top aggiornata per
+// ogni categoria"); null shows them all. Remembered per device.
+let only = (() => { try { return localStorage.getItem("lae:arena") || null; } catch { return null; } })();
+function setOnly(k) { only = k; try { k ? localStorage.setItem("lae:arena", k) : localStorage.removeItem("lae:arena"); } catch { /* private mode */ } }
 
 // Each arena's champion on the last visit (Lorenzo, 28/09: "se rientro dopo
 // un po' e c'e' stato un capovolgimento [...] fai una bella animazione"):
@@ -94,13 +98,13 @@ function row(e, a) {
   return html.replace('<li class="trow"', `<li class="trow${rank === 1 ? " ar-champ" : ""}" style="--v:${Math.max(0, Math.min(100, Math.round(e.score ?? 0)))}%"`);
 }
 
-function arenaHtml(a) {
+function arenaHtml(a, open = false) {
   const rows = a.entries.filter((e) => !isHidden(e.chain, e.token_address));
   if (!rows.length) return "";
-  const inn = rows.filter((e) => e.in);
-  const bench = rows.filter((e) => !e.in);
+  const inn = open ? rows : rows.filter((e) => e.in);
+  const bench = open ? [] : rows.filter((e) => !e.in);
   return `<section class="arena" data-arena="${escapeHtml(a.key)}">
-    <header class="ar-head"><h4>${escapeHtml(a.label)}</h4>${a.heat ? heatBar(a.heat) : ""}<span class="ar-count">${inn.length} in · median ${Math.round(a.median)}</span></header>
+    <header class="ar-head"><h4>${escapeHtml(a.label)}</h4>${a.heat ? heatBar(a.heat) : ""}<span class="ar-count">${open ? `${rows.length} projects` : `${inn.length} in`} · median ${Math.round(a.median)}</span></header>
     <ol class="memes-list" data-top-rows>${inn.map((e) => row(e, a)).join("")}</ol>
     ${bench.length ? `<details class="ar-bench"><summary>${bench.length} below the arena median</summary>
       <ol class="memes-list" data-top-rows>${bench.map((e) => row(e, a)).join("")}</ol></details>` : ""}
@@ -135,8 +139,11 @@ function paint() {
   podium.dataset.sig = sig;
 
   const box = root.querySelector("[data-top-arenas]");
+  if (only && !arenas.some((a) => a.key === only)) setOnly(null);
+  const chips = arenas.length > 1 ? `<div class="ar-chips" role="group" aria-label="Arena">${[{ key: "", label: "All" }, ...arenas]
+    .map((a) => `<button type="button" class="chip" data-arena-pick="${escapeHtml(a.key)}" aria-pressed="${(only ?? "") === a.key}">${escapeHtml(a.label)}</button>`).join("")}</div>` : "";
   withEntrance(box, () => {
-    const html = arenas.map(arenaHtml).join("");
+    const html = chips + (only ? arenaHtml(arenas.find((a) => a.key === only), true) : arenas.map((a) => arenaHtml(a)).join(""));
     box.innerHTML = html || `<p class="muted pad">The arenas are filling up: projects appear as they pass the checks.</p>`;
   });
 
@@ -255,6 +262,8 @@ export function mountTop() {
   waiting();
   root.addEventListener("click", (event) => {
     if (event.target.closest("[data-top-narr-clear]")) { narr.set([]); return; }
+    const pick = event.target.closest("[data-arena-pick]");
+    if (pick) { setOnly(pick.dataset.arenaPick || null); paint(); return; }
     if (event.target.closest("[data-top-wallet]")) { import("@onchain/sim-backtest.js").then((m) => m.openSimBacktest()); }
   });
   onHiddenChange(paint);

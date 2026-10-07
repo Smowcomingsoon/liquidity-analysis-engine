@@ -71,3 +71,21 @@ def test_record_night_moves_ratings_once_per_night(monkeypatch):
     assert arenas.record_night(es, now=1e6 + 3600, state=state) == 0     # same evening
     assert arenas.record_night(es, now=1e6 + 86400, state=state) == 1
     assert state["nights"] == 2
+
+
+def test_privacy_holds_zk_and_tee_and_comes_first(monkeypatch):
+    cat = {**CAT, "zero_knowledge": {"key": "zero_knowledge", "label": "Zero Knowledge", "kind": None, "heat": 3},
+           "fhe_mpc_tee": {"key": "fhe_mpc_tee", "label": "FHE / MPC / TEE", "kind": None, "heat": 3}}
+    monkeypatch.setattr(arenas, "_catalog", lambda: cat)
+    es = [_e("DREGG", 70, ["zero_knowledge"]), _e("ROUTER", 75, ["fhe_mpc_tee", "ai_agents"]),
+          _e("A1", 90, ["ai_agents"]), _e("A2", 88, ["ai_agents"]), _e("A3", 95, ["ai_agents"])]
+    out = arenas.build(es, ladder={})
+    assert out["arenas"][0]["key"] == "privacy"
+    assert {e["symbol"] for e in out["arenas"][0]["entries"]} == {"DREGG", "ROUTER"}
+
+
+def test_filter_keeps_projects_in_the_arena_asked(monkeypatch):
+    monkeypatch.setattr(arenas, "_catalog", lambda: CAT)
+    es = [_e("X", 95, ["ai_agents", "privacy"]), _e("P1", 60, ["privacy"]), _e("P2", 50, ["privacy"])]
+    out = arenas.build(es, ladder={}, prefer={"privacy"})
+    assert [a["key"] for a in out["arenas"]] == ["privacy"]

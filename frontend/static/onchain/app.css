@@ -1461,3 +1461,7 @@ html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { d
 .ar-bench > summary::before { content: "+ "; }
 .ar-bench[open] > summary::before { content: "− "; }
 .ar-bench > summary:focus-visible { outline: 1px solid var(--c-amber, #2de2b0); outline-offset: 2px; }
+.ar-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-block: 2px 4px; }
+.ar-chips::-webkit-scrollbar { display: none; }
+.ar-chips .chip { flex: none; white-space: nowrap; }
+.ar-chips .chip[aria-pressed="true"] { color: var(--c-amber, #2de2b0); border-color: var(--c-amber, #2de2b0); }
