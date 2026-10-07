@@ -84,6 +84,8 @@ async function sequence(changes, crowns) {
 }
 
 const heatBar = (h) => `<span class="ar-heat" aria-label="Narrative heat ${h} of 3">${"█".repeat(h)}${"░".repeat(Math.max(0, 3 - h))}</span>`;
+// What the tile counts is what the list shows: tokens hidden by the user left out.
+const shownCount = (a) => a.entries.filter((e) => !isHidden(e.chain, e.token_address)).length;
 const sigma = (z) => `${z >= 0 ? "+" : "−"}${Math.abs(z).toFixed(1)}σ`;
 
 function row(e, a) {
@@ -140,9 +142,9 @@ function paint() {
 
   const box = root.querySelector("[data-top-arenas]");
   if (only && !arenas.some((a) => a.key === only)) setOnly(null);
-  const chips = arenas.length > 1 ? `<div class="ar-chips" role="group" aria-label="Arena">${[{ key: "", label: "All", size: arenas.reduce((n, x) => n + x.size, 0), entries: [] }, ...arenas]
+  const chips = arenas.length > 1 ? `<div class="ar-chips" role="group" aria-label="Arena">${[{ key: "", label: "All", entries: arenas.flatMap((x) => x.entries) }, ...arenas]
     .map((a) => `<button type="button" class="ar-tile" data-arena-pick="${escapeHtml(a.key)}" aria-pressed="${(only ?? "") === a.key}">
-      <b>${escapeHtml(a.label)}</b><span class="ar-n">${a.size}</span><small>${a.entries[0] ? `♛ ${escapeHtml(a.entries[0].symbol ?? "")}` : `${arenas.length} arenas`}</small></button>`).join("")}</div>` : "";
+      <b>${escapeHtml(a.label)}</b><span class="ar-n">${shownCount(a)}</span><small>${a.key ? `♛ ${escapeHtml(a.entries[0]?.symbol ?? "")}` : `${arenas.length} arenas`}</small></button>`).join("")}</div>` : "";
   withEntrance(box, () => {
     const html = chips + (only ? arenaHtml(arenas.find((a) => a.key === only), true) : arenas.map((a) => arenaHtml(a)).join(""));
     box.innerHTML = html || `<p class="muted pad">The arenas are filling up: projects appear as they pass the checks.</p>`;
@@ -264,7 +266,12 @@ export function mountTop() {
   root.addEventListener("click", (event) => {
     if (event.target.closest("[data-top-narr-clear]")) { narr.set([]); return; }
     const pick = event.target.closest("[data-arena-pick]");
-    if (pick) { setOnly(pick.dataset.arenaPick || null); paint(); return; }
+    if (pick) {
+      setOnly(pick.dataset.arenaPick || null);
+      paint();
+      root.querySelector(`[data-arena-pick="${CSS.escape(only ?? "")}"]`)?.focus({ preventScroll: true });
+      return;
+    }
     if (event.target.closest("[data-top-wallet]")) { import("@onchain/sim-backtest.js").then((m) => m.openSimBacktest()); }
   });
   onHiddenChange(paint);
