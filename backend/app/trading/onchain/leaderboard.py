@@ -248,6 +248,7 @@ def _load() -> None:
             _excluded.extend(x for x in raw.get("excluded") or [] if isinstance(x, dict))
             _gone.update(raw.get("gone") or {})
         _state["examined"] = int(raw.get("examined") or 0)
+        _state["rescored_rules"] = raw.get("rescored_rules")
         _alerted.update(raw.get("alerted") or [])
         # First start with alerts: what is already on the board is not news.
         global _priming
@@ -262,6 +263,7 @@ def _save() -> None:
     try:
         write_text_atomic(_STORE_FILE, json.dumps({"entries": _entries, "excluded": _excluded, "gone": _gone,
                                            "examined": _state["examined"], "rules": RULES_VERSION,
+                                           "rescored_rules": _state.get("rescored_rules"),
                                            "alerted": sorted(_alerted)}, ensure_ascii=False),
                                encoding="utf-8")
     except OSError:
@@ -1581,8 +1583,46 @@ def analyze_now(chain: str, token: str) -> bool:
     return True
 
 
+def rescore_database() -> int:
+    """Every studied database row scored again with today's formula and
+    rules (07/10, Lorenzo: "aggiornami tutti i voti di quelle presenti nel
+    database [...] con le nuove logiche"). No API call: the readings stay,
+    the weights and bars change. Board entries are left to the board, layer
+    rows to their own scorer."""
+    out = []
+    for row in projects_db.scored_rows():
+        if row["chain"] == "layer" or _key(row["chain"], row["token"]) in _entries:
+            continue
+        e = {**db_entry(row), "global_cap": row.get("cg_mcap"), "judge": judge.get(row["chain"], row["token"])}
+        try:
+            out.append((projects_db.key(row["chain"], row["token"]), final_score(e),
+                        "" if row["status"] == "ranked" else qualifies(e)))
+        except Exception:
+            logger.exception("rescore: %s skipped", row.get("symbol"))
+    return projects_db.rescore_many(out)
+
+
+def rescore_once() -> None:
+    """When the rules change (rules_version): rescore the database now, and
+    queue every studied row, plus the ones DeepSeek dropped, for a fresh
+    analysis with the new judge prompt. The nightly run works through it."""
+    rules = f"{rules_version()}:{judge.PROMPT_VERSION}"
+    if _state.get("rescored_rules") == rules:
+        return
+    try:
+        n = rescore_database()
+        q = projects_db.requeue(("studied", "ranked")) + projects_db.requeue(("rejected",), ("DeepSeek",))
+        logger.info("classifica: %d voti del database ricalcolati, %d progetti rimessi in coda", n, q)
+        _state["rescored_rules"] = rules
+        _mark()
+        _save()
+    except Exception:
+        logger.exception("classifica: ricalcolo del database fallito")
+
+
 def startup_requeue() -> None:
     """Once per start: rows judged by limits that no longer exist go back in the queue."""
+    rescore_once()
     try:
         n = projects_db.recheck_studied(("over $%", "over % days%"))
         # Rules dropped on 29/09 (age limits, radar exceptions, the $100k band).

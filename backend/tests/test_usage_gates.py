@@ -134,3 +134,24 @@ def test_warm_up_measures_only_tokens_without_a_fresh_snapshot(snap, monkeypatch
     assert lb.usage_gate(_e("OLD")) == ""                    # stale snapshot: unknown, not a reason
 
 
+
+
+def test_database_rescored_once_per_rules(snap, monkeypatch):
+    """Lorenzo, 07/10: every vote in the database updated with the new logic."""
+    from app.trading.onchain import projects_db
+    rows = [{"chain": "solana", "token": "OLD", "status": "studied", "score": 95, "pillars": _e()["pillars"],
+             "overall": {"score": 70}, "symbol": "OLD"},
+            {"chain": "layer", "token": "kas", "status": "studied", "score": 80, "symbol": "KAS"}]
+    written, queued = [], []
+    monkeypatch.setattr(lb, "_entries", {})
+    monkeypatch.setattr(lb, "_save", lambda: None)
+    monkeypatch.setattr(lb, "_state", {**lb._state, "rescored_rules": None})
+    monkeypatch.setattr(projects_db, "scored_rows", lambda: rows)
+    monkeypatch.setattr(projects_db, "rescore_many", lambda r: written.extend(r) or len(r))
+    monkeypatch.setattr(projects_db, "requeue", lambda st, why=(): queued.append((st, why)) or 1)
+    monkeypatch.setattr(lb.judge, "get", lambda *a: None)
+    lb.rescore_once()
+    assert [k for k, _, _ in written] == ["solana:OLD"] and written[0][1] != 95
+    assert queued == [(("studied", "ranked"), ()), (("rejected",), ("DeepSeek",))]
+    lb.rescore_once()                                       # same rules: nothing again
+    assert len(written) == 1
