@@ -12,7 +12,6 @@ from app.trading.onchain import depth, layers, projects_db, research
 from app.trading.onchain import leaderboard as lb
 
 T0 = 1_790_000_000.0
-_REAL_CG_SLOT = layers._cg_slot
 
 
 @pytest.fixture(autouse=True)
@@ -20,38 +19,44 @@ def _clean(monkeypatch, tmp_path):
     lb.reset_for_tests()
     layers.reset_for_tests()
     monkeypatch.setattr(layers, "_STORE_FILE", tmp_path / "onchain_layers.json")
-    monkeypatch.setattr(layers, "CG_GAP_S", 0)
-    monkeypatch.setattr(layers, "RETRY_429_S", 0)
-
-    async def no_wait():
-        return None
-    monkeypatch.setattr(layers, "_cg_slot", no_wait)
     yield
     layers.reset_for_tests()
     lb.reset_for_tests()
 
 
-def _coin(cats, cap=20_000_000, fdv=30_000_000, circ=800, total=1000, mx=None, name="Kaspa", symbol="kas"):
-    return {"id": name.lower(), "symbol": symbol, "name": name, "categories": cats,
-            "image": {"thumb": "t.png", "small": "s.png", "large": "l.png"},
-            "links": {"homepage": ["https://kaspa.org"], "repos_url": {"github": ["https://github.com/kaspanet/rusty-kaspa"]}},
-            "genesis_date": "2021-11-07", "description": {"en": "A proof-of-work blockDAG."},
-            "developer_data": {"commit_count_4_weeks": 120},
-            "market_data": {"market_cap": {"usd": cap}, "fully_diluted_valuation": {"usd": fdv},
-                            "circulating_supply": circ, "total_supply": total, "max_supply": mx}}
+def _ticker(cid="kas-kaspa", name="Kaspa", symbol="KAS", cap=20_000_000, price=0.1, total=250_000_000, mx=None):
+    return {"id": cid, "name": name, "symbol": symbol, "rank": 300, "total_supply": total, "max_supply": mx,
+            "quotes": {"USD": {"price": price, "market_cap": cap}}}
 
 
-def test_llama_candidates_one_per_gecko_id():
-    rows = [{"name": "Kaspa", "gecko_id": "kaspa", "tvl": 5}, {"name": "Kaspa EVM", "gecko_id": "kaspa", "tvl": 1},
-            {"name": "NoToken", "gecko_id": None, "tvl": 9}]
-    assert layers.llama_candidates(rows) == [{"id": "kaspa", "name": "Kaspa", "tvl": 5}]
+def _cand(type_="L1", **kw):
+    return {**layers.paprika_candidates([_ticker(**kw)], {kw.get("cid", "kas-kaspa"): type_})[0]}
 
 
-def test_cg_candidates_band_and_memes():
-    rows = [{"id": "a", "symbol": "aaa", "name": "Alpha Chain", "market_cap": 50_000_000},
-            {"id": "big", "symbol": "big", "name": "Big", "market_cap": 900_000_000},
-            {"id": "tiny", "symbol": "t", "name": "Tiny", "market_cap": 100_000}]
-    assert [c["id"] for c in layers.cg_candidates(rows)] == ["a"]
+_COIN = {"id": "kas-kaspa", "name": "Kaspa", "symbol": "KAS", "logo": "https://x/kas.png",
+         "description": "A proof-of-work blockDAG.", "started_at": "2021-11-14T00:00:00Z",
+         "tags": [{"id": "layer-1-l1", "name": "Layer 1 (L1)"}],
+         "links": {"website": ["https://kaspa.org"], "source_code": ["https://github.com/kaspanet/rusty-kaspa"]}}
+
+
+def test_llama_tvl_by_name():
+    assert layers.llama_tvl([{"name": "Kaspa", "tvl": 5}, {"name": "", "tvl": 9}]) == {"kaspa": 5}
+
+
+def test_layer_types_lowest_layer_wins():
+    tags = [{"id": "layer-1-l1", "coins": ["a", "b"]}, {"id": "layer-0-l0", "coins": ["a"]},
+            {"id": "layer-2-l2", "coins": ["b", "c"]}, {"id": "defi", "coins": ["d"]}]
+    assert layers.layer_types(tags) == {"a": "L0", "b": "L1", "c": "L2"}
+
+
+def test_paprika_candidates_band_fdv_memes():
+    types = {"ok": "L1", "big": "L1", "tiny": "L1", "dil": "L1", "pepe": "L1"}
+    rows = [_ticker("ok", "Alpha Chain", "ALP"), _ticker("big", "Big", "BIG", cap=900e6),
+            _ticker("tiny", "Tiny", "TNY", cap=100e3), _ticker("dil", "Dil", "DIL", mx=10e9),
+            _ticker("pepe", "Pepe Chain", "PEPE"), _ticker("none", "NoTag", "NT")]
+    out = layers.paprika_candidates(rows, types)
+    assert [c["id"] for c in out] == ["ok"]
+    assert out[0]["circulating"] == 200_000_000 and out[0]["fdv"] == 25_000_000
 
 
 def test_l2beat_index_and_llama_extras():
@@ -73,22 +78,22 @@ def test_cex_symbol_prefers_mexc():
 
 
 def test_classify():
-    assert layers.classify(_coin(["Layer 0 (L0)", "Layer 1 (L1)"]))[0] == "L0"
-    assert layers.classify(_coin(["Layer 1 (L1)"]))[0] == "L1"
-    assert layers.classify(_coin(["Rollup"]))[0] == "L2"
-    assert layers.classify(_coin(["Exchange-based Tokens"])) == (None, "not a layer")
-    assert layers.classify(_coin(["Layer 1 (L1)", "Meme"]))[1].startswith("category")
-    assert "outside" in layers.classify(_coin(["Layer 1 (L1)"], cap=200_000_000, fdv=200_000_000))[1]
-    assert "outside" in layers.classify(_coin(["Layer 1 (L1)"], cap=100_000, fdv=100_000))[1]
-    assert "FDV" in layers.classify(_coin(["Layer 1 (L1)"], fdv=200_000_000))[1]
+    assert layers.classify(_cand(), _COIN) == ("L1", "")
+    assert layers.classify(_cand("L0"), _COIN)[0] == "L0"
+    meme = {**_COIN, "tags": [{"id": "meme", "name": "Meme"}]}
+    assert layers.classify(_cand(), meme)[1].startswith("tag")
+    assert "outside" in layers.classify({**_cand(), "market_cap": 200e6}, _COIN)[1]
+    assert "FDV" in layers.classify({**_cand(), "fdv": 200e6}, _COIN)[1]
     l2b = {"base": {"stage": "Stage 1", "tvs": 1, "has_token": False}}
-    assert layers.classify(_coin(["Layer 2 (L2)"], name="Base"), l2b) == (None, "L2 without own token")
+    base = _cand("L2", cid="base", name="Base")
+    assert layers.classify(base, _COIN, l2b) == (None, "L2 without own token")
 
 
 def test_score_tokenomics():
-    assert layers.score_tokenomics(_coin([], circ=900, total=1000))["score"] == 90
-    assert layers.score_tokenomics(_coin([], circ=100, total=1000, mx=1000, fdv=80_000_000))["score"] == 15
-    assert layers.score_tokenomics(_coin([], circ=0, total=0))["score"] is None
+    assert layers.score_tokenomics(_cand(total=220_000_000))["score"] == 90
+    # 20% circulating, FDV 5x the cap
+    assert layers.score_tokenomics(_cand(mx=1_000_000_000, total=0, price=0.1, cap=20e6))["score"] == 15
+    assert layers.score_tokenomics({"circulating": 0, "total": 0})["score"] is None
 
 
 def test_score_traction():
@@ -106,23 +111,18 @@ def test_final_score_renormalises_missing_pillars():
 
 
 def test_run_records_a_layer_outside_the_gem_pipeline(monkeypatch):
-    coin = _coin(["Layer 1 (L1)"])
-
     def handler(req: httpx.Request) -> httpx.Response:
         u = str(req.url)
-        if "llama.fi/v2/chains" in u:
-            return httpx.Response(200, json=[{"name": "Kaspa", "gecko_id": "kaspa", "tvl": 8e6},
-                                             {"name": "Ethereum", "gecko_id": "ethereum", "tvl": 5e10}])
-        if "coins/markets" in u and "ids=" in u:
-            return httpx.Response(200, json=[{"id": "kaspa", "symbol": "kas", "name": "Kaspa", "market_cap": 20e6},
-                                             {"id": "ethereum", "symbol": "eth", "name": "Ethereum",
-                                              "market_cap": 4e11}])
-        if "coins/markets" in u:
-            return httpx.Response(200, json=[])
-        if "/coins/kaspa" in u:
-            return httpx.Response(200, json=coin)
-        if "/coins/ethereum" in u:
+        if "coinpaprika.com/v1/tags" in u:
+            return httpx.Response(200, json=[{"id": "layer-1-l1", "coins": ["kas-kaspa", "eth-ethereum"]}])
+        if "coinpaprika.com/v1/tickers" in u:
+            return httpx.Response(200, json=[_ticker(), _ticker("eth-ethereum", "Ethereum", "ETH", cap=4e11)])
+        if "coinpaprika.com/v1/coins/kas-kaspa" in u:
+            return httpx.Response(200, json=_COIN)
+        if "coinpaprika.com/v1/coins/" in u:
             raise AssertionError("a big chain must not cost a detail call")
+        if "llama.fi/v2/chains" in u:
+            return httpx.Response(200, json=[{"name": "Kaspa", "tvl": 8e6}, {"name": "Ethereum", "tvl": 5e10}])
         if "historicalChainTvl" in u:
             return httpx.Response(200, json=[{"date": i, "tvl": 5e6} for i in range(40)])
         if "mexc" in u:
@@ -130,9 +130,11 @@ def test_run_records_a_layer_outside_the_gem_pipeline(monkeypatch):
         return httpx.Response(200, json={})
 
     async def gh(repos, client, launched_at, *a, **k):
+        assert repos == ["https://github.com/kaspanet/rusty-kaspa"]
         return depth._pillar("github", 70, {}, [])
 
     async def site(item, client, launched):
+        assert item["website"] == "https://kaspa.org"
         return depth._pillar("site", 60, {}, []), []
 
     monkeypatch.setattr(depth, "analyze_github", gh)
@@ -143,13 +145,13 @@ def test_run_records_a_layer_outside_the_gem_pipeline(monkeypatch):
             return await layers.run(client, T0)
 
     assert asyncio.run(go()) == 1
-    p = projects_db.get("layer", "kaspa")
-    assert p["status"] == "studied" and p["score"] and p["categories"][0] == "L1" and p["image"] == "l.png"
+    p = projects_db.get("layer", "kas-kaspa")
+    assert p["status"] == "studied" and p["score"] and p["categories"][0] == "L1" and p["image"] == "https://x/kas.png"
     assert (p["overall"] or {}).get("cex") == {"exchange": "mexc", "pair": "KASUSDT"}
     assert "layer" not in projects_db.stale_market(50, T0 + 30 * 86400)
     assert projects_db.due_for_analysis(50, now=T0 + 30 * 86400) == []
     snap = layers.snapshot()
-    assert [x["id"] for x in snap["found"]] == ["kaspa"] and snap["last_run"] == T0
+    assert [x["id"] for x in snap["found"]] == ["kas-kaspa"] and snap["last_run"] == T0
 
 
 def test_layer_row_with_cex_shows_in_top_entries():
@@ -166,11 +168,8 @@ def test_layer_row_with_cex_shows_in_top_entries():
 
 
 def test_a_run_with_no_candidates_is_not_stamped_done():
-    calls = []
-
     def handler(req: httpx.Request) -> httpx.Response:
-        calls.append(str(req.url))
-        if "coingecko" in str(req.url):
+        if "coinpaprika" in str(req.url):
             return httpx.Response(429)
         return httpx.Response(200, json=[] if "chains" in str(req.url) else {})
 
@@ -180,14 +179,3 @@ def test_a_run_with_no_candidates_is_not_stamped_done():
 
     assert asyncio.run(go()) == 0
     assert layers.snapshot()["last_run"] == 0
-    # a 429 from CoinGecko is tried twice before giving up
-    assert sum("category=layer-1" in u for u in calls) == 2
-
-
-
-def test_cg_slot_takes_discovery_turn(monkeypatch):
-    import time
-    from app.trading.onchain import discovery
-    monkeypatch.setitem(discovery._state, "cg_next_at", 0)
-    asyncio.run(_REAL_CG_SLOT())
-    assert discovery._state["cg_next_at"] >= time.time() + discovery.CG_GAP_S - 1

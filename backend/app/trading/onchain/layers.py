@@ -6,17 +6,20 @@ stesso database progetti". `discovery.py` cerca solo contratti token su
 Solana/EVM, quindi una moneta nativa di un L1 (KAS, TIA...) non viene mai
 trovata: qui le fonti sono pensate per le chain, non per i pool.
 
-Fase 1: solo scoperta, punteggio e righe nel database. I layer NON entrano
-ancora nella Top 50 (fase 2: prima servono le candele CEX): `main._top_entries`
-salta `chain == "layer"`.
+Le righe vanno nel database progetti; entrano nella Top 50 solo con una
+coppia USDT su MEXC o Binance (`main._top_entries`), da cui vengono le candele
+(`cex_candles.py`).
 
 Fascia (Lorenzo, 01/10: "usiamo da 500k di market cap fino a 100mln"): il
 tetto $10M delle gemme non vale, una L1 seria raramente sta sotto.
 
 Fonti (tutte gratuite):
-- DefiLlama `/v2/chains`: una chain per `gecko_id`, con il suo TVL.
-- CoinGecko `/coins/markets` per le categorie layer-1, layer-0-l0, layer-2:
-  la fascia di capitalizzazione LAYER_CAP_MIN-LAYER_CAP_MAX, meme esclusi.
+- CoinPaprika `/v1/tags` (layer-0-l0, layer-1-l1, layer-2-l2, layer-3-l3) e
+  `/v1/tickers`: chi e' un layer e la sua capitalizzazione, senza chiave.
+  CoinGecko non si usa: il server spende gia' tutto il budget gratuito in
+  discovery.py e il 01/10 ogni chiamata dei layer prendeva 429.
+- CoinPaprika `/v1/coins/{id}`: sito, GitHub, logo, descrizione, tag.
+- DefiLlama `/v2/chains`: il TVL di ogni chain, per nome.
 - L2BEAT `/api/scaling/summary`: stage e TVS dei rollup, e se hanno un token.
 - DefiLlama stablecoin e fees: stablecoin e commissioni per chain.
 - MEXC e Binance `exchangeInfo`: se esiste una coppia USDT (fase 2).
@@ -44,9 +47,7 @@ LAYER_CAP_MAX = 100_000_000
 LAYER_FDV_MAX_RATIO = 5.0
 RUN_EVERY_S = 24 * 3600
 DETAILS_PER_RUN = 20
-CG_GAP_S = 30
 DETAIL_TTL_S = 7 * 86400
-IDS_PER_CALL = 50            # 250 ids make a URL CoinGecko answers 403
 CHAIN = "layer"
 
 LLAMA_CHAINS = "https://api.llama.fi/v2/chains"
@@ -55,8 +56,11 @@ LLAMA_FEES = ("https://api.llama.fi/overview/fees?excludeTotalDataChart=true"
               "&excludeTotalDataChartBreakdown=true&dataType=dailyFees")
 LLAMA_TVL_HISTORY = "https://api.llama.fi/v2/historicalChainTvl/{name}"
 L2BEAT_SUMMARY = "https://l2beat.com/api/scaling/summary"
-COINGECKO = "https://api.coingecko.com/api/v3"
-CG_CATEGORIES = ("layer-1", "layer-0-l0", "layer-2")
+PAPRIKA = "https://api.coinpaprika.com/v1"
+# tag -> layer type; a coin with several tags takes the lowest layer
+PAPRIKA_TAGS = {"layer-0-l0": "L0", "layer-1-l1": "L1", "layer-2-l2": "L2", "layer-3-l3": "L2"}
+_TYPE_ORDER = ("L0", "L1", "L2")
+_BAD_TAGS = ("meme", "stablecoin", "wrapped", "bridged", "liquid staking", "liquid-staking")
 MEXC_EXCHANGE_INFO = "https://api.mexc.com/api/v3/exchangeInfo"
 BINANCE_EXCHANGE_INFO = "https://api.binance.com/api/v3/exchangeInfo"
 
@@ -92,32 +96,57 @@ def reset_for_tests() -> None:
 _load()
 
 
-def llama_candidates(rows: list[dict]) -> list[dict]:
-    """Una candidata per ogni `gecko_id` distinto."""
-    out: list[dict] = []
-    seen: set[str] = set()
+def llama_tvl(rows: list[dict]) -> dict[str, float]:
+    """Nome chain DefiLlama (minuscolo) -> TVL."""
+    out: dict[str, float] = {}
     for r in rows or []:
-        gid = (r.get("gecko_id") or "").strip()
-        if not gid or gid in seen:
-            continue
-        seen.add(gid)
-        out.append({"id": gid, "name": r.get("name") or "", "tvl": r.get("tvl") or 0})
+        name = (r.get("name") or "").strip().lower()
+        if name:
+            out[name] = max(out.get(name, 0), r.get("tvl") or 0)
     return out
 
 
-def cg_candidates(rows: list[dict]) -> list[dict]:
-    """Monete CoinGecko nella fascia di capitalizzazione, meme esclusi."""
-    out: list[dict] = []
-    for r in rows or []:
-        cap = r.get("market_cap") or 0
-        if not (LAYER_CAP_MIN <= cap <= LAYER_CAP_MAX):
+def layer_types(tags: list[dict]) -> dict[str, str]:
+    """CoinPaprika id -> L0/L1/L2 dai tag layer; L0 prevale su L1 su L2."""
+    out: dict[str, str] = {}
+    for t in tags or []:
+        kind = PAPRIKA_TAGS.get(t.get("id") or "")
+        if not kind:
             continue
-        symbol = r.get("symbol") or ""
-        name = r.get("name") or ""
+        for cid in t.get("coins") or []:
+            old = out.get(cid)
+            if old is None or _TYPE_ORDER.index(kind) < _TYPE_ORDER.index(old):
+                out[cid] = kind
+    return out
+
+
+def paprika_candidates(tickers: list[dict], types: dict[str, str]) -> list[dict]:
+    """Layer nella fascia di capitalizzazione, FDV entro LAYER_FDV_MAX_RATIO
+    volte il cap, meme esclusi. Il circolante e' cap / prezzo: /v1/tickers
+    non lo da'."""
+    out: list[dict] = []
+    for t in tickers or []:
+        cid = t.get("id") or ""
+        kind = types.get(cid)
+        if not kind:
+            continue
+        usd = (t.get("quotes") or {}).get("USD") or {}
+        cap = usd.get("market_cap") or 0
+        price = usd.get("price") or 0
+        if not (LAYER_CAP_MIN <= cap <= LAYER_CAP_MAX) or not price:
+            continue
+        symbol = (t.get("symbol") or "").strip().upper()
+        name = t.get("name") or ""
         if _looks_like_meme(symbol, name):
             continue
-        out.append({"id": r.get("id") or "", "symbol": symbol.upper(), "name": name,
-                    "market_cap": cap, "image": r.get("image") or ""})
+        total = t.get("total_supply") or 0
+        max_s = t.get("max_supply") or 0
+        fdv = price * (max_s or total)
+        if fdv > LAYER_FDV_MAX_RATIO * cap:
+            continue
+        out.append({"id": cid, "symbol": symbol, "name": name, "type": kind, "market_cap": cap,
+                    "price": price, "circulating": cap / price, "total": total, "max": max_s,
+                    "fdv": fdv, "rank": t.get("rank") or 0})
     return out
 
 
@@ -169,49 +198,35 @@ def cex_symbol(symbol: str, mexc: set[str], binance: set[str]) -> dict | None:
     return None
 
 
-def classify(coin: dict, l2beat: dict[str, dict] | None = None) -> tuple[str | None, str]:
-    """(layer_type, why_not) da una scheda CoinGecko /coins/{id}."""
-    cats = [str(c) for c in (coin.get("categories") or [])]
-    low = [c.lower() for c in cats]
-    for bad in ("meme", "stablecoin", "wrapped", "bridged", "liquid staking"):
-        for c in low:
-            if bad in c:
-                return None, f"category {c}"
-    layer_type = None
-    for c in cats:
-        if "Layer 0 (L0)" in c:
-            layer_type = "L0"
-            break
-        if "Layer 1 (L1)" in c:
-            layer_type = "L1"
-            break
-        if "Layer 2 (L2)" in c or "Layer 3 (L3)" in c or "Rollup" in c:
-            layer_type = "L2"
-            break
-    if layer_type is None:
+def classify(cand: dict, coin: dict, l2beat: dict[str, dict] | None = None) -> tuple[str | None, str]:
+    """(layer_type, why_not): candidata da /v1/tickers, scheda da /v1/coins/{id}."""
+    for t in coin.get("tags") or []:
+        low = f"{t.get('id') or ''} {t.get('name') or ''}".lower()
+        for bad in _BAD_TAGS:
+            if bad in low:
+                return None, f"tag {t.get('name') or t.get('id')}"
+    layer_type = cand.get("type")
+    if layer_type not in _TYPE_ORDER:
         return None, "not a layer"
-    md = coin.get("market_data") or {}
-    cap = (md.get("market_cap") or {}).get("usd") or 0
+    cap = cand.get("market_cap") or 0
     if not (LAYER_CAP_MIN <= cap <= LAYER_CAP_MAX):
         return None, (f"market cap ${cap:,.0f} outside"
                       f" ${LAYER_CAP_MIN / 1e6:g}M-${LAYER_CAP_MAX / 1e6:g}M")
-    fdv = (md.get("fully_diluted_valuation") or {}).get("usd") or 0
-    if cap and fdv > LAYER_FDV_MAX_RATIO * cap:
+    fdv = cand.get("fdv") or 0
+    if fdv > LAYER_FDV_MAX_RATIO * cap:
         return None, f"FDV {fdv / cap:.1f} times the cap"
     if layer_type == "L2" and l2beat:
-        name = (coin.get("name") or "").lower()
-        entry = l2beat.get(name)
+        entry = l2beat.get((cand.get("name") or "").lower())
         if entry and not entry.get("has_token"):
             return None, "L2 without own token"
     return layer_type, ""
 
 
-def score_tokenomics(coin: dict) -> dict:
+def score_tokenomics(cand: dict) -> dict:
     """Pillar tokenomics: circulating/max (o total) e FDV/cap."""
-    md = coin.get("market_data") or {}
-    circ = (md.get("circulating_supply") or 0) or 0
-    total = (md.get("total_supply") or 0) or 0
-    max_s = (md.get("max_supply") or 0) or 0
+    circ = cand.get("circulating") or 0
+    total = cand.get("total") or 0
+    max_s = cand.get("max") or 0
     denom = max_s or total
     if not circ or not denom:
         return depth._pillar("tokenomics", None, {"circulating": circ, "total": total, "max": max_s},
@@ -227,12 +242,11 @@ def score_tokenomics(coin: dict) -> dict:
         score = 45
     else:
         score = 30
-    cap = (md.get("market_cap") or {}).get("usd") or 0
-    fdv = (md.get("fully_diluted_valuation") or {}).get("usd") or 0
-    fdv_ratio = (fdv / cap) if cap else 0
+    cap = cand.get("market_cap") or 0
+    fdv_ratio = (cand.get("fdv") or 0) / cap if cap else 0
     if fdv_ratio > 3:
         score -= 15
-    facts = {"circulating": circ, "total": total, "max": max_s, "fdv_ratio": round(fdv_ratio, 2)}
+    facts = {"circulating": round(circ), "total": total, "max": max_s, "fdv_ratio": round(fdv_ratio, 2)}
     return depth._pillar("tokenomics", score, facts, [])
 
 
@@ -286,42 +300,8 @@ def final_score(pillars: list[dict]) -> float:
     return round(num / den, 2) if den else 0.0
 
 
-RETRY_429_S = 65            # CoinGecko's free minute, shared with discovery.py
-
-
-async def _cg_slot() -> None:
-    """Wait for discovery.py's next CoinGecko slot and take it. On 01/10 the
-    two plus the board's cap check asked ~9 times a minute and every layer
-    call got 429: now layer calls replace discovery calls, they never add."""
-    from app.trading.onchain import discovery
-    while True:
-        now = time.time()
-        nxt = discovery._state.get("cg_next_at") or 0
-        if now >= nxt:
-            discovery._state["cg_next_at"] = now + max(CG_GAP_S, discovery.CG_GAP_S)
-            return
-        await asyncio.sleep(nxt - now + 0.1)
-
-
-def _image(coin: dict) -> str:
-    """CoinGecko's detail page gives {"thumb", "small", "large"}, the markets
-    list a plain URL: the database takes a string (01/10, the first detail
-    on the server crashed the run on the dict)."""
-    img = coin.get("image")
-    if isinstance(img, dict):
-        img = img.get("large") or img.get("small") or img.get("thumb")
-    return img if isinstance(img, str) else ""
-
-
 async def _fetch_json(client: httpx.AsyncClient, url: str) -> object:
-    """GET as JSON. A CoinGecko 429 waits out the minute and tries once more:
-    discovery.py spends the same free budget, so a first 429 is normal."""
     r = await client.get(url)
-    if r.status_code == 429 and url.startswith(COINGECKO):
-        from app.trading.onchain import discovery
-        discovery._state["cg_next_at"] = time.time() + RETRY_429_S     # discovery backs off too
-        await asyncio.sleep(RETRY_429_S)
-        r = await client.get(url)
     r.raise_for_status()
     return r.json()
 
@@ -340,42 +320,32 @@ async def _fetch_cex(client: httpx.AsyncClient, url: str, statuses: tuple[str, .
     return out
 
 
-async def _caps_by_ids(client: httpx.AsyncClient, ids: list[str]) -> dict[str, dict]:
-    """Market rows for DefiLlama's gecko ids, 250 per call: the band is checked
-    before spending a detail call on Ethereum or Solana."""
-    out: dict[str, dict] = {}
-    for i in range(0, len(ids), IDS_PER_CALL):
-        await _cg_slot()
-        try:
-            rows = await _fetch_json(client, f"{COINGECKO}/coins/markets?vs_currency=usd&per_page=250"
-                                             f"&ids={','.join(ids[i:i + IDS_PER_CALL])}") or []
-        except (httpx.HTTPError, ValueError):
-            logger.exception("layers: coingecko markets by id failed")
-            continue
-        out.update({r["id"]: r for r in rows if isinstance(r, dict) and r.get("id")})
-    return out
+def _launched_at(started: str | None) -> float | None:
+    if not started:
+        return None
+    try:
+        return datetime.fromisoformat(started.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return None
 
 
 async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
     """Un giro: raccoglie le candidate, ne dettaglia fino a DETAILS_PER_RUN."""
     now = now or time.time()
-    llama_rows: list[dict] = []
-    cg_rows: list[dict] = []
+    tags: list[dict] = []
+    tickers: list[dict] = []
+    tvl_by_name: dict[str, float] = {}
     l2beat: dict[str, dict] = {}
     extras: dict[str, dict] = {}
     try:
-        llama_rows = await _fetch_json(client, LLAMA_CHAINS) or []
+        tags = await _fetch_json(client, f"{PAPRIKA}/tags?additional_fields=coins") or []
+        tickers = await _fetch_json(client, f"{PAPRIKA}/tickers?quotes=USD") or []
+    except (httpx.HTTPError, ValueError):
+        logger.exception("layers: coinpaprika lists failed")
+    try:
+        tvl_by_name = llama_tvl(await _fetch_json(client, LLAMA_CHAINS) or [])
     except (httpx.HTTPError, ValueError):
         logger.exception("layers: llama chains failed")
-    for cat in CG_CATEGORIES:
-        await _cg_slot()
-        try:
-            rows = await _fetch_json(
-                client, f"{COINGECKO}/coins/markets?vs_currency=usd&category={cat}"
-                        "&order=market_cap_desc&per_page=250&page=1") or []
-            cg_rows += rows
-        except (httpx.HTTPError, ValueError):
-            logger.exception("layers: coingecko category %s failed", cat)
     try:
         l2beat = l2beat_index(await _fetch_json(client, L2BEAT_SUMMARY) or {})
     except (httpx.HTTPError, ValueError):
@@ -389,68 +359,48 @@ async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
     mexc = await _fetch_cex(client, MEXC_EXCHANGE_INFO, ("1", "ENABLED"))
     binance = await _fetch_cex(client, BINANCE_EXCHANGE_INFO, ("TRADING",))
 
-    merged: dict[str, dict] = {}
-    llama = llama_candidates(llama_rows)
-    caps = await _caps_by_ids(client, [c["id"] for c in llama]) if llama else {}
-    in_band = {r["id"] for r in cg_candidates(list(caps.values()))}
-    for c in llama:
-        if c["id"] in in_band:
-            merged[c["id"]] = c
-    for c in cg_candidates(cg_rows):
-        merged.setdefault(c["id"], {}).update(c)
-
-    if not merged:
-        # Every list failed (CoinGecko busy): not a finished run, the loop
-        # tries again within the hour. On 01/10 the first run ended here and
-        # was stamped done for a day.
-        logger.warning("layers: no candidates (llama %d, coingecko %d rows), retrying later",
-                       len(llama_rows), len(cg_rows))
+    cands = paprika_candidates(tickers, layer_types(tags))
+    if not cands:
+        # The lists failed: not a finished run, the loop tries again within
+        # the hour. On 01/10 the first run ended here and was stamped done.
+        logger.warning("layers: no candidates (%d tags, %d tickers), retrying later", len(tags), len(tickers))
         return 0
+    for c in cands:
+        c["tvl"] = tvl_by_name.get(c["name"].lower()) or 0
     found = _state.get("found") or {}
-    todo = [c for c in merged.values()
-            if now - (found.get(c["id"], {}).get("at") or 0) >= DETAIL_TTL_S]
-    todo.sort(key=lambda c: (c["id"] in found, -(c.get("tvl") or 0)))
+    todo = [c for c in cands if now - (found.get(c["id"], {}).get("at") or 0) >= DETAIL_TTL_S]
+    # never seen first, then chains with DeFi usage, then by size
+    todo.sort(key=lambda c: (c["id"] in found, -c["tvl"], -c["market_cap"]))
     todo = todo[:DETAILS_PER_RUN]
 
     done = 0
     for c in todo:
-        gid = c["id"]
-        await _cg_slot()
+        cid = c["id"]
         try:
-            coin = await _fetch_json(
-                client, f"{COINGECKO}/coins/{gid}?localization=false&tickers=false"
-                        "&market_data=true&community_data=false&developer_data=true")
+            coin = await _fetch_json(client, f"{PAPRIKA}/coins/{cid}") or {}
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 429:
-                # Not a finished run: the loop tries again within the hour.
-                logger.warning("layers: coingecko 429, stopping run")
+                logger.warning("layers: coinpaprika 429, stopping run")
                 return done
-            logger.exception("layers: coingecko detail %s failed", gid)
+            logger.exception("layers: coinpaprika detail %s failed", cid)
             continue
         except (httpx.HTTPError, ValueError):
-            logger.exception("layers: coingecko detail %s failed", gid)
+            logger.exception("layers: coinpaprika detail %s failed", cid)
             continue
-        layer_type, why = classify(coin, l2beat)
+        layer_type, why = classify(c, coin, l2beat)
         if layer_type is None:
-            found[gid] = {"at": now, "type": None, "score": 0, "status": "rejected", "why": why, "cex": None}
+            found[cid] = {"at": now, "type": None, "score": 0, "status": "rejected", "why": why, "cex": None}
             _state["found"] = found
             _save()
             continue
-        md = coin.get("market_data") or {}
-        cap = (md.get("market_cap") or {}).get("usd") or 0
-        symbol = (coin.get("symbol") or "").upper()
-        name = coin.get("name") or ""
+        cap = c["market_cap"]
+        symbol = c["symbol"]
+        name = c["name"]
         links = coin.get("links") or {}
-        repos = (links.get("repos_url") or {}).get("github") or []
-        launched_at = None
-        gd = coin.get("genesis_date")
-        if gd:
-            try:
-                launched_at = datetime.fromisoformat(gd).timestamp()
-            except ValueError:
-                launched_at = None
+        repos = [u for u in links.get("source_code") or [] if "github.com" in (u or "")]
+        launched_at = _launched_at(coin.get("started_at"))
         ex = extras.get(name.lower()) or {}
-        tvl = c.get("tvl") or 0
+        tvl = c["tvl"]
         tvl_30d = 0.0
         if tvl:
             try:
@@ -463,22 +413,20 @@ async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
         try:
             gh = await depth.analyze_github(repos, client, launched_at)
         except Exception:
-            logger.exception("layers: github %s failed", gid)
+            logger.exception("layers: github %s failed", cid)
             gh = depth.missing_github("github analysis failed")
-        if gh.get("facts") is not None:
-            gh["facts"]["commit_count_4_weeks"] = (coin.get("developer_data") or {}).get("commit_count_4_weeks")
         pillars.append(gh)
-        item = {"chain": CHAIN, "token_address": gid, "symbol": symbol, "name": name,
-                "image": _image(coin), "description": (coin.get("description") or {}).get("en") or "",
-                "website": legit.pick_website(links.get("homepage") or []),
+        item = {"chain": CHAIN, "token_address": cid, "symbol": symbol, "name": name,
+                "image": coin.get("logo") or "", "description": coin.get("description") or "",
+                "website": legit.pick_website(links.get("website") or []),
                 "github": repos[0] if repos else "", "market_cap": cap, "launched_at": launched_at}
         try:
             site_pillar, _ = await research.analyze(item, client, launched_at)
         except Exception:
-            logger.exception("layers: site %s failed", gid)
+            logger.exception("layers: site %s failed", cid)
             site_pillar = depth._pending("site", "site analysis failed")
         pillars.append(site_pillar)
-        pillars.append(score_tokenomics(coin))
+        pillars.append(score_tokenomics(c))
         pillars.append(score_traction(cap, tvl, tvl_30d, ex.get("stables_usd") or 0,
                                       ex.get("fees_30d") or 0, l2beat.get(name.lower())))
         fatal = next((p.get("fatal") for p in pillars if p.get("fatal")), "")
@@ -487,11 +435,11 @@ async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
         flags = []
         if cex is None:
             flags.append("no USDT pair on MEXC/Binance")
-        cats = [layer_type] + [str(x) for x in (coin.get("categories") or [])]
+        cats = [layer_type] + [str(t.get("name")) for t in coin.get("tags") or [] if t.get("name")]
         status = "rejected" if fatal else "studied"
         try:    # one bad row must not end the run (01/10: a dict image did)
-            projects_db.upsert({**item, "cg_id": gid, "categories": cats}, "layers", now)
-            projects_db.record({**item, "cg_id": gid, "pillars": pillars,
+            projects_db.upsert({**item, "categories": cats}, "layers", now)
+            projects_db.record({**item, "pillars": pillars,
                                 "overall": {"score": score, "layer": layer_type, "cex": cex, "flags": flags}},
                                status, fatal, score=score,
                                traction={"tvl": tvl, "tvl_30d": tvl_30d,
@@ -499,10 +447,10 @@ async def run(client: httpx.AsyncClient, now: float | None = None) -> int:
                                          "fees_30d": ex.get("fees_30d") or 0,
                                          "l2beat": l2beat.get(name.lower()) or {}}, now=now)
         except Exception:
-            logger.exception("layers: database write for %s failed", gid)
+            logger.exception("layers: database write for %s failed", cid)
             continue
-        found[gid] = {"at": now, "type": layer_type, "score": score, "status": status,
-                      "why": fatal, "cex": cex}
+        found[cid] = {"at": now, "type": layer_type, "score": score, "status": status,
+                      "why": fatal, "cex": cex, "symbol": symbol, "name": name, "cap": cap}
         _state["found"] = found
         _save()
         done += 1
