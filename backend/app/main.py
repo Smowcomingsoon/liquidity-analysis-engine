@@ -1612,17 +1612,24 @@ async def lifespan(app: FastAPI):
     t4 = asyncio.create_task(_weekly_recap_loop())
     background.append(asyncio.create_task(_telegram_chat_loop()))
     background.append(asyncio.create_task(_deepseek_recap_loop()))
-    background.append(asyncio.create_task(deepseek_studies.studies_loop()))
     t5 = asyncio.create_task(_watchdog_loop())
     onchain_leaderboard.set_top_source(_top_entries)
-    # Gem research (leaderboard, outcomes, layers, weekly re-check) always;
-    # trading, strategies and the Meme Sniper only with onchain_trading_enabled
-    # (Lorenzo, 07/10: off).
-    radar_tasks = [asyncio.create_task(onchain_leaderboard.leaderboard_loop()),
-                   asyncio.create_task(onchain_deep_recheck.sweep_loop(
-                       lambda: [f"{e['chain']}:{e['token_address']}" for e in _top_entries(50)])),
-                   asyncio.create_task(onchain_outcomes.outcomes_loop()),
-                   asyncio.create_task(onchain_layers.layers_loop())] if settings.onchain_radar_enabled else []
+    # Gem research (leaderboard, outcomes, layers, weekly re-check, studies):
+    # one run at 22:00 with onchain_nightly_enabled (Lorenzo, 07/10: "tutto in
+    # una tranche a fine serata"), the old loops otherwise. Trading,
+    # strategies and the Meme Sniper only with onchain_trading_enabled (off).
+    from app.trading.onchain import nightly as onchain_nightly
+    research = {
+        "nightly": lambda: onchain_nightly.nightly_loop(lambda: _top_entries(50)),
+        "leaderboard": onchain_leaderboard.leaderboard_loop,
+        "sweep": lambda: onchain_deep_recheck.sweep_loop(
+            lambda: [f"{e['chain']}:{e['token_address']}" for e in _top_entries(50)]),
+        "outcomes": onchain_outcomes.outcomes_loop,
+        "layers": onchain_layers.layers_loop,
+        "studies": deepseek_studies.studies_loop,
+    }
+    radar_tasks = [asyncio.create_task(research[name]()) for name in
+                   onchain_nightly.loop_plan(settings.onchain_radar_enabled, settings.onchain_nightly_enabled)]
     if settings.onchain_radar_enabled and trading:
         radar_tasks += [asyncio.create_task(onchain_radar.radar_loop()),
                         asyncio.create_task(onchain_listings.listings_loop()),
@@ -4188,7 +4195,8 @@ async def onchain_top(n: int = 15, narrative: str = "", user: User = Depends(aut
         out = _top_entries(max(1, min(int(n), 50)), narrative)
         for e in out:
             e["backtests"] = None
-        return {"entries": out, "on_board": sum(1 for e in out if e["on_board"]), "backtests": None}
+        return {"entries": out, "on_board": sum(1 for e in out if e["on_board"]), "backtests": None,
+                "early": onchain_leaderboard.board().get("early") or []}
     out = []
     for e in _top_entries(50, narrative):
         e["backtests"] = _lab_summary(onchain_strategy_lab.get(e["chain"], e["token_address"]))
@@ -4246,7 +4254,7 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
     if want:
         board = [e for e in board if _narr_keys(e.get("narratives")) & want]
     out = [{**{k: e.get(k) for k in ("chain", "token_address", "pair_address", "pair_url", "symbol", "name", "image",
-                                     "market_cap", "liquidity_usd", "change_24h", "launched_at", "score", "early")},
+                                     "market_cap", "liquidity_usd", "change_24h", "launched_at", "score", "early", "usage")},
             "on_board": True} for e in board if not onchain_leaderboard.no_name(e.get("symbol"))]
     seen = {f"{e['chain']}:{e['token_address']}" for e in out}
     cutoff = time.time() - 30 * 86400
@@ -4280,6 +4288,16 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
         # (projects_db.sync_top), so the Database no longer contradicts the Top.
         if (row.get("why") or "").startswith("DeepSeek"):
             continue
+        # The board's usage bars hold here too (Lorenzo, 07/10): volume, trades,
+        # buyers, holders and the $300k floor, the same as usage_gate on the
+        # board; the score is recomputed with today's formula. Layer chains
+        # trade on exchanges, not DEX pools: their own band below.
+        score = row.get("score")
+        if row["chain"] != onchain_layers.CHAIN:
+            entry = {**onchain_leaderboard.db_entry(row), "global_cap": row.get("cg_mcap")}
+            if onchain_leaderboard.usage_gate(entry):
+                continue
+            score = onchain_leaderboard.final_score(entry)
         # Layer chains (layers.py) have no DEX pool: their pool is the
         # exchange pair, and the gem ceiling does not apply to them.
         pair_address = None
@@ -4296,7 +4314,8 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
                     "pair_url": None,
                     "symbol": row.get("symbol"), "name": row.get("name"), "image": row.get("image"),
                     "market_cap": row.get("mcap"), "liquidity_usd": row.get("liq"), "change_24h": None,
-                    "launched_at": row.get("launched_at"), "score": row.get("score"), "early": None, "on_board": False})
+                    "launched_at": row.get("launched_at"), "score": score, "early": None, "on_board": False,
+                    "usage": onchain_leaderboard.usage.latest(row["chain"], row["token"])})
     out.sort(key=lambda e: -(e.get("score") or 0))
     return out[:n]
 

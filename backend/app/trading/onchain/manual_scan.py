@@ -29,6 +29,7 @@ from urllib.parse import quote
 
 import httpx
 
+from app.config import settings
 from app.notify import deepseek_desk
 from app.trading.onchain import (ai_scan, alert_track, code_review, depth, judge, leaderboard, legit, outcomes,
                                  projects_db, research, rug_memory, scout_recheck, strategy_lab)
@@ -173,6 +174,9 @@ def add(chain: str, token: str, now: float | None = None) -> dict:
     leaderboard._gone.pop(k, None)
     fresh = leaderboard.add(dict(item), "manual", now)
     projects_db.recheck(chain, token)
+    if settings.onchain_nightly_enabled:
+        # No tick until 22:00 (nightly.py): the project is studied now.
+        leaderboard.analyze_now(chain, token)
     deepseek_desk.note("manual", f"Added {item.get('symbol')} to the Gem Finder by hand",
                        symbol=item.get("symbol"), chain=chain)
     return {"added": True, "new": fresh, "gem": gem_view(item, now)}

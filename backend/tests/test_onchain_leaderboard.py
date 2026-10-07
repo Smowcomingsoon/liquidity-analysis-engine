@@ -234,13 +234,13 @@ def test_weak_pillar_and_gem_rule():
     assert lb.qualifies(vetoed).startswith("DeepSeek")
 
 
-def test_above_2m_needs_a_high_final_score():
+def test_above_2m_no_score_band():
     """Lorenzo, 29/09: "alziamo semmai il tetto della market cap sopra i
     100k, perche' tanto le gemme possono arrivare anche a 1 o 2 milioni".
-    From $2M to the $10M ceiling the final score must reach BIG_MIN_SCORE;
-    age is never a reason, and radar exceptions no longer exist."""
+    Since 07/10 the $2M score band is gone: usage decides (usage_gate), and
+    age is never a reason."""
     mid = _entry("MIDCAP", 75, 65, 62, cap=3_000_000, age_days=88, source="database")
-    assert lb.qualifies(mid).startswith("above $2M with score")
+    assert lb.qualifies(mid) == ""
     assert lb.qualifies(_entry("STRONG", 95, 95, 95, cap=3_000_000, age_days=900, source="database")) == ""
     assert lb.qualifies(_entry("HUGE", 99, 99, 99, cap=12_000_000, age_days=88)).startswith("over $10M")
     assert next(x for x in lb.board()["entries"] if x["symbol"] == "STRONG")["exception"] is True
@@ -318,13 +318,14 @@ def test_the_board_is_by_score_and_dregg_keeps_only_its_honor():
     assert dregg["benchmark"] and dregg["honor"]
 
 
-def test_similarity_lifts_a_dregg_like_project():
+def test_similarity_is_a_label_not_points():
+    """07/10: DREGG's likeness no longer lifts the score; better pillars win."""
     plain = _entry("PLAIN", 80, 80, 80)
     like = _entry("LIKE", 78, 78, 78)
     lb.apply_analysis(lb._key("solana", "LIKEmint"),
                       {"github": {"key": "github", "score": 78, "facts": DREGG_GITHUB, "flags": [], "fatal": ""}})
-    assert lb.final_score(like) > lb.final_score(plain)
-    assert [e["symbol"] for e in lb.board()["entries"]][:2] == ["LIKE", "PLAIN"]
+    assert lb.final_score(like) < lb.final_score(plain)
+    assert [e["symbol"] for e in lb.board()["entries"]][:2] == ["PLAIN", "LIKE"]
 
 
 def test_benchmark_is_never_excluded():

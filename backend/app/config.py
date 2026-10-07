@@ -55,6 +55,15 @@ class Settings(BaseSettings):
     # trading deve sparire". False stops their loops and hides them in the
     # app; saved data stays in backend/data. The gem research keeps running.
     onchain_trading_enabled: bool = False
+    # The gem research (discovery, pillars, DeepSeek readings, layers,
+    # outcomes, weekly re-check, studies) in one run a night instead of loops
+    # around the clock (app/trading/onchain/nightly.py). Lorenzo, 07/10: "non
+    # lasciare sempre in ascolto il bot [...] tutto in una tranche a fine
+    # serata". Hour in Europe/Rome; the run stops when the queue is empty or
+    # after max_hours. False: the old loops, as before.
+    onchain_nightly_enabled: bool = True
+    onchain_nightly_hour: int = 22
+    onchain_nightly_max_hours: float = 2.0
     # La memoria degli esiti (app/trading/onchain/outcomes.py) scarta un token
     # che somiglia ai rug passati, solo quando il modello prevede i rug fuori
     # campione. Vale anche per il pilota con soldi veri, che usa lo stesso

@@ -195,9 +195,29 @@ function paint() {
     : "")) + (TRADING ? ' <button type="button" class="top-narr-clear" data-top-wallet>$10k wallet on these trades →</button>' : "");
 }
 
-// Without trading: the pool's liquidity, what tells a tradeable project.
+// Without trading: measured usage (usage.py), what put the project here.
 function marketSub(e) {
-  return e.liquidity_usd != null ? `Liquidity ${usdShort(e.liquidity_usd)}` : "";
+  const u = e.usage ?? {};
+  const vol = u.vol_7d_avg ?? u.vol_24h;
+  const parts = [vol != null ? `Vol ${usdShort(vol)}/day` : null,
+    u.holders != null ? `${Number(u.holders).toLocaleString("en-US")} holders` : null];
+  const line = parts.filter(Boolean).join(" · ");
+  return line || (e.liquidity_usd != null ? `Liquidity ${usdShort(e.liquidity_usd)}` : "");
+}
+
+function paintEarly(list) {
+  const box = root.querySelector("[data-top-early]");
+  if (!box) return;
+  box.hidden = !list.length;
+  box.querySelector("ol").innerHTML = list.map((e) => {
+    const id = `gem:${e.chain}:${e.token_address}`;
+    register(id, { kind: "gem", symbol: e.symbol, name: e.name, chain: e.chain, token: e.token_address, pair: e.pair_address,
+      pairUrl: e.pair_url, image: e.image, cap: e.market_cap, change: e.change_24h != null ? e.change_24h / 100 : null,
+      ageTs: e.launched_at, context: `Early · score ${Math.round(e.score ?? 0)}` });
+    return tokenRow({ id, symbol: e.symbol, name: e.name || e.symbol, chain: e.chain, token: e.token_address,
+      image: e.image, cap: e.market_cap, change: e.change_24h != null ? e.change_24h / 100 : null, ageTs: e.launched_at,
+      score: e.score, badge: "early", sub: marketSub(e) });
+  }).join("");
 }
 
 // The H24 lab's best backtest (strategy_lab.py), in the row: what the
@@ -223,6 +243,7 @@ async function load() {
     entries = top?.entries ?? [];
     labStatus = top?.backtests ?? null;
     paint();
+    paintEarly(top?.early ?? []);
   } catch {
     // Keep the last list; with none yet, the cube says the next poll retries.
     const wait = root.querySelector(".top-wait");

@@ -2537,5 +2537,17 @@
     "at": 1791359284,
     "summary": "Superata il 07/10: Lorenzo ha tolto dall'app trading e strategie automatiche (seed-0250).",
     "detail": ""
+  },
+  "seed-0251": {
+    "status": "risolto",
+    "at": 1791360817,
+    "summary": "In Top entrano solo progetti usati davvero: ogni giorno si misurano volume (media 7 giorni), transazioni, compratori distinti e holder; servono cap almeno $300k, volume almeno $25k al giorno e 1% della cap, 100 transazioni e 30 compratori al giorno, 500 holder non in calo, primi 10 wallet sotto il 40%. Sotto $300k i progetti buoni vanno nella lista Early in fondo alla Top, mai sul podio. Il punteggio pesa uso 30, partecipazione 20, prodotto 25, token 15, DeepSeek 10; la somiglianza a DREGG e le narrative non danno piu' punti. DeepSeek legge i numeri d'uso e rigiudica tutti. Clawville World ($712 al giorno, 2 compratori, 245 holder) resta fuori.",
+    "detail": "backend/app/trading/onchain/usage.py (misure e storico), leaderboard.py (usage_gate, early_list, score_blocks, final_score, warm_usage), judge.py (PROMPT_VERSION 9, usage_line, CHECK_RULES), main.py (_top_entries), frontend/static/onchain/top.js (lista Early). Test: tests/test_usage.py, tests/test_usage_gates.py."
+  },
+  "seed-0252": {
+    "status": "risolto",
+    "at": 1791360817,
+    "summary": "La ricerca delle gemme gira una volta a sera alle 22:00 (ora italiana), per al massimo 2 ore: analisi, misure d'uso, layer, esiti e ricontrollo settimanale della Top, poi un messaggio Telegram in italiano con chi e' entrato e uscito dalla Top. Di giorno restano immediati lo scanner manuale e il ricontrollo DeepSeek di un token. Prezzi e cap della classifica si aggiornano la sera.",
+    "detail": "backend/app/trading/onchain/nightly.py, settings onchain_nightly_enabled/hour/max_hours, main.py lifespan (loop_plan). Test: tests/test_nightly.py."
   }
 }

@@ -75,3 +75,19 @@ def _private_history(monkeypatch, tmp_path):
     monkeypatch.setattr(history, "_FILE", tmp_path / "onchain_history.jsonl")
     yield
 
+
+
+@pytest.fixture(autouse=True)
+def _usage_open(request, monkeypatch):
+    """The board tests predate the usage gates (07/10): they see every token as
+    used. Tests marked usage_gates measure the gates themselves."""
+    if request.node.get_closest_marker("usage_gates"):
+        yield
+        return
+    from app.trading.onchain import leaderboard
+    monkeypatch.setattr(leaderboard, "usage_gate", lambda e, cap_floor=True: "")
+    yield
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "usage_gates: run with the real usage gates")
