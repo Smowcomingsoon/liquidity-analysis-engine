@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-engn-ui="app">
+<html lang="en" data-engn-ui="app" data-trading="off">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -1758,7 +1758,9 @@
   #app-shell:not([data-view="entry"]) #entry,
   /* Gems is research only; the live launch scanner lives with the Meme
      Sniper (Lorenzo, 25/09: "la ricerca al minuto deve stare sullo sniper"). */
-  #app-shell:not([data-view="gems"]) :is(#board, #projects),
+  #app-shell:not([data-view="gems"]) :is(#board, #projects, #gem-scan),
+  :root[data-trading="off"] [data-trading-only],
+  :root:not([data-trading="off"]) #gem-scan,
   #app-shell:not([data-view="meme"]) #signals,
   #app-shell:not([data-view="top"]) #track,
   #app-shell :is(#meme-alerts, #memes, #pilot, #radar, #leaders),
@@ -2731,6 +2733,11 @@
            come posizione deve essere piu' in risalto [...] e' l'unica cosa
            che conta". DREGG sta primo come metro di paragone. La disegna
            static/onchain/leaderboard.js. -->
+      <!-- The scanner (manual_scan.py): a ticker or an address through every
+           check. It lived in Signals, gone with trading (Lorenzo, 07/10). -->
+      <form class="scan-form" id="gem-scan" data-scan-form role="search">
+        <input name="q" placeholder="Scan a token: ticker or address" autocomplete="off" spellcheck="false" aria-label="Ticker or address" readonly />
+        <button type="submit" aria-label="Scan"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></button></form>
       <section class="board" id="board" data-pane="gems:rankings" data-loading>
         <p class="gem-banner" role="note"><b>Research, not advice.</b> Code, site and tokenomics scored 24/7. DYOR before you buy.</p>
         <header><h3>Leaderboard</h3><span data-board-meta></span></header>
@@ -2958,9 +2965,9 @@
        il menu "⋯" che passava da una vista all'altra. -->
   <nav class="dock" id="dock" aria-label="Sections" hidden>
     <span class="dock-thumb" aria-hidden="true"></span>
-    <button type="button" data-go="meme" aria-label="Signals"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 5 12 2.5-6h4"/></svg><span>Signals</span></button>
+    <button type="button" data-go="meme" aria-label="Signals" data-trading-only><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 5 12 2.5-6h4"/></svg><span>Signals</span></button>
     <button type="button" data-go="gems" aria-label="Gems"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="10" r="6"/><path d="M15.2 8.4a6 6 0 1 1-6.8 8.3"/></svg><span>Gems</span></button>
-    <button type="button" data-go="top" aria-label="Track record"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="m8.5 12.2 2.4 2.4 4.6-5"/></svg><span>Record</span></button>
+    <button type="button" data-go="top" aria-label="Track record" data-trading-only><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="m8.5 12.2 2.4 2.4 4.6-5"/></svg><span>Record</span></button>
     <button type="button" data-go="agent" aria-label="Scout"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg><span>Scout</span></button>
     <button type="button" data-go="profile" aria-label="Profile"><i class="dock-me" data-me-avatar aria-hidden="true"></i><span>Profile</span></button>
   </nav>

@@ -11,7 +11,7 @@
 import * as api from "@onchain/api.js";
 import { register } from "@onchain/detail.js";
 import { isHidden, onHiddenChange, withEntrance } from "@onchain/hidden.js";
-import { escapeHtml, tile, tokenRow } from "@onchain/format.js";
+import { escapeHtml, tile, tokenRow, usdShort } from "@onchain/format.js";
 import { renderPodium } from "@onchain/podium.js";
 import { shownSummary } from "@onchain/lab-shown.js";
 import * as narr from "@onchain/narrative_pick.js";
@@ -19,6 +19,8 @@ import { disintegrate } from "@onchain/particles.js";
 import "@onchain/motion.js";
 
 const POLL_MS = 30_000;
+// Trading off (Lorenzo, 07/10): rows show the market, not a backtest.
+const TRADING = document.documentElement.dataset.trading === "on";
 const SIZES = [15, 25, 50];
 
 let root = null;
@@ -143,7 +145,7 @@ function paint() {
       ageTs: e.launched_at, rank: i + 1, context: `Rank #${i + 1} · score ${Math.round(e.score ?? 0)}` });
     return tokenRow({ id, symbol: e.symbol, name: `${i + 1}. ${e.name || e.symbol}`, chain: e.chain, token: e.token_address,
       image: e.image, cap: e.market_cap, change: e.change_24h != null ? e.change_24h / 100 : null, ageTs: e.launched_at,
-      score: e.score, badge: e.early ? "early" : null, sub: btSub(e.backtests) });
+      score: e.score, badge: e.early ? "early" : null, sub: TRADING ? btSub(e.backtests) : marketSub(e) });
   }).join("") : `<li class="muted pad">The board is filling up: projects appear as they pass the checks.</li>`;
   // The motion kit's score meter under each row (design/engn-motion-kit).
   root.querySelectorAll("[data-top-rows] > li.trow").forEach((li, i) => {
@@ -190,7 +192,12 @@ function paint() {
     : "";
   root.querySelector("[data-top-note]").innerHTML = narrLine + escapeHtml(lead + (bt?.total
     ? `Every strategy backtested on each token's latest chart, every hour, around the clock · ${bt.ready}/${bt.total} ready`
-    : "")) + ' <button type="button" class="top-narr-clear" data-top-wallet>$10k wallet on these trades →</button>';
+    : "")) + (TRADING ? ' <button type="button" class="top-narr-clear" data-top-wallet>$10k wallet on these trades →</button>' : "");
+}
+
+// Without trading: the pool's liquidity, what tells a tradeable project.
+function marketSub(e) {
+  return e.liquidity_usd != null ? `Liquidity ${usdShort(e.liquidity_usd)}` : "";
 }
 
 // The H24 lab's best backtest (strategy_lab.py), in the row: what the

@@ -163,7 +163,7 @@ function paintHero() {
   if (today) today.textContent = chips();
   const prio = viewEl.querySelector("[data-ag-prio]");
   if (prio) {
-    const p = viewData?.priority;
+    const p = document.documentElement.dataset.trading === "on" ? viewData?.priority : null;
     if (p) {
       const total = (p.total ?? 0) - (p.no_data ?? 0);
       prio.textContent = `Priority: Strategies backtests ${p.ready ?? 0}/${total}`;

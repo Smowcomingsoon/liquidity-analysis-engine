@@ -48,6 +48,13 @@ class Settings(BaseSettings):
     # Radar dei token giovani su Solana e Robinhood (app/trading/onchain/radar.py):
     # sola lettura, propone e non compra. A False il giro di fondo non parte.
     onchain_radar_enabled: bool = True
+    # Trading and automatic strategies on the on-chain app: trend follower,
+    # RSI+BB lab, autotrader/pilot, simulated portfolio, Meme Sniper (radar,
+    # listings, sniper agents), swaps, limit orders and TWAP. Lorenzo, 07/10:
+    # "non voglio piu' vedere strategie automatiche [...] questa parte di
+    # trading deve sparire". False stops their loops and hides them in the
+    # app; saved data stays in backend/data. The gem research keeps running.
+    onchain_trading_enabled: bool = False
     # La memoria degli esiti (app/trading/onchain/outcomes.py) scarta un token
     # che somiglia ai rug passati, solo quando il modello prevede i rug fuori
     # campione. Vale anche per il pilota con soldi veri, che usa lo stesso

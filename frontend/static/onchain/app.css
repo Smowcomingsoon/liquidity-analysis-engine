@@ -1415,3 +1415,7 @@ html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { d
 }
 .ask-chip[aria-pressed="true"] { color: var(--k-text); border-color: var(--k-text-3); background: var(--k-surface-2); }
 .ask-sheet.is-speaking .ask-mic { background: var(--k-text); color: var(--k-bg); }
+
+/* Trading off (Lorenzo, 07/10): three places in the bar, and nothing that trades. */
+:root[data-trading="off"] { --dock-w: min(220px, calc(100vw - 96px)); }
+:root[data-trading="off"] [data-trading-only] { display: none !important; }

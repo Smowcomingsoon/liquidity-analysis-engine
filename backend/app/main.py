@@ -1600,34 +1600,41 @@ async def lifespan(app: FastAPI):
     # reconciler was one) and nothing cancelled it at shutdown.
     background = [asyncio.create_task(_notify_deploy()),
                   asyncio.create_task(_onchain_reconcile_loop())]
-    from app.trading.onchain import twap_jobs as onchain_twap_jobs_resume
-    background.append(asyncio.create_task(onchain_twap_jobs_resume.resume_running_twap_jobs()))
+    trading = settings.onchain_trading_enabled
+    if trading:
+        from app.trading.onchain import twap_jobs as onchain_twap_jobs_resume
+        background.append(asyncio.create_task(onchain_twap_jobs_resume.resume_running_twap_jobs()))
     t1 = asyncio.create_task(_watchlist_alert_loop())
-    t6 = asyncio.create_task(limit_order_loop())
-    t7 = asyncio.create_task(_sniper_onchain_bridge_loop())
+    if trading:
+        background += [asyncio.create_task(limit_order_loop()),
+                       asyncio.create_task(_sniper_onchain_bridge_loop()),
+                       asyncio.create_task(_ai_scan_loop())]
     t4 = asyncio.create_task(_weekly_recap_loop())
     background.append(asyncio.create_task(_telegram_chat_loop()))
     background.append(asyncio.create_task(_deepseek_recap_loop()))
     background.append(asyncio.create_task(deepseek_studies.studies_loop()))
-    background.append(asyncio.create_task(_ai_scan_loop()))
     t5 = asyncio.create_task(_watchdog_loop())
     onchain_leaderboard.set_top_source(_top_entries)
-    radar_tasks = [asyncio.create_task(onchain_radar.radar_loop()),
-                   asyncio.create_task(onchain_listings.listings_loop()),
-                   asyncio.create_task(onchain_radar.listings_backtest_loop()),
-                   asyncio.create_task(onchain_leaderboard.leaderboard_loop()),
+    # Gem research (leaderboard, outcomes, layers, weekly re-check) always;
+    # trading, strategies and the Meme Sniper only with onchain_trading_enabled
+    # (Lorenzo, 07/10: off).
+    radar_tasks = [asyncio.create_task(onchain_leaderboard.leaderboard_loop()),
                    asyncio.create_task(onchain_deep_recheck.sweep_loop(
                        lambda: [f"{e['chain']}:{e['token_address']}" for e in _top_entries(50)])),
                    asyncio.create_task(onchain_outcomes.outcomes_loop()),
-                   asyncio.create_task(onchain_backtest_lab.lab_loop()),
-                   asyncio.create_task(onchain_strategy_lab.lab_loop(_top_entries)),
-                   asyncio.create_task(onchain_candle_archive.archive_loop(lambda: _top_entries(50))),
-                   asyncio.create_task(onchain_ladder_watch.watch_loop()),
-                   asyncio.create_task(onchain_layers.layers_loop()),
-                   asyncio.create_task(_onchain_signals_loop()),
-                   asyncio.create_task(_wealth_loop())] if settings.onchain_radar_enabled else []
+                   asyncio.create_task(onchain_layers.layers_loop())] if settings.onchain_radar_enabled else []
+    if settings.onchain_radar_enabled and trading:
+        radar_tasks += [asyncio.create_task(onchain_radar.radar_loop()),
+                        asyncio.create_task(onchain_listings.listings_loop()),
+                        asyncio.create_task(onchain_radar.listings_backtest_loop()),
+                        asyncio.create_task(onchain_backtest_lab.lab_loop()),
+                        asyncio.create_task(onchain_strategy_lab.lab_loop(_top_entries)),
+                        asyncio.create_task(onchain_candle_archive.archive_loop(lambda: _top_entries(50))),
+                        asyncio.create_task(onchain_ladder_watch.watch_loop()),
+                        asyncio.create_task(_onchain_signals_loop()),
+                        asyncio.create_task(_wealth_loop())]
     sniper_tasks: list[asyncio.Task] = []
-    if settings.sniper_enabled:
+    if settings.sniper_enabled and trading:
         from app.sniper import cache as sniper_cache
         from app.sniper import agents as sniper_agents
         from app.sniper.cex_check import enrichment_loop
@@ -1636,8 +1643,6 @@ async def lifespan(app: FastAPI):
         sniper_tasks.extend(await sniper_agents.start_all())
     yield
     t1.cancel()
-    t6.cancel()
-    t7.cancel()
     t4.cancel()
     t5.cancel()
     for t in radar_tasks:
@@ -3089,6 +3094,7 @@ async def onchain_quote_solana(body: OnchainQuoteSolanaRequest, user: User = Dep
     """Preventivo reale via Jupiter — nessuna chiave, nessun impegno a
     eseguire. E' il price_impact_pct che risk.check_price_impact() confronta
     con la soglia prima di qualunque simulazione o (in futuro) ordine vero."""
+    _require_trading()
     _require_onchain_enabled()
     try:
         quote = await onchain_quotes.jupiter_quote(
@@ -3119,6 +3125,7 @@ async def onchain_quote_robinhood(
     $MYCEL, ha trovato "nessun pool" quando in realta' il pool c'era, su
     un altro tier. find_pool_and_fee() li prova tutti, provando prima
     quello passato (se il chiamante lo conosce gia')."""
+    _require_trading()
     _require_onchain_enabled()
     found = None
     try:
@@ -3442,6 +3449,7 @@ async def create_limit_order(body: LimitOrderCreateRequest, user: User = Depends
     feed della hero) senza dipendere da DexScreener, che non indicizza
     Robinhood Chain — un ordine su due token entrambi non nativi non
     avrebbe un prezzo da confrontare col target."""
+    _require_trading()
     _require_onchain_enabled()
     if body.chain not in user.onchain_wallets:
         raise HTTPException(status_code=400, detail=f"No {body.chain} wallet for this user.")
@@ -3469,6 +3477,7 @@ async def create_limit_order(body: LimitOrderCreateRequest, user: User = Depends
 
 @app.get("/api/onchain/limit-orders/{chain}")
 async def list_limit_orders(chain: str, user: User = Depends(auth.get_current_user)) -> list[dict]:
+    _require_trading()
     return onchain_ledger.list_limit_orders(user.id, chain)
 
 
@@ -3639,6 +3648,7 @@ async def onchain_simulate_order(body: OnchainSimulateRequest, user: User = Depe
     impact, concentrazione, circuit breaker, allowlist pool se pool_address
     e' passato), ma mode='simulated' nel ledger — nessuna chiave letta,
     nessuna transazione, mai."""
+    _require_trading()
     _require_onchain_enabled()
     result = await onchain_simulate.simulate_order(
         user.id, body.chain, body.token, body.strategy_name, body.side,
@@ -3687,6 +3697,7 @@ async def onchain_execute_solana(
     principale (es. dal frontend/sniper) lo passa lui, e allowlist + size
     dinamica lo usano; se non lo passa, il comportamento resta quello di
     prima (nessuna riduzione, nessun controllo di allowlist)."""
+    _require_trading()
     _require_onchain_enabled()
     if "solana" not in user.onchain_wallets:
         raise HTTPException(status_code=400, detail="No Solana wallet for this user.")
@@ -3742,6 +3753,7 @@ async def onchain_execute_robinhood(
     quindi l'allowlist pool fallirebbe chiusa su ogni ordine per un dato
     che nessuna fonte reale puo' dare oggi — non e' un buco nascosto, e'
     la stessa scelta "mai fabbricare dati" del resto del modulo."""
+    _require_trading()
     _require_onchain_enabled()
     if "robinhood" not in user.onchain_wallets:
         raise HTTPException(status_code=400, detail="No Robinhood Chain wallet for this user.")
@@ -3864,6 +3876,7 @@ async def onchain_execute_twap(
     che persiste il job PRIMA di firmare la prima fetta. Il quote di ogni
     fetta e' costruito qui (mai dal client) scalando gli importi totali
     proporzionalmente alla size della fetta."""
+    _require_trading()
     _require_onchain_enabled()
     if body.chain not in user.onchain_wallets:
         raise HTTPException(status_code=400, detail=f"No {body.chain} wallet for this user.")
@@ -3967,6 +3980,7 @@ class SniperAutotradeRequest(BaseModel):
 
 @app.get("/api/onchain/sniper-autotrade")
 async def get_sniper_autotrade(user: User = Depends(auth.get_current_user)) -> dict:
+    _require_trading()
     return {"chains": user.sniper_autotrade_chains}
 
 
@@ -3978,6 +3992,7 @@ async def set_sniper_autotrade(
     watchlist con la strategia di Lorenzo attiva — vedi
     _sniper_onchain_bridge_loop. Spento di default per ogni utente,
     acceso solo qui, mai da un default globale."""
+    _require_trading()
     if chain not in user.onchain_wallets:
         raise HTTPException(status_code=400, detail=f"No {chain} wallet for this user — create it first.")
     updated = auth.set_sniper_autotrade_chain(user.id, chain, body.enabled)
@@ -4046,6 +4061,7 @@ _PILOT_OUTCOME_WORDS = {"eseguito": "executed", "saltato": "skipped", "fallito":
 async def onchain_radar_view(user: User = Depends(auth.get_current_user)) -> dict:
     """Token giovani su Solana e Robinhood che una strategia dell'archivio
     avrebbe tradato bene. Proposte, non ordini: vedi app/trading/onchain/radar.py."""
+    _require_trading()
     _require_onchain_enabled()
     snap, gone = onchain_radar.snapshot(), onchain_outcomes.shamed()
     return {**snap, "proposals": onchain_outcomes.without_shamed(snap.get("proposals") or [], gone),
@@ -4064,6 +4080,7 @@ async def onchain_radar_feed(user: User = Depends(auth.get_current_user)) -> dic
     300 listings and 500 rejections with every check attached: megabytes the
     phone had to fetch inside the 8 s client timeout, so the tab stayed empty.
     Here: the newest decisions the feed can show, plus the 24h counts."""
+    _require_trading()
     _require_onchain_enabled()
     snap, gone = onchain_radar.snapshot(), onchain_outcomes.shamed()
     listings = onchain_outcomes.without_shamed(onchain_listings.recent(), gone)
@@ -4085,6 +4102,7 @@ async def onchain_radar_feed(user: User = Depends(auth.get_current_user)) -> dic
 async def onchain_radar_lessons(user: User = Depends(auth.get_current_user)) -> dict:
     """Cosa e' successo davvero ai token proposti e scartati, e quali
     controlli lo prevedevano. Vedi app/trading/onchain/outcomes.py."""
+    _require_trading()
     _require_onchain_enabled()
     return {**onchain_outcomes.lessons(), "gate": settings.onchain_memory_gate}
 
@@ -4113,6 +4131,7 @@ async def onchain_narratives_coverage(user: User = Depends(auth.get_current_user
 async def onchain_lab(user: User = Depends(auth.get_current_user)) -> dict:
     """Cosa dicono i backtest di tutti i token passati dal diario, anche
     quelli scartati. Vedi app/trading/onchain/backtest_lab.py."""
+    _require_trading()
     _require_onchain_enabled()
     return onchain_backtest_lab.summary()
 
@@ -4122,6 +4141,7 @@ async def onchain_radar_memes(user: User = Depends(auth.get_current_user)) -> di
     """La corsia meme: token scartati per nome, sito o GitHub, non per
     sicurezza, ordinati per somiglianza alle salite vere gia' viste. Gioco
     d'azzardo, e lo dice. Solo lettura: il pilota non li compra."""
+    _require_trading()
     _require_onchain_enabled()
     return {**onchain_outcomes.meme_board(), "study": onchain_outcomes.study()}
 
@@ -4162,6 +4182,13 @@ async def onchain_top(n: int = 15, narrative: str = "", user: User = Depends(aut
     the database. Now the board entries and the best studied rows are
     merged by score; DeepSeek's veto still keeps junk out."""
     _require_onchain_enabled()
+    if not settings.onchain_trading_enabled:
+        # Strategies are off (Lorenzo, 07/10): the Top is the research ranking
+        # alone, with no backtest beside it and none required to enter.
+        out = _top_entries(max(1, min(int(n), 50)), narrative)
+        for e in out:
+            e["backtests"] = None
+        return {"entries": out, "on_board": sum(1 for e in out if e["on_board"]), "backtests": None}
     out = []
     for e in _top_entries(50, narrative):
         e["backtests"] = _lab_summary(onchain_strategy_lab.get(e["chain"], e["token_address"]))
@@ -4202,6 +4229,12 @@ def _lab_summary(bt: dict | None) -> dict | None:
 def _narr_keys(raw) -> set[str]:
     """Narrative keys from a list of keys or of {"key": ...} dicts."""
     return {n.get("key") if isinstance(n, dict) else n for n in raw or []}
+
+
+def _require_trading() -> None:
+    """Trading endpoints answer 404 while trading is off (Lorenzo, 07/10)."""
+    if not settings.onchain_trading_enabled:
+        raise HTTPException(status_code=404, detail="Trading is switched off.")
 
 
 def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
@@ -4292,8 +4325,9 @@ async def onchain_token(chain: str, token: str, user: User = Depends(auth.get_cu
                 if j else None
             entry["code"] = {k: c.get(k) for k in ("complexity", "innovation", "fork_of", "summary", "strengths",
                                                    "concerns")} if c else None
-    return {"entry": entry, "alerts": onchain_alert_track.for_token(chain, token),
-            "backtests": onchain_strategy_lab.get(chain, token),
+    trading = settings.onchain_trading_enabled
+    return {"entry": entry, "alerts": onchain_alert_track.for_token(chain, token) if trading else [],
+            "backtests": onchain_strategy_lab.get(chain, token) if trading else None,
             "deep": onchain_deep_recheck.get(chain, token),
             "deep_wait_s": onchain_deep_recheck.wait_s(chain, token, limited=guest_links.is_guest(user)),
             "deep_progress": onchain_deep_recheck.progress(chain, token)}
@@ -4417,6 +4451,7 @@ async def onchain_plan_assign(req: PlanAssign, user: User = Depends(auth.get_cur
 async def onchain_radar_stream(user: User = Depends(auth.get_current_user)) -> StreamingResponse:
     """I listing nuovi spinti al browser appena passano le soglie: niente
     attesa del prossimo giro di lettura."""
+    _require_trading()
     _require_onchain_enabled()
     queue = onchain_listings.subscribe()
 
@@ -4649,6 +4684,7 @@ class AutotraderUpdate(BaseModel):
 @app.get("/api/onchain/autotrader")
 async def get_autotrader(user: User = Depends(auth.get_current_user)) -> dict:
     """The system trading the Robinhood wallet: switch, share, position, trades."""
+    _require_trading()
     _require_onchain_enabled()
     return {**onchain_autotrader.view(user.id), "has_wallet": "robinhood" in user.onchain_wallets,
             "server_live": settings.onchain_execution_enabled}
@@ -4701,12 +4737,14 @@ async def _top_wallet() -> dict:
 @app.get("/api/onchain/top/backtest")
 async def top_backtest(user: User = Depends(auth.get_current_user)) -> dict:
     """The Top 50 wallet (_top_wallet). Read only."""
+    _require_trading()
     _require_onchain_enabled()
     return await _top_wallet()
 
 
 @app.patch("/api/onchain/autotrader")
 async def set_autotrader(body: AutotraderUpdate, user: User = Depends(auth.get_current_user)) -> dict:
+    _require_trading()
     _require_onchain_enabled()
     if body.mode in ("sim", "real") and "robinhood" not in user.onchain_wallets:
         raise HTTPException(status_code=400, detail="Create the Robinhood Chain wallet first.")
@@ -5520,6 +5558,7 @@ async def onchain_scan_feed(user: User = Depends(auth.get_current_user)) -> dict
 async def onchain_alerts_view(kind: Literal["meme", "gem"], user: User = Depends(auth.get_current_user)) -> dict:
     """Every Telegram alert and what entering on the message would pay: 1-48h
     checkpoints, live, and the best backtested strategy. See alert_track.py."""
+    _require_trading()
     _require_onchain_enabled()
     out = onchain_alert_track.board(kind)
     if kind == "meme":
@@ -5531,6 +5570,7 @@ async def onchain_alerts_view(kind: Literal["meme", "gem"], user: User = Depends
 @app.get("/api/onchain/ai-review")
 async def onchain_ai_review_view(user: User = Depends(auth.get_current_user)) -> dict:
     """The daily reviewer's lessons (ai_review.py) and its token budget."""
+    _require_trading()
     _require_onchain_enabled()
     reviews = onchain_ai_review._state["reviews"][:7]
     return {"status": onchain_ai_review.status(), "latest": reviews[0] if reviews else None, "history": reviews[1:]}
@@ -5562,6 +5602,7 @@ async def onchain_radar_chart(
     chain: Literal["solana", "robinhood"], pool: str, symbol: str,
     interval: Literal["1m", "5m", "15m", "1h", "4h"] = "15m", user: User = Depends(auth.get_current_user),
 ) -> dict:
+    _require_trading()
     _require_onchain_enabled()
     try:
         payload = await onchain_radar.chart_payload(chain, pool, symbol, interval)
@@ -5591,6 +5632,7 @@ class RadarFollowRequest(BaseModel):
 async def onchain_radar_follow(req: RadarFollowRequest, user: User = Depends(auth.get_current_user)) -> dict:
     """Attiva (o spegne) una strategia su un token del radar: solo alert.
     L'acquisto automatico resta una scelta a parte, del pilota."""
+    _require_trading()
     _require_onchain_enabled()
     if req.strategy_name not in AVAILABLE_STRATEGIES:
         raise HTTPException(status_code=400, detail="Unknown strategy")
@@ -5613,6 +5655,7 @@ async def onchain_pilot_status(chain: OnchainChain, user: User = Depends(auth.ge
     scartato, i token che segue e perche', e — prima di tutto — cosa gli
     impedirebbe di lavorare. Lorenzo: "voglio avere il completo controllo
     di quello che sta succedendo"."""
+    _require_trading()
     _require_onchain_enabled()
     enabled = chain in user.sniper_autotrade_chains
     breaker = onchain_ledger.breaker_status(user.id, chain)

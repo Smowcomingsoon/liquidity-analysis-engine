@@ -26,7 +26,10 @@ const loading = new Set();
 let dlg = null;
 let current = null;
 let interval = "15m";
-let tab = "signal";
+// Trading off (Lorenzo, 07/10): no Signal tab, no strategy arrows, no Buy.
+const TRADING = document.documentElement.dataset.trading === "on";
+const FIRST_TAB = TRADING ? "signal" : "why";
+let tab = FIRST_TAB;
 
 // A window >= 1100px is a desktop terminal: the list stays on the left and
 // the token page is a pane beside it, not a full-screen page over it.
@@ -193,7 +196,7 @@ export function openDetail(id) {
   const e = registry.get(id);
   if (!e) return;
   current = { id, e };
-  tab = "signal";
+  tab = FIRST_TAB;
   interval = defaultInterval(e);
   const d = ensureDialog();
   const [a] = age(e.ageTs);
@@ -222,13 +225,14 @@ export function openDetail(id) {
       <p class="dt-chart-note" data-chart-note></p>
       <div class="dt-chips" data-chips></div>
       <nav class="dt-tabs">
-        <button type="button" data-dtab="signal">Signal</button>
+        ${TRADING ? '<button type="button" data-dtab="signal">Signal</button>' : ""}
         <button type="button" data-dtab="why">Why</button>
         <button type="button" data-dtab="info">Info</button>
       </nav>
       <div class="dt-pane" data-pane-body></div>
     </div>
-    ${e.noTrade ? "" : `<div class="dt-cta" data-two="${Boolean(walletFor(e.chain) && TRADABLE.has(e.chain))}">${walletFor(e.chain) && TRADABLE.has(e.chain)
+    ${!TRADING ? `<div class="dt-cta"><a class="buy-out" href="${escapeHtml(e.pairUrl || `https://dexscreener.com/${e.chain}/${e.token}`)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg>View on DexScreener</a></div>`
+      : e.noTrade ? "" : `<div class="dt-cta" data-two="${Boolean(walletFor(e.chain) && TRADABLE.has(e.chain))}">${walletFor(e.chain) && TRADABLE.has(e.chain)
       ? `<button type="button" class="dt-mine" data-user-swap><svg viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="13" rx="3"/><path d="M3.5 10h17M16 14.5h1.5"/></svg>My wallet</button>` : ""}${TRADABLE.has(e.chain)
       ? `<button type="button" data-buy><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v8M8.5 12.5 12 16l3.5-3.5"/></svg>Buy</button>`
       : `<a class="buy-out" href="${escapeHtml(e.pairUrl || `https://dexscreener.com/${e.chain}/${e.token}`)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg>Trade on DexScreener</a>`}</div>`}`;
@@ -762,7 +766,7 @@ async function paintChart() {
   if (note) {
     if (shown !== interval) note.textContent = `No ${interval} candles for this token: showing ${shown}.`;
     else if (lw?.before) note.textContent = `${lw.before} strategy ${lw.before === 1 ? "entry or exit is" : "entries and exits are"} older than this chart: pick a longer timeframe.`;
-    else if (drawn === 0) note.textContent = e.kind === "gem" && shownTrades(e.lab) ? "" : "The strategy stayed out of this chart.";
+    else if (drawn === 0) note.textContent = !TRADING || (e.kind === "gem" && shownTrades(e.lab)) ? "" : "The strategy stayed out of this chart.";
     else note.textContent = "";
   }
 }

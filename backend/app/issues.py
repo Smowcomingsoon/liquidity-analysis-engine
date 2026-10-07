@@ -165,6 +165,9 @@ def _resolutions() -> dict[str, dict]:
 
 
 _SEED = [
+    ("seed-0250", "Togliere dall'app il trading e le strategie automatiche: trend follower, pilota, Meme Sniper, swap",
+     "Lorenzo, 07/10: 'non voglio piu' vedere comunque strategie automatiche non hanno senso, basta questa parte di trading deve sparire'. Nelle schede: spegnere trend follower, trading automatico e Meme Sniper, e nascondere swap e ordini limite.",
+     "alta"),
     ("seed-0249", "I filtri del database sono una riga orizzontale infinita; i layer non hanno il loro tag",
      "Lorenzo, 01/10: 'i filtri nel database sono raffigurati orizzontalmente e non riesco a gestirli tutti perche' sono veramente tanti [...] devo scorrere a destra ma non finiscono mai [...] aggiornare anche L1, L0 [...] identificarli con il relativo tag'.",
      "media"),

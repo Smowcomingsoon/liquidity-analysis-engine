@@ -131,7 +131,11 @@ export const getAgentJourney = ({ q = "", chain = "", token = "" } = {}) =>
   request(`/api/agent/journey?q=${encodeURIComponent(q)}&chain=${encodeURIComponent(chain)}&token=${encodeURIComponent(token)}`);
 /* Which wallet the profile and the header show: the real ones or the
  * autotrader's simulated one. A per-device choice. */
-export const walletMode = () => { try { return localStorage.getItem("lae:wallet") === "sim" ? "sim" : "real"; } catch { return "real"; } };
+// The simulated wallet traded the strategies: with trading off there is only the real one.
+export const walletMode = () => {
+  if (document.documentElement.dataset.trading !== "on") return "real";
+  try { return localStorage.getItem("lae:wallet") === "sim" ? "sim" : "real"; } catch { return "real"; }
+};
 export const setWalletMode = (m) => {
   try { localStorage.setItem("lae:wallet", m); } catch { /* private mode: this page only */ }
   document.dispatchEvent(new CustomEvent("lae:wallet-mode", { detail: m }));

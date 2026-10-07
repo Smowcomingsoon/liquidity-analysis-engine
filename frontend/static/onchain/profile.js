@@ -356,7 +356,7 @@ function paint() {
       </ul>
     </header>
     <section class="pf-value">
-      <nav class="pf-wallet" aria-label="Wallet">
+      <nav class="pf-wallet" aria-label="Wallet" data-trading-only>
         <button type="button" data-wallet="real" aria-pressed="${d.wallet !== "sim"}">Real wallet</button>
         <button type="button" data-wallet="sim" aria-pressed="${d.wallet === "sim"}">Simulated wallet</button>
       </nav>
@@ -373,7 +373,7 @@ function paint() {
       <span class="pf-cash-ic" aria-hidden="true">$</span>
       <p><small>Total cash</small><b>${d.cash == null ? "—" : `$${d.cash.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</b></p>
       <button type="button" class="pf-sq" data-sheet="receive" aria-label="Deposit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
-      <button type="button" class="pf-sq" data-go="wallet" aria-label="Swap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h12l-3-3M19 15H7l3 3"/></svg></button>
+      <button type="button" class="pf-sq" data-go="wallet" aria-label="Swap" data-trading-only><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h12l-3-3M19 15H7l3 3"/></svg></button>
       <button type="button" class="pf-sq" data-wallet-menu aria-label="Wallet"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg></button>
     </section>
     <section class="pf-pos">
