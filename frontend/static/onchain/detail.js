@@ -37,7 +37,7 @@ const DESK = matchMedia("(width >= 1100px)");
 export function isDesk() { return DESK.matches; }
 const deskEmpty = document.createElement("div");
 deskEmpty.className = "desk-empty";
-deskEmpty.textContent = "Pick a token to see its chart and backtest";
+deskEmpty.textContent = "Pick a token to see its chart and research";
 document.body.append(deskEmpty);
 DESK.addEventListener("change", () => { if (dlg?.open) dlg.close(); });
 
@@ -765,7 +765,7 @@ async function paintChart() {
   const note = box.parentElement?.querySelector("[data-chart-note]");
   if (note) {
     if (shown !== interval) note.textContent = `No ${interval} candles for this token: showing ${shown}.`;
-    else if (lw?.before) note.textContent = `${lw.before} strategy ${lw.before === 1 ? "entry or exit is" : "entries and exits are"} older than this chart: pick a longer timeframe.`;
+    else if (TRADING && lw?.before) note.textContent = `${lw.before} strategy ${lw.before === 1 ? "entry or exit is" : "entries and exits are"} older than this chart: pick a longer timeframe.`;
     else if (drawn === 0) note.textContent = !TRADING || (e.kind === "gem" && shownTrades(e.lab)) ? "" : "The strategy stayed out of this chart.";
     else note.textContent = "";
   }
@@ -873,7 +873,7 @@ async function drawChart(box, candles, e, iv = interval) {
   // The wallet's own trade on this token (a position opened from the
   // profile): Lorenzo, 30/09, "le posizioni aperte e chiuse se ci clicco
   // voglio vedere quali sono stati graficamente".
-  for (const v of e.own ?? []) {
+  for (const v of TRADING ? e.own ?? [] : []) {
     if (v.t == null || v.t < t0 || v.t >= t1) continue;
     const buy = v.side === "buy";
     marks.push({ time: barAt(v.t), position: buy ? "belowBar" : "aboveBar", color: "#f0b90b", shape: "circle",
@@ -896,6 +896,7 @@ async function drawChart(box, candles, e, iv = interval) {
  *  shows (Lorenzo, 28/09: "qui deve comparire la strategia [...] ingressi e
  *  uscite"); the 48h system's until the backtest is stored. */
 function withLab(e) {
+  if (!TRADING) return [];   // no strategy marks without trading (07/10)
   // Gems: the site's trend follower on the daily chart, never the fast
   // 5-minute strategies (Lorenzo, 28/09: "la strategia da applicare non e'
   // quella sul minuto ma [...] il trend follower originario [...] sul

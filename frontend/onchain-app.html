@@ -2653,7 +2653,7 @@
           <span class="agent-orb scout-cube" aria-hidden="true"><svg class="sc-svg" viewBox="-30 -23 200 200" aria-hidden="true" focusable="false"><circle class="sc-ring" cx="70" cy="77" r="94" pathLength="100"/><circle class="sc-core" cx="70" cy="64" r="17"/><g class="sc-left"><path class="sc-face" d="M0 38 70 76 70 153 0 115Z"/><path class="sc-band" d="M3 81 70 117"/></g><g class="sc-right"><path class="sc-face" d="M70 76 140 38 140 115 70 153Z"/><path class="sc-band" d="M70 117 137 81"/></g><g class="sc-top"><path class="sc-face" d="M70 0 140 38 70 76 0 38Z"/></g></svg></span>
           <span class="agent-say" data-agent-say>Scout watching</span>
         </button>
-        <button type="button" class="tb-deposit" data-sheet="receive">Deposit</button>
+        <button type="button" class="tb-deposit" data-sheet="receive" data-trading-only>Deposit</button>
         <button type="button" class="tb-bell" id="inbox-btn" aria-label="Alerts">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>
           <i data-inbox-dot hidden></i>
@@ -2996,11 +2996,11 @@
   <dialog class="sheet more-sheet" id="more" aria-label="More actions">
     <div class="grip" aria-hidden="true"></div>
     <div class="menu-list" id="actions" hidden>
-      <button type="button" class="menu-item" data-go="wallet"><span class="menu-ic" aria-hidden="true">▤</span><span><b>Wallet &amp; swap</b><small>Balances, swap, orders, history</small></span></button>
+      <button type="button" class="menu-item" data-go="wallet" data-trading-only><span class="menu-ic" aria-hidden="true">▤</span><span><b>Wallet &amp; swap</b><small>Balances, swap, orders, history</small></span></button>
       <button type="button" class="menu-item" data-sheet="receive"><span class="menu-ic" aria-hidden="true">↓</span><span><b>Receive</b><small>Wallet address and QR</small></span></button>
       <button type="button" class="menu-item" data-sheet="send"><span class="menu-ic" aria-hidden="true">↑</span><span><b>Send</b><small>Send tokens to another address</small></span></button>
-      <button type="button" class="menu-item" data-sheet="risk"><span class="menu-ic" aria-hidden="true">◧</span><span><b>Limits &amp; security</b><small>Spend caps, circuit breaker</small></span></button>
-      <button type="button" class="menu-item" data-sheet="simulate"><span class="menu-ic" aria-hidden="true">▶</span><span><b>Simulate</b><small>Test an order without signing</small></span></button>
+      <button type="button" class="menu-item" data-sheet="risk" data-trading-only><span class="menu-ic" aria-hidden="true">◧</span><span><b>Limits &amp; security</b><small>Spend caps, circuit breaker</small></span></button>
+      <button type="button" class="menu-item" data-sheet="simulate" data-trading-only><span class="menu-ic" aria-hidden="true">▶</span><span><b>Simulate</b><small>Test an order without signing</small></span></button>
     </div>
     <button type="button" class="reveal-row" id="reveal-row" hidden>
       <span class="t"><b>Reveal private key</b><small>Needs your phone, never this page alone</small></span>

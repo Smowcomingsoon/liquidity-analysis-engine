@@ -1416,6 +1416,23 @@ html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { d
 .ask-chip[aria-pressed="true"] { color: var(--k-text); border-color: var(--k-text-3); background: var(--k-surface-2); }
 .ask-sheet.is-speaking .ask-mic { background: var(--k-text); color: var(--k-bg); }
 
-/* Trading off (Lorenzo, 07/10): three places in the bar, and nothing that trades. */
+/* Trading off (Lorenzo, 07/10): four places in the bar, and nothing that trades. */
 :root[data-trading="off"] { --dock-w: min(280px, calc(100vw - 96px)); }
 :root[data-trading="off"] [data-trading-only] { display: none !important; }
+
+/* Early list (07/10): tokens under $300k that pass every other bar, apart
+   from the Top and never on its podium. */
+.top-early { margin: 18px 0 calc(92px + env(safe-area-inset-bottom)); }
+.top-early > summary {
+  list-style: none; cursor: pointer; display: flex; align-items: baseline; gap: 8px;
+  padding: 10px 2px; font-weight: 600; letter-spacing: .02em;
+}
+.top-early > summary::-webkit-details-marker { display: none; }
+.top-early > summary::after {
+  content: ""; margin-left: auto; width: 8px; height: 8px; align-self: center;
+  border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+  opacity: .6; transition: transform .2s ease;
+}
+.top-early[open] > summary::after { transform: rotate(-135deg); }
+.top-early > summary small { font-weight: 400; opacity: .6; }
+@media (prefers-reduced-motion: reduce) { .top-early > summary::after { transition: none; } }

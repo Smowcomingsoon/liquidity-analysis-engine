@@ -4294,7 +4294,8 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
         # trade on exchanges, not DEX pools: their own band below.
         score = row.get("score")
         if row["chain"] != onchain_layers.CHAIN:
-            entry = {**onchain_leaderboard.db_entry(row), "global_cap": row.get("cg_mcap")}
+            # DeepSeek's reading too, so a token scores the same in both halves.
+            entry = {**onchain_leaderboard.db_entry(row), "global_cap": row.get("cg_mcap"), "judge": j}
             if onchain_leaderboard.usage_gate(entry):
                 continue
             score = onchain_leaderboard.final_score(entry)
@@ -5391,12 +5392,11 @@ def _agent_progress() -> list[dict]:
     from app.trading.onchain import backtest_lab, discovery, listings
     rows: list[dict] = []
     try:
+        if not settings.onchain_trading_enabled:
+            raise LookupError       # no backtests without trading (07/10)
         st = onchain_alert_track.backtest_status("meme")
         rows.append({"key": "sniper", "label": "Sniper backtests",
                      "done": st["ready"], "total": st["total"] - st["no_data"]})
-    except Exception:
-        pass
-    try:
         s = onchain_strategy_lab.status(_top_entries(50))
         rows.append({"key": "gems", "label": "Gem backtests",
                      "done": s["ready"], "total": s["total"]})
@@ -5465,6 +5465,7 @@ class UserSwapRequest(BaseModel):
 async def wallets_swap_build(body: UserSwapRequest, user: User = Depends(auth.get_current_user)) -> dict:
     """Unsigned transactions for a swap from the user's own wallet (user_swaps.py)."""
     _require_onchain_enabled()
+    _require_trading()
     mine = {(w["kind"], w["address"].lower()) for w in profiles.wallets(user.id)}
     if (body.kind, body.owner.lower()) not in mine:
         raise HTTPException(status_code=403, detail="Connect this wallet in your profile first.")
@@ -8049,6 +8050,7 @@ async def sniper_candidates(
 
 @app.post("/api/sniper/scan")
 async def sniper_trigger_scan() -> dict:
+    _require_trading()
     if not settings.sniper_enabled:
         raise HTTPException(status_code=503, detail="Sniper spento")
     from app.sniper import cache as sniper_cache
@@ -8144,6 +8146,7 @@ async def sniper_market(
 
 @app.post("/api/sniper/market-scan")
 async def sniper_market_trigger_scan() -> dict:
+    _require_trading()
     if not settings.sniper_enabled:
         raise HTTPException(status_code=503, detail="Sniper spento")
     from app.sniper import market as sniper_market_mod
@@ -8157,6 +8160,7 @@ async def sniper_market_import() -> dict:
     """Apply the sniper's primary filter + on-chain scoring to every token
     currently in the market store and add qualifying ones to the sniper
     candidate archive. Progress is streamed via /api/sniper/market-stream."""
+    _require_trading()
     if not settings.sniper_enabled:
         raise HTTPException(status_code=503, detail="Sniper spento")
     from app.sniper import market as sniper_market_mod
@@ -8570,6 +8574,7 @@ async def index(user: User | None = Depends(auth.get_current_user_optional)) -> 
 
 @app.get("/sniper")
 async def sniper_app() -> HTMLResponse:
+    _require_trading()
     return HTMLResponse(_SNIPER_HTML, headers=_HTML_HEADERS)
 
 

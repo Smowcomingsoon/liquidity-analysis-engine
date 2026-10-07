@@ -190,17 +190,20 @@ function paint() {
   const narrLine = filtered
     ? `<button type="button" class="top-narr-clear" data-top-narr-clear>${escapeHtml(narr.get().map((k) => labels[k] ?? k).join(", "))} ✕</button> `
     : "";
-  root.querySelector("[data-top-note]").innerHTML = narrLine + escapeHtml(lead + (bt?.total
+  root.querySelector("[data-top-note]").innerHTML = narrLine + escapeHtml(lead + (TRADING && bt?.total
     ? `Every strategy backtested on each token's latest chart, every hour, around the clock · ${bt.ready}/${bt.total} ready`
     : "")) + (TRADING ? ' <button type="button" class="top-narr-clear" data-top-wallet>$10k wallet on these trades →</button>' : "");
 }
 
 // Without trading: measured usage (usage.py), what put the project here.
+const compact = (n) => new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+
 function marketSub(e) {
   const u = e.usage ?? {};
   const vol = u.vol_7d_avg ?? u.vol_24h;
-  const parts = [vol != null ? `Vol ${usdShort(vol)}/day` : null,
-    u.holders != null ? `${Number(u.holders).toLocaleString("en-US")} holders` : null];
+  // Short enough for a phone row: "$812k/day · 15.2k holders".
+  const parts = [vol != null ? `${usdShort(vol)}/day` : null,
+    u.holders != null ? `${compact(u.holders)} holders` : null];
   const line = parts.filter(Boolean).join(" · ");
   return line || (e.liquidity_usd != null ? `Liquidity ${usdShort(e.liquidity_usd)}` : "");
 }
@@ -208,7 +211,7 @@ function marketSub(e) {
 function paintEarly(list) {
   const box = root.querySelector("[data-top-early]");
   if (!box) return;
-  box.hidden = !list.length;
+  box.hidden = !list.length || filtered;   // the early list is not narrowed by narrative
   box.querySelector("ol").innerHTML = list.map((e) => {
     const id = `gem:${e.chain}:${e.token_address}`;
     register(id, { kind: "gem", symbol: e.symbol, name: e.name, chain: e.chain, token: e.token_address, pair: e.pair_address,

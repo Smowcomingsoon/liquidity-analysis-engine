@@ -1,6 +1,8 @@
 """Usage before any score (Lorenzo, 07/10): volume, trades, buyers, holders
 and the $300k floor keep tokens nobody uses out of the Top; the new formula
 weighs measured parts first and DeepSeek last."""
+import time
+
 import pytest
 
 from app.trading.onchain import leaderboard as lb
@@ -10,7 +12,7 @@ pytestmark = pytest.mark.usage_gates
 
 
 def _m(**kw):
-    base = {"vol_24h": 60_000, "vol_7d_avg": 50_000, "vol_30d_avg": 40_000, "days": 30, "tx_24h": 400,
+    base = {"at": time.time(), "vol_24h": 60_000, "vol_7d_avg": 50_000, "vol_30d_avg": 40_000, "days": 30, "tx_24h": 400,
             "buyers_24h": 120, "sellers_24h": 90, "holders": 3_000, "liq": 150_000, "mcap": 2_000_000}
     return {**base, **kw}
 
@@ -94,3 +96,36 @@ def test_tonight_waits_for_unmeasured_tokens(snap, monkeypatch):
     monkeypatch.setattr(lb, "usage_candidates", lambda: [_e("A"), _e("B")])
     monkeypatch.setattr(usage, "measured_today", lambda chain, token: token == "A")
     assert lb.backlog()["unmeasured"] == 1 and not lb.drained()
+
+
+def test_candidates_skip_layers_and_read_the_database(snap, monkeypatch):
+    rows = {"studied": [{"chain": "solana", "token": "DB1", "analyzed_at": time.time(), "score": 70},
+                        {"chain": "layer", "token": "kas-kaspa", "analyzed_at": time.time(), "score": 90}],
+            "ranked": [{"chain": "base", "token": "0xOLD", "analyzed_at": time.time() - 40 * 86400, "score": 80}]}
+    monkeypatch.setattr(lb, "_entries", {})
+    monkeypatch.setattr(lb.projects_db, "search", lambda status, **k: {"items": rows[status]})
+    assert [e["token_address"] for e in lb.usage_candidates()] == ["DB1"]
+
+
+def test_warm_up_measures_only_tokens_without_a_fresh_snapshot(snap, monkeypatch):
+    store, _ = snap
+    store["OLD"] = _m(at=time.time() - 5 * 86400)
+    store["NEW"] = _m(at=time.time() - 3600)
+    monkeypatch.setattr(lb, "usage_candidates", lambda: [_e("OLD"), _e("NEW"), _e("NONE")])
+    seen = []
+
+    async def fake(client, items, limit=None):
+        seen.extend(e["token_address"] for e in items)
+        return 0
+    monkeypatch.setattr(usage, "refresh", fake)
+    import asyncio
+    asyncio.run(lb.warm_usage())
+    assert seen == ["OLD", "NONE"]
+    assert "not measured" in lb.usage_gate(_e("OLD"))       # stale snapshot: waits
+
+
+def test_small_holder_jitter_is_not_shrinking(snap):
+    store, growth = snap
+    store["T"] = _m()
+    growth["T"] = -0.01
+    assert lb.usage_gate(_e()) == ""

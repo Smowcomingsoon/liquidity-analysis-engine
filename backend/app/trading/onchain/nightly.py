@@ -201,12 +201,15 @@ async def _guard(name: str, coro: Awaitable, default=None):
 
 
 async def run_once(top: Callable[[], list[dict]], steps: Steps, deadline: float, *,
-                   clock: Callable[[], float] = time.time, sleep=asyncio.sleep) -> dict:
+                   clock: Callable[[], float] = time.time, sleep=asyncio.sleep,
+                   top_before: dict[str, str] | None = None) -> dict:
     """One night. Returns the summary; stops at `deadline` at the latest
-    (the studies, one bounded pass, run even after it)."""
+    (the studies, one bounded pass, run even after it). `top_before` is the
+    Top as the night found it, kept across a resume after a deploy."""
     from app.trading.onchain import leaderboard
     t0 = clock()
-    before, top_before = steps.counters(), _top_map(top)
+    before = steps.counters()
+    top_before = _top_map(top) if top_before is None else top_before
     research_end = t0 + (deadline - t0) * RESEARCH_SHARE
     ticks, stopped = 0, "drained"
     while True:
@@ -261,6 +264,9 @@ def text_it(s: dict) -> str:
              f"Layer aggiornati: {s.get('layers', 0)}; ricontrolli DeepSeek: {s.get('rechecked', 0)}; "
              f"studi: {s.get('studies', 0)}.",
              f"Chiamate DeepSeek: {s.get('deepseek_calls', 0)}."]
+    if s.get("resumed"):
+        lines.append("Ripresa dopo un riavvio del server: i conteggi coprono solo l'ultima parte, "
+                     "entrati e usciti tutta la sera.")
     if s.get("stopped") == "window":
         left = sum((s.get("backlog") or {}).values())
         lines.append(f"Fermata al limite di {settings.onchain_nightly_max_hours:g} ore"
@@ -280,16 +286,24 @@ async def run_night(slot: float, top: Callable[[], list[dict]], *, steps_factory
     global _running
     now = clock()
     if _state.get("slot") != slot:
-        _state.update(slot=slot, first_start=now, attempts=0)
+        _state.update(slot=slot, first_start=now, attempts=0, top_before=_top_map(top))
     _state["attempts"] = (_state.get("attempts") or 0) + 1
     _save()
     deadline = max(_state["first_start"] + settings.onchain_nightly_max_hours * 3600, now + RESUME_MIN_S)
     _running = True
     try:
         async with httpx.AsyncClient(timeout=10.0, headers={"User-Agent": "Mozilla/5.0 (LiquidityEngine)"}) as client:
-            summary = await run_once(top, steps_factory(client), deadline, clock=clock, sleep=sleep)
+            summary = await run_once(top, steps_factory(client), deadline, clock=clock, sleep=sleep,
+                                     top_before=_state.get("top_before"))
+    except asyncio.CancelledError:
+        # A clean stop (a deploy) is not a failed try: only crashes count
+        # towards MAX_ATTEMPTS, so evening deploys never drop the night.
+        _state["attempts"] = max(0, (_state.get("attempts") or 1) - 1)
+        _save()
+        raise
     finally:
         _running = False
+    summary["resumed"] = _state["first_start"] < now
     _state.update(done_slot=slot, last_run=summary["ended"], summary=summary)
     _save()
     try:
@@ -297,6 +311,21 @@ async def run_night(slot: float, top: Callable[[], list[dict]], *, steps_factory
     except Exception:
         logger.exception("nightly: Telegram summary not sent")
     return summary
+
+
+async def _gave_up(now: float, send) -> None:
+    """One message when a night crashed MAX_ATTEMPTS times: never silent."""
+    slot = latest_slot(now)
+    if _state.get("slot") != slot or (_state.get("done_slot") or 0) >= slot or _state.get("gave_up") == slot \
+            or (_state.get("attempts") or 0) < MAX_ATTEMPTS:
+        return
+    _state["gave_up"] = slot
+    _save()
+    try:
+        await send(f"Ricerca serale interrotta: e' fallita {MAX_ATTEMPTS} volte stasera, riprova domani alle "
+                   f"{settings.onchain_nightly_hour}:00. Vedi i log del server.")
+    except Exception:
+        logger.exception("nightly: give-up note not sent")
 
 
 async def nightly_loop(top: Callable[[], list[dict]], *, clock: Callable[[], float] = time.time,
@@ -307,8 +336,9 @@ async def nightly_loop(top: Callable[[], list[dict]], *, clock: Callable[[], flo
     _load()
     await sleep(START_DELAY_S)
     leaderboard.startup_requeue()
-    try:
-        await leaderboard.warm_usage()
+    try:                            # a night due now measures usage itself
+        if due_slot(clock(), _state) is None:
+            await leaderboard.warm_usage()
     except Exception:
         logger.exception("nightly: usage warm-up failed")
     while True:
@@ -316,6 +346,7 @@ async def nightly_loop(top: Callable[[], list[dict]], *, clock: Callable[[], flo
             now = clock()
             slot = due_slot(now, _state)
             if slot is None:
+                await _gave_up(now, send)
                 # At most an hour at a time: a changed clock or setting is seen soon.
                 await sleep(min(max(next_run(now) - now, 1.0), 3600.0))
                 continue

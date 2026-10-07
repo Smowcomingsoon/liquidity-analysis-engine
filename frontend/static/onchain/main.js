@@ -107,7 +107,7 @@ function paintChainStatic() {
   for (const node of [view.status, view.pilot, view.marketOrderRow, view.bottomPanel, view.sniperCard]) {
     if (node) node.hidden = !hasWallet || !TRADING;
   }
-  view.empty.hidden = hasWallet;
+  view.empty.hidden = hasWallet || !TRADING;   // no wallet to create for research only
   view.balance.hidden = !hasWallet;
   view.address.hidden = !hasWallet;
 
@@ -115,7 +115,7 @@ function paintChainStatic() {
     view.empty.querySelector("[data-chain-name]").textContent = label;
     view.spark.hidden = true;
     if (view.holdings) view.holdings.hidden = true;
-    if (!["gems", "meme"].includes(view.shell.dataset.view)) setView("gems");
+    if (!(TRADING ? ["gems", "meme"] : ["gems", "top", "agent", "profile"]).includes(view.shell.dataset.view)) setView("gems");
     return;
   }
 
@@ -515,7 +515,10 @@ view.reveal.addEventListener("click", () => sheets.openKey({ onStart: startRevea
 // foglio) o fuori dal pannello.
 // Your picture in the header opens your profile; the wallet menu is its "…".
 view.more?.addEventListener("click", () => setView("profile"));
-document.addEventListener("lae:wallet-menu", () => view.moreSheet?.showModal());
+document.addEventListener("lae:wallet-menu", () => {
+  if (view.moreSheet?.querySelector("#actions")?.hidden) return;   // no wallet: nothing to show
+  view.moreSheet?.showModal();
+});
 
 // Two sections chosen at the door, each with its own purpose: Progetti
 // (a round-the-clock scan of serious low/micro caps, ranked) and Meme
@@ -528,8 +531,12 @@ document.addEventListener("lae:wallet-menu", () => view.moreSheet?.showModal());
 const VIEWS = TRADING ? ["meme", "gems", "top", "agent", "profile", "wallet", "manual"] : ["gems", "top", "agent", "profile", "wallet"];
 const DOCK = TRADING ? ["meme", "gems", "top", "agent", "profile"] : ["gems", "top", "agent", "profile"];   // the wallet lives in the profile
 
-function setView(name) {
-  if (!VIEWS.includes(name)) return;
+// Resolves once the new view is painted (after the transition's update).
+// `instant` skips the transition: a field focused right after must be on
+// screen within the tap, or phones don't open the keyboard.
+function setView(name, { instant = false } = {}) {
+  if (!VIEWS.includes(name)) return Promise.resolve();
+  let painted = Promise.resolve();
   const from = view.shell.dataset.view;
   const paint = () => {
     view.shell.dataset.view = name;
@@ -542,15 +549,16 @@ function setView(name) {
     document.querySelectorAll(".tabs[data-tabs]").forEach((nav) => { nav.hidden = nav.dataset.tabs !== name; });
     window.scrollTo({ top: 0 });
   };
-  if (from !== name && document.startViewTransition && !document.querySelector("dialog[open]")
+  if (!instant && from !== name && document.startViewTransition && !document.querySelector("dialog[open]")
       && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
     view.shell.dataset.dir = VIEWS.indexOf(name) > VIEWS.indexOf(from) ? "fwd" : "back";
-    document.startViewTransition(paint);
+    painted = document.startViewTransition(paint).updateCallbackDone.catch(() => {});
   } else paint();
   if (name === "profile") refreshProfile();
   if (name === "wallet" && !view.bottomPanel.hidden) mountBottomTab(currentBottomTab);
   paintHoldings();
   deskView(name);
+  return painted;
 }
 // One app: a floating bar at the bottom on every screen, the search button
 // beside it, the balance in the header next to your avatar.
@@ -655,9 +663,9 @@ document.querySelectorAll(".tabs[data-tabs]").forEach((nav) => {
 dockSearch?.addEventListener("click", () => {
   // Without trading the lens is the scanner: a ticker or an address.
   if (!TRADING) {
-    setView("gems");
     const input = document.querySelector("#gem-scan input");
     input?.removeAttribute("readonly");
+    setView("gems", { instant: true });
     input?.focus();
     return;
   }

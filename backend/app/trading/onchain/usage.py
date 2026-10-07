@@ -122,7 +122,7 @@ async def _gecko_pool(client, net: str, pool: str) -> dict:
 
 async def _gecko_daily(client, net: str, pool: str) -> dict:
     data = await _gecko(client, f"{GECKO.format(net=net)}/pools/{pool}/ohlcv/day",
-                        {"limit": 30, "currency": "usd"})
+                        {"limit": 31, "currency": "usd"})
     if not data:
         return {}
     rows = ((data.get("data") or {}).get("attributes") or {}).get("ohlcv_list") or []
@@ -130,9 +130,25 @@ async def _gecko_daily(client, net: str, pool: str) -> dict:
                   key=lambda r: r[0])
     if not rows:
         return {"days": 0}
-    vols = [_num(r[5]) for r in rows]
-    return {"vol_7d_avg": sum(vols[-7:]) / len(vols[-7:]),
-            "vol_30d_avg": sum(vols[-30:]) / len(vols[-30:]), "days": len(rows)}
+    return _averages(rows, time.time())
+
+
+def _averages(rows: list[list], now: float) -> dict:
+    """Daily volume averages over calendar days, not over candles:
+    GeckoTerminal leaves out days without trades (a month with one $200k day
+    is not $200k a day), and today's candle is partial, so it is left out.
+    A pool younger than the window is averaged over the days it has lived."""
+    today = now - now % 86400
+    first = _num(rows[0][0]) or today
+    out: dict = {"days": sum(1 for r in rows if (_num(r[0]) or 0) < today)}
+    for n, key in ((7, "vol_7d_avg"), (30, "vol_30d_avg")):
+        start = today - n * 86400
+        lived = min(n, int((today - max(first, start)) // 86400)) if first < today else 0
+        if lived <= 0:
+            out[key] = None
+            continue
+        out[key] = sum(_num(r[5]) for r in rows if start <= (_num(r[0]) or 0) < today) / lived
+    return out
 
 
 async def _gecko_holders(client, net: str, token: str) -> dict:
@@ -151,7 +167,7 @@ FIELDS = ("vol_24h", "vol_7d_avg", "vol_30d_avg", "days", "tx_24h", "buyers_24h"
 
 async def _measure(client, chain: str, token: str, pool: str | None, pairs: list[dict] | None) -> dict | None:
     out: dict = {"chain": chain, "token": token, "pool": pool, "at": time.time(),
-                 **{f: None for f in FIELDS}, "top10_raw": True, "sources": []}
+                 **{f: None for f in FIELDS}, "sources": []}
     pair = _pick_pair(pairs, chain, token, pool) if pairs else None
     if pair:
         d = _from_pair(pair)
@@ -201,7 +217,7 @@ def _save(data: dict) -> None:
     write_text_atomic(storage.data_file(FILE_NAME), json.dumps(data, separators=(",", ":")))
 
 
-def record(m: dict) -> None:
+def record(m: dict, save: bool = True) -> None:
     """One snapshot per token per UTC day (the latest wins), 60 days kept."""
     if not m or not m.get("chain") or not m.get("token"):
         return
@@ -213,7 +229,8 @@ def record(m: dict) -> None:
         rows[_day(at)] = {**m, "at": at}
         for d in [d for d in rows if d < cutoff]:
             rows.pop(d)
-        _save(data)
+        if save:
+            _save(data)
 
 
 def history(chain: str, token: str) -> list[dict]:
@@ -227,15 +244,21 @@ def latest(chain: str, token: str) -> dict | None:
     return h[-1] if h else None
 
 
+GROWTH_MIN_SPAN = 0.7            # of `days`: a day-old comparison is the count's own jitter
+
+
 def holders_growth(chain: str, token: str, days: int = 30) -> float | None:
     """Relative change in holders vs the snapshot closest to `days` ago;
-    None without an older snapshot or a holder count on both ends."""
+    None without a holder count on both ends or before the two snapshots
+    are GROWTH_MIN_SPAN * days apart."""
     h = [s for s in history(chain, token) if s.get("holders")]
     if len(h) < 2:
         return None
     now = h[-1]
     target = now["at"] - days * 86400
     older = min(h[:-1], key=lambda s: abs(s["at"] - target))
+    if now["at"] - older["at"] < GROWTH_MIN_SPAN * days * 86400:
+        return None
     return now["holders"] / older["holders"] - 1
 
 
@@ -244,10 +267,21 @@ def measured_today(chain: str, token: str) -> bool:
     return _day(time.time()) in rows
 
 
+# Tokens tried today that no source answered for (a layer, a pool nobody
+# lists): not retried until tomorrow, so they neither hold the night open
+# nor take every tick's quota.
+_tried: dict[str, str] = {}
+
+
+def tried_today(chain: str, token: str) -> bool:
+    return measured_today(chain, token) or _tried.get(_key(chain, token)) == _day(time.time())
+
+
 def reset_for_tests() -> None:
     global _cache
     with _lock:
         _cache = None
+        _tried.clear()
 
 
 # --- batch -----------------------------------------------------------------
@@ -259,7 +293,7 @@ async def refresh(client: httpx.AsyncClient, items: list[dict], max_calls: int |
     todo, seen = [], set()
     for it in items:
         chain, token = it.get("chain"), it.get("token_address")
-        if not chain or not token or _key(chain, token) in seen or measured_today(chain, token):
+        if not chain or not token or _key(chain, token) in seen or tried_today(chain, token):
             continue
         seen.add(_key(chain, token))
         todo.append(it)
@@ -269,13 +303,26 @@ async def refresh(client: httpx.AsyncClient, items: list[dict], max_calls: int |
     for it in todo:
         by_chain.setdefault(it["chain"], []).append(it)
     done = 0
-    for chain, group in by_chain.items():
-        for i in range(0, len(group), DEX_BATCH):
-            chunk = group[i:i + DEX_BATCH]
-            pairs = await _dex_pairs(client, chain, [it["token_address"] for it in chunk])
-            for it in chunk:
-                m = await _measure(client, chain, it["token_address"], it.get("pair_address"), pairs)
-                if m:
-                    record(m)
-                    done += 1
+    today = _day(time.time())
+    try:
+        for chain, group in by_chain.items():
+            for i in range(0, len(group), DEX_BATCH):
+                chunk = group[i:i + DEX_BATCH]
+                pairs = await _dex_pairs(client, chain, [it["token_address"] for it in chunk])
+                for it in chunk:
+                    _tried[_key(chain, it["token_address"])] = today
+                    m = await _measure(client, chain, it["token_address"], it.get("pair_address"), pairs)
+                    if m:
+                        record(m, save=False)
+                        done += 1
+    finally:
+        if done:
+            await _flush()
     return done
+
+
+async def _flush() -> None:
+    """One write per batch, off the event loop (the file grows to ~10 MB)."""
+    with _lock:
+        text = json.dumps(_load(), separators=(",", ":"))
+    await asyncio.to_thread(write_text_atomic, storage.data_file(FILE_NAME), text)

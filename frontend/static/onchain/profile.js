@@ -351,7 +351,7 @@ function paint() {
       <button type="button" class="pf-edit" data-edit aria-label="Edit profile">${PENCIL}</button>
       <ul class="pf-stats">
         <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>${hold(d.stats?.avg_hold_s)} avg. hold</li>
-        <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h12l-3-3M19 15H7l3 3"/></svg>${d.stats?.trades ?? 0} trades</li>
+        <li data-trading-only><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h12l-3-3M19 15H7l3 3"/></svg>${d.stats?.trades ?? 0} trades</li>
         <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M4 10h16M9 3.5v4M15 3.5v4"/></svg>Joined ${since(p.joined)}</li>
       </ul>
     </header>

@@ -79,10 +79,26 @@ def test_measure_parses_every_source():
     assert m["vol_24h"] == 491.64 and m["tx_24h"] == 12
     assert m["liq"] == 22058.27 and m["mcap"] == 47770.0
     assert (m["buyers_24h"], m["sellers_24h"]) == (2, 6)
-    assert m["days"] == 30 and m["vol_7d_avg"] == pytest.approx(70.0)
-    assert m["vol_30d_avg"] == pytest.approx((23 * 100 + 7 * 70) / 30)
-    assert m["holders"] == 245 and m["top10_pct"] == pytest.approx(48.0145) and m["top10_raw"] is True
+    # today's partial candle is left out: 29 complete days, the last 7 are 6 x 70 and one 100
+    assert m["days"] == 29 and m["vol_7d_avg"] == pytest.approx((6 * 70 + 100) / 7)
+    assert m["vol_30d_avg"] == pytest.approx((23 * 100 + 6 * 70) / 29)
+    assert m["holders"] == 245 and m["top10_pct"] == pytest.approx(48.0145)
     assert m["sources"] == ["dexscreener", "geckoterminal_pool", "geckoterminal_ohlcv", "geckoterminal_info"]
+
+
+def test_averages_count_calendar_days_not_candles():
+    """GeckoTerminal leaves out days without trades: one $200k day in a
+    month is not $200k a day."""
+    day = 86400
+    today = 1_800_000_000 // day * day
+    rows = [[today - 40 * day, 0, 0, 0, 0, 10.0], [today - 3 * day, 0, 0, 0, 0, 200_000.0],
+            [today, 0, 0, 0, 0, 999_999.0]]                       # today: partial, ignored
+    out = usage._averages(rows, today + 3600)
+    assert out["vol_7d_avg"] == pytest.approx(200_000 / 7)
+    assert out["vol_30d_avg"] == pytest.approx(200_000 / 30)
+    young = usage._averages([[today - 2 * day, 0, 0, 0, 0, 50.0], [today - day, 0, 0, 0, 0, 70.0]], today + 60)
+    assert young["vol_7d_avg"] == pytest.approx(60.0)            # two days old: averaged over two
+    assert usage._averages([[today, 0, 0, 0, 0, 5.0]], today + 60)["vol_7d_avg"] is None
 
 
 def test_measure_uses_given_pool_and_fdv_fallback():
@@ -159,3 +175,16 @@ def test_refresh_respects_max_calls():
              {"chain": "solana", "token_address": "Zzz", "pair_address": None}]
     assert _run(fake, lambda c: usage.refresh(c, items, max_calls=1)) == 1
     assert usage.latest("solana", "Zzz") is None
+
+
+def test_a_token_no_source_answers_is_tried_once_a_day():
+    calls = []
+
+    def Down(request):
+        calls.append(str(request.url))
+        return httpx.Response(404)
+    items = [{"chain": "solana", "token_address": TOKEN}]
+    assert _run(Down, lambda c: usage.refresh(c, items)) == 0
+    n = len(calls)
+    assert n and usage.tried_today("solana", TOKEN) and not usage.measured_today("solana", TOKEN)
+    assert _run(Down, lambda c: usage.refresh(c, items)) == 0 and len(calls) == n

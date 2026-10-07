@@ -315,7 +315,8 @@ export function mountAgentView() {
     <button type="button" class="ag-more" data-ag-more hidden>Load earlier</button>`;
   viewEl.querySelector("[data-ag-more]")?.addEventListener("click", loadEarlier);
   agentMap = mountAgentMap(viewEl.querySelector("[data-agent-map]"), { loadJourney: api.getAgentJourney });
-  quantPanel = mountQuantPanel(viewEl.querySelector("[data-quant-panel]"));
+  // The quant panel is about real entries: gone with trading (Lorenzo, 07/10).
+  if (document.documentElement.dataset.trading === "on") quantPanel = mountQuantPanel(viewEl.querySelector("[data-quant-panel]"));
   loadView();
   viewTimer = setInterval(() => {
     if (viewEl && document.getElementById("agent-view") && viewEl.offsetParent !== null) refreshView();

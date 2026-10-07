@@ -389,7 +389,7 @@ async def scan(query: str, emit=None) -> dict:
     if not query:
         return {"error": "Write a ticker or an address."}
     step = Steps(emit)
-    step.emit({"plan": list(STEPS)})
+    step.emit({"plan": [k for k in STEPS if k != "backtest" or settings.onchain_trading_enabled]})
     deepseek_desk.note("manual", f"Manual scan requested: {query[:40]}")
     step("pool", "run")
     async with httpx.AsyncClient(timeout=15.0, headers={"accept": "application/json"}) as client:
@@ -450,7 +450,8 @@ async def scan(query: str, emit=None) -> dict:
     pool = rug_memory.cases()
     step("memory", "ok", english(rug_memory.summary(feats, item["chain"], pool=pool)))
     step("risk", "run")
-    step("backtest", "run")
+    if settings.onchain_trading_enabled:
+        step("backtest", "run")
 
     async def risk() -> dict | None:
         out = clean_flags(await ai_scan.judge_one(item, feats, pool, project=not meme))
@@ -459,6 +460,8 @@ async def scan(query: str, emit=None) -> dict:
         return out
 
     async def bt_step() -> dict | None:
+        if not settings.onchain_trading_enabled:
+            return None             # no strategies in the app (Lorenzo, 07/10)
         out = await backtest(item)
         best = (out or {}).get("daily") or (out or {}).get("fast")
         step("backtest", "skip" if not best else "ok" if (best.get("return_pct") or 0) >= 0 else "warn",

@@ -99,8 +99,6 @@ MIN_LIQUIDITY_USD = 10_000
 # lower; the fundamentals are not: public code and every pillar solid.
 EARLY_CAP_USD = 50_000
 EARLY_MIN_LIQUIDITY_USD = 5_000
-EARLY_MIN_PILLAR = 60
-EARLY_MIN_SCORE = 65
 ALERTS_PER_TICK = 5
 # Lorenzo (28/09): "per gemme solitamente si intende roba di capitalizzazione
 # bassa [...] massimo 10 milioni". A hard ceiling for every entry, checked on
@@ -120,6 +118,8 @@ USAGE_TX_MIN = 100                   # trades in 24 hours
 USAGE_BUYERS_MIN = 30                # distinct buyers in 24 hours
 USAGE_HOLDERS_MIN = 500
 USAGE_TOP10_MAX_PCT = 40.0           # wallets only: pools and contracts are not whales
+USAGE_STALE_S = 3 * 86400           # an older snapshot is no measure: the token waits for the next
+USAGE_GROWTH_TOLERANCE = 0.02        # holder counts jitter: -1% over a month is "not shrinking"
 USAGE_PER_TICK = 10                  # tokens measured per tick, each at most once a day
 USAGE_WARM_MAX = 200                 # at start-up: ~3 GeckoTerminal calls each, 14 a minute
 # The final score (07/10): measured parts first, DeepSeek last and light.
@@ -614,7 +614,7 @@ def usage_gate(e: dict, cap_floor: bool = True) -> str:
     if cap_floor and cap and cap < TOP_CAP_MIN_USD:
         return f"under ${TOP_CAP_MIN_USD / 1e3:.0f}k (early list)"
     m = usage.latest(e.get("chain"), e.get("token_address"))
-    if not m:
+    if not m or time.time() - (m.get("at") or 0) > USAGE_STALE_S:
         return "usage not measured yet"
     vol = m.get("vol_7d_avg") if m.get("vol_7d_avg") is not None else m.get("vol_24h")
     if vol is None:
@@ -632,7 +632,7 @@ def usage_gate(e: dict, cap_floor: bool = True) -> str:
     if m.get("holders") is not None and m["holders"] < USAGE_HOLDERS_MIN:
         return f"{m['holders']} holders (needs {USAGE_HOLDERS_MIN})"
     growth = usage.holders_growth(e.get("chain"), e.get("token_address"), 30)
-    if growth is not None and growth < 0:
+    if growth is not None and growth < -USAGE_GROWTH_TOLERANCE:
         return f"holders {growth:+.0%} in 30 days"
     top10 = wallet_top10(e)
     if top10 is not None and top10 >= USAGE_TOP10_MAX_PCT:
@@ -729,23 +729,22 @@ def _fresh(d: dict, ttl: float, now: float | None = None) -> bool:
 def usage_score(e: dict) -> float | None:
     """0-100: how much the token is traded and used. Volume against the cap,
     volume in dollars, distinct buyers; DefiLlama's TVL and fees when listed."""
-    m = usage.latest(e.get("chain"), e.get("token_address"))
+    m = usage.latest(e.get("chain"), e.get("token_address")) or {}
     use = traction_of(e)
-    if not m and not use:
+    parts: list[tuple[float, float]] = []          # (weight, 0-1), only what was read
+    vol = m.get("vol_7d_avg") if m.get("vol_7d_avg") is not None else m.get("vol_24h")
+    cap = true_cap(e)
+    if vol is not None:
+        if cap:
+            parts.append((45, _ramp(math.log10(max(vol / cap, 1e-6)), -2.3, -1)))      # 0.5% -> 0, 10% -> full
+        parts.append((30, _ramp(math.log10(max(vol, 1)), math.log10(USAGE_VOL_7D_MIN_USD), 6)))   # $25k -> $1M
+    if m.get("buyers_24h") is not None:
+        parts.append((25, _ramp(math.log10(max(m["buyers_24h"], 1)), math.log10(USAGE_BUYERS_MIN), 3)))  # 30 -> 1,000
+    elif m.get("tx_24h") is not None:
+        parts.append((25, _ramp(math.log10(max(m["tx_24h"], 1)), math.log10(USAGE_TX_MIN), 3.5)))
+    if not parts and not use:
         return None
-    pts = 0.0
-    if m:
-        vol = m.get("vol_7d_avg") if m.get("vol_7d_avg") is not None else m.get("vol_24h")
-        cap = true_cap(e)
-        if vol is not None:
-            if cap:
-                pts += 45 * _ramp(math.log10(max(vol / cap, 1e-6)), -2.3, -1)      # 0.5% -> 0, 10% -> full
-            pts += 30 * _ramp(math.log10(max(vol, 1)), math.log10(USAGE_VOL_7D_MIN_USD), 6)   # $25k -> $1M
-        buyers = m.get("buyers_24h")
-        if buyers is not None:
-            pts += 25 * _ramp(math.log10(max(buyers, 1)), math.log10(USAGE_BUYERS_MIN), 3)   # 30 -> 1,000
-        elif m.get("tx_24h") is not None:
-            pts += 25 * _ramp(math.log10(max(m["tx_24h"], 1)), math.log10(USAGE_TX_MIN), 3.5)
+    pts = 100 * sum(w * x for w, x in parts) / sum(w for w, _ in parts) if parts else 0.0
     return round(max(pts, use["traction"] if use else 0.0), 1)
 
 
@@ -1181,32 +1180,54 @@ async def tick(client: httpx.AsyncClient, now: float | None = None) -> None:
         _save()
 
 
+USAGE_DB_ROWS = 200                  # studied database rows measured too (the Top's other half)
+
+
 def usage_candidates() -> list[dict]:
     """What usage.py measures once a day: the projects past the researcher's
-    floor and under the ceiling, board first, then the Top's database rows."""
+    floor and under the ceiling, board first, then the studied database
+    rows the Top reads (straight from the database: the Top itself drops
+    the unmeasured ones, so it cannot be the source). Only chains with a
+    DEX pool to measure (no layers)."""
     items = [e for k, e in _entries.items() if not research_floor(e) and not too_big(e)]
     items.sort(key=lambda e: (_key(e["chain"], e["token_address"]) not in _state["board"], -final_score(e)))
-    if _top_source is not None:
-        seen = {_key(e["chain"], e["token_address"]) for e in items}
-        try:
-            items += [t for t in _top_source(50) if _key(t["chain"], t["token_address"]) not in seen]
-        except Exception:
-            logger.exception("usage: top source failed")
-    return items
+    seen = {_key(e["chain"], e["token_address"]) for e in items}
+    cutoff = time.time() - 30 * 86400
+    try:
+        rows = [r for st in ("studied", "ranked")
+                for r in projects_db.search(status=st, sort="score", limit=USAGE_DB_ROWS)["items"]]
+    except Exception:
+        logger.exception("usage: database rows not read")
+        rows = []
+    for r in sorted(rows, key=lambda r: -(r.get("score") or 0)):
+        if (r.get("analyzed_at") or 0) < cutoff or _key(r["chain"], r["token"]) in seen:
+            continue
+        seen.add(_key(r["chain"], r["token"]))
+        items.append({"chain": r["chain"], "token_address": r["token"], "pair_address": r.get("pair")})
+    return [e for e in items if e["chain"] in research.GECKO_NET][:USAGE_WARM_MAX + USAGE_DB_ROWS]
 
 
-async def _measure_usage(client: httpx.AsyncClient, limit: int | None = USAGE_PER_TICK) -> int:
-    """Volume, trades and holders once a day (usage.py)."""
-    items = usage_candidates()
-    return await usage.refresh(client, items, limit) if items else 0
+async def _measure_usage(client: httpx.AsyncClient, limit: int | None = USAGE_PER_TICK,
+                         items: list[dict] | None = None) -> int:
+    """Volume, trades and holders once a day (usage.py); the board is
+    re-ranked when anything new came in."""
+    items = usage_candidates() if items is None else items
+    n = await usage.refresh(client, items, limit) if items else 0
+    if n:
+        _mark()
+    return n
 
 
 async def warm_usage(limit: int = USAGE_WARM_MAX) -> int:
-    """At start-up, every candidate not measured today: without a snapshot
-    usage_gate keeps a token off the Top, so a deploy at noon would leave
-    the Top empty until the night's run."""
+    """At start-up, the candidates with no usable snapshot at all (none, or
+    older than USAGE_STALE_S): usage_gate keeps them off the Top, so the
+    first deploy would leave it empty until the night's run. Tokens measured
+    on an earlier day wait for the night, as planned."""
+    now = time.time()
+    todo = [e for e in usage_candidates()
+            if now - ((usage.latest(e["chain"], e["token_address"]) or {}).get("at") or 0) > USAGE_STALE_S]
     async with httpx.AsyncClient(timeout=20) as client:
-        return await _measure_usage(client, limit)
+        return await _measure_usage(client, limit, todo)
 
 
 async def _refresh_big_coins(client: httpx.AsyncClient, now: float) -> None:
@@ -1511,8 +1532,7 @@ def backlog(now: float | None = None) -> dict:
     queue = discovery.status().get("queue") or 0
     if queue and pool_status(now)["pool"] >= POOL_TARGET:
         queue = 0                   # discovery is paused or slow: its queue waits
-    unmeasured = sum(1 for e in usage_candidates()[:USAGE_WARM_MAX]
-                     if not usage.measured_today(e["chain"], e["token_address"]))
+    unmeasured = sum(1 for e in usage_candidates() if not usage.tried_today(e["chain"], e["token_address"]))
     return {"running": len(_busy) + len(_tasks), "unanalysed": sum(1 for e in _entries.values() if not e["pillars"]),
             "database": db_due, "discovery": queue, "unmeasured": unmeasured}
 
@@ -1536,6 +1556,10 @@ def analyze_now(chain: str, token: str) -> bool:
 
     async def _go() -> None:
         async with httpx.AsyncClient(timeout=10.0, headers={"User-Agent": "Mozilla/5.0 (LiquidityEngine)"}) as client:
+            try:                    # usage too, or usage_gate keeps it out until the night
+                await usage.refresh(client, [_entries[k]], 1)
+            except Exception:
+                logger.exception("usage: %s not measured", k)
             await _analyze(k, set(), client)     # its finally frees the slot
         if _dirty:
             _save()
