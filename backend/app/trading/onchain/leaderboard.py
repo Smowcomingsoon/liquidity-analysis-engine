@@ -111,22 +111,38 @@ BOARD_CAP_MAX_USD = 10_000_000
 # holders). Measured once a day by usage.py on DexScreener and GeckoTerminal.
 # Under TOP_CAP_MIN_USD a project passing every other bar is "early": a list
 # apart, never on the podium.
+# Same day, later (Lorenzo): "dare troppa importanza [a] volume [...] esclude
+# delle gemme che sono nascoste [...] il nostro obiettivo e' trovare delle
+# gemme [...] sono cose importanti, ma non devono direzionare troppo il
+# tutto". So the hard bars only drop what nobody trades at all (Clawville:
+# $712 a day, 2 buyers) or what is shrinking or held by a few wallets; how
+# much a token is used weighs in the score, and a strong product with little
+# market (a hidden gem, hidden_gem) is flagged, not dropped.
 TOP_CAP_MIN_USD = 300_000
-USAGE_VOL_7D_MIN_USD = 25_000
-USAGE_VOL_CAP_MIN = 0.01             # 7-day average volume a day, against the cap
-USAGE_TX_MIN = 100                   # trades in 24 hours
-USAGE_BUYERS_MIN = 30                # distinct buyers in 24 hours
-USAGE_HOLDERS_MIN = 500
+USAGE_DEAD_VOL_USD = 2_000           # 7-day average a day: below it AND few buyers = nobody trades it
+USAGE_DEAD_BUYERS = 10               # distinct buyers in 24 hours
+USAGE_HOLDERS_MIN = 100
+USAGE_SHRINK_MAX = 0.10              # holders down more than 10% in 30 days
 USAGE_TOP10_MAX_PCT = 40.0           # wallets only: pools and contracts are not whales
-USAGE_STALE_S = 3 * 86400           # an older snapshot is no measure: the token waits for the next
-USAGE_GROWTH_TOLERANCE = 0.02        # holder counts jitter: -1% over a month is "not shrinking"
+USAGE_STALE_S = 3 * 86400           # an older snapshot is no measure
+# Where the usage score starts counting (not bars): $25k a day, 30 buyers,
+# 100 trades, 500 holders.
+USAGE_VOL_LO_USD = 25_000
+USAGE_BUYERS_LO = 30
+USAGE_TX_LO = 100
+USAGE_HOLDERS_LO = 500
+HIDDEN_PRODUCT_MIN = 65              # product block at least this...
+HIDDEN_USAGE_MAX = 35                # ...with usage at most this: a hidden gem
 USAGE_PER_TICK = 10                  # tokens measured per tick, each at most once a day
 USAGE_WARM_MAX = 200                 # at start-up: ~3 GeckoTerminal calls each, 14 a minute
 # The final score (07/10): measured parts first, DeepSeek last and light.
 # Product = research (site, docs), GitHub and DeepSeek's code reading; token
 # = tokenomics; DeepSeek = its report and its board review. A part with no
 # reading is left out and the others share its weight.
-SCORE_WEIGHTS = {"usage": 0.30, "participation": 0.20, "product": 0.25, "token": 0.15, "deepseek": 0.10}
+# Product and DeepSeek's reading (which now sees the usage numbers too)
+# lead with 55; measured market 30 (Lorenzo: balanced, the old Top "non era
+# male"); tokenomics 15.
+SCORE_WEIGHTS = {"usage": 0.20, "participation": 0.10, "product": 0.30, "token": 0.15, "deepseek": 0.25}
 CG_CONTRACT = "https://api.coingecko.com/api/v3/coins/{platform}/contract/{address}"
 CG_PLATFORM = {"solana": "solana", "robinhood": "robinhood"}
 GLOBAL_CAP_EVERY_S = 15            # one CoinGecko lookup per gap, shared with discovery
@@ -235,6 +251,7 @@ def _load() -> None:
             _excluded.extend(x for x in raw.get("excluded") or [] if isinstance(x, dict))
             _gone.update(raw.get("gone") or {})
         _state["examined"] = int(raw.get("examined") or 0)
+        _state["rescored_rules"] = raw.get("rescored_rules")
         _alerted.update(raw.get("alerted") or [])
         # First start with alerts: what is already on the board is not news.
         global _priming
@@ -249,6 +266,7 @@ def _save() -> None:
     try:
         write_text_atomic(_STORE_FILE, json.dumps({"entries": _entries, "excluded": _excluded, "gone": _gone,
                                            "examined": _state["examined"], "rules": RULES_VERSION,
+                                           "rescored_rules": _state.get("rescored_rules"),
                                            "alerted": sorted(_alerted)}, ensure_ascii=False),
                                encoding="utf-8")
     except OSError:
@@ -608,31 +626,22 @@ def wallet_top10(e: dict) -> float | None:
 
 
 def usage_gate(e: dict, cap_floor: bool = True) -> str:
-    """"" when the measured usage clears every bar, else why not. Not measured
-    yet waits: the first nightly run measures it."""
+    """"" unless the token is plainly unused, shrinking or held by a few
+    wallets. Low volume alone is not a reason (hidden gems): it weighs in
+    the score. Not measured yet passes: unknown is not zero."""
     cap = true_cap(e)
     if cap_floor and cap and cap < TOP_CAP_MIN_USD:
         return f"under ${TOP_CAP_MIN_USD / 1e3:.0f}k (early list)"
     m = usage.latest(e.get("chain"), e.get("token_address"))
-    if not m or time.time() - (m.get("at") or 0) > USAGE_STALE_S:
-        return "usage not measured yet"
-    vol = m.get("vol_7d_avg") if m.get("vol_7d_avg") is not None else m.get("vol_24h")
-    if vol is None:
-        return "volume unknown"
-    if vol < USAGE_VOL_7D_MIN_USD:
-        return f"volume ${vol:,.0f} a day (needs ${USAGE_VOL_7D_MIN_USD / 1e3:.0f}k)"
-    if cap and vol < USAGE_VOL_CAP_MIN * cap:
-        return f"volume {vol / cap:.1%} of the cap a day (needs {USAGE_VOL_CAP_MIN:.0%})"
-    if m.get("tx_24h") is None:
-        return "trades unknown"
-    if m["tx_24h"] < USAGE_TX_MIN:
-        return f"{m['tx_24h']} trades in 24h (needs {USAGE_TX_MIN})"
-    if m.get("buyers_24h") is not None and m["buyers_24h"] < USAGE_BUYERS_MIN:
-        return f"{m['buyers_24h']} buyers in 24h (needs {USAGE_BUYERS_MIN})"
-    if m.get("holders") is not None and m["holders"] < USAGE_HOLDERS_MIN:
-        return f"{m['holders']} holders (needs {USAGE_HOLDERS_MIN})"
+    if m and time.time() - (m.get("at") or 0) <= USAGE_STALE_S:
+        vol = m.get("vol_7d_avg") if m.get("vol_7d_avg") is not None else m.get("vol_24h")
+        buyers = m.get("buyers_24h")
+        if vol is not None and vol < USAGE_DEAD_VOL_USD and buyers is not None and buyers < USAGE_DEAD_BUYERS:
+            return f"nobody trades it: ${vol:,.0f} a day, {buyers} buyers"
+        if m.get("holders") is not None and m["holders"] < USAGE_HOLDERS_MIN:
+            return f"{m['holders']} holders (needs {USAGE_HOLDERS_MIN})"
     growth = usage.holders_growth(e.get("chain"), e.get("token_address"), 30)
-    if growth is not None and growth < -USAGE_GROWTH_TOLERANCE:
+    if growth is not None and growth < -USAGE_SHRINK_MAX:
         return f"holders {growth:+.0%} in 30 days"
     top10 = wallet_top10(e)
     if top10 is not None and top10 >= USAGE_TOP10_MAX_PCT:
@@ -737,11 +746,11 @@ def usage_score(e: dict) -> float | None:
     if vol is not None:
         if cap:
             parts.append((45, _ramp(math.log10(max(vol / cap, 1e-6)), -2.3, -1)))      # 0.5% -> 0, 10% -> full
-        parts.append((30, _ramp(math.log10(max(vol, 1)), math.log10(USAGE_VOL_7D_MIN_USD), 6)))   # $25k -> $1M
+        parts.append((30, _ramp(math.log10(max(vol, 1)), math.log10(USAGE_VOL_LO_USD), 6)))   # $25k -> $1M
     if m.get("buyers_24h") is not None:
-        parts.append((25, _ramp(math.log10(max(m["buyers_24h"], 1)), math.log10(USAGE_BUYERS_MIN), 3)))  # 30 -> 1,000
+        parts.append((25, _ramp(math.log10(max(m["buyers_24h"], 1)), math.log10(USAGE_BUYERS_LO), 3)))  # 30 -> 1,000
     elif m.get("tx_24h") is not None:
-        parts.append((25, _ramp(math.log10(max(m["tx_24h"], 1)), math.log10(USAGE_TX_MIN), 3.5)))
+        parts.append((25, _ramp(math.log10(max(m["tx_24h"], 1)), math.log10(USAGE_TX_LO), 3.5)))
     if not parts and not use:
         return None
     pts = 100 * sum(w * x for w, x in parts) / sum(w for w, _ in parts) if parts else 0.0
@@ -753,7 +762,7 @@ def participation_score(e: dict) -> float | None:
     m = usage.latest(e.get("chain"), e.get("token_address"))
     if not m or m.get("holders") is None:
         return None
-    pts = 60 * _ramp(math.log10(max(m["holders"], 1)), math.log10(USAGE_HOLDERS_MIN), 4.5)   # 500 -> 30k
+    pts = 60 * _ramp(math.log10(max(m["holders"], 1)), math.log10(USAGE_HOLDERS_LO), 4.5)   # 500 -> 30k
     growth = usage.holders_growth(e.get("chain"), e.get("token_address"), 30)
     pts += 40 * (0.5 if growth is None else _ramp(growth, -0.05, 0.30))
     return round(pts, 1)
@@ -780,6 +789,14 @@ def deepseek_score(e: dict) -> float | None:
     if r.get("keep") and r.get("score") is not None and _fresh(r, judge.REVIEW_TTL_S):
         parts.append(r["score"])
     return sum(parts) / len(parts) if parts else None
+
+
+def hidden_gem(e: dict) -> bool:
+    """A strong product the market has not found yet: what the Gem Finder is
+    for (Lorenzo, 07/10). A label on the row, never a reason to drop it; only
+    on a measured market (unmeasured is unknown, not hidden)."""
+    b = score_blocks(e)
+    return (b["product"] or 0) >= HIDDEN_PRODUCT_MIN and b["usage"] is not None and b["usage"] <= HIDDEN_USAGE_MAX
 
 
 def score_blocks(e: dict) -> dict:
@@ -843,8 +860,8 @@ def score_parts(e: dict, now: float | None = None, early: bool = True) -> dict:
 def rules_version() -> str:
     """The hand weights in force, as a short hash: a receipt says which rules chose."""
     rules = {"blocks": SCORE_WEIGHTS, "no_github": NO_GITHUB_PENALTY, "floor": PILLAR_FLOOR,
-             "usage_gates": [TOP_CAP_MIN_USD, USAGE_VOL_7D_MIN_USD, USAGE_VOL_CAP_MIN, USAGE_TX_MIN,
-                             USAGE_BUYERS_MIN, USAGE_HOLDERS_MIN, USAGE_TOP10_MAX_PCT],
+             "usage_gates": [TOP_CAP_MIN_USD, USAGE_DEAD_VOL_USD, USAGE_DEAD_BUYERS, USAGE_HOLDERS_MIN,
+                             USAGE_SHRINK_MAX, USAGE_TOP10_MAX_PCT],
              "learned": gem_learn.approved_hash()}
     return gem_track.receipt_of({"parts": rules})[:16]
 
@@ -944,6 +961,7 @@ def _public(e: dict) -> dict:
             "similarity": e.get("similarity"), "benchmark": top, "early": is_early(e), "price_usd": e.get("price_usd"),
             "narratives": narratives.labels(e.get("narratives") or []), "closed_source": no_github(e),
             "text_moved": e.get("text_moved"), "usage": usage.latest(e.get("chain"), e.get("token_address")),
+            "hidden": hidden_gem(e),
             "blocks": score_blocks(e),
             **_research_public(e), "honor": benchmark.HONOR if top else None, "traction": traction_of(e),
             "review": {k: (e.get("review") or {}).get(k) for k in ("keep", "score", "reason")} if e.get("review") else None,
@@ -1004,8 +1022,8 @@ def board() -> dict:
         "past_floor": sum(1 for e in _entries.values() if not research_floor(e)),
         "nightly": _nightly_status(),
         "rules": {"score_weights": SCORE_WEIGHTS, "top_cap_min_usd": TOP_CAP_MIN_USD,
-                  "usage_vol_7d_min_usd": USAGE_VOL_7D_MIN_USD, "usage_vol_cap_min": USAGE_VOL_CAP_MIN,
-                  "usage_tx_min": USAGE_TX_MIN, "usage_buyers_min": USAGE_BUYERS_MIN,
+                  "usage_dead_vol_usd": USAGE_DEAD_VOL_USD, "usage_dead_buyers": USAGE_DEAD_BUYERS,
+                  "usage_shrink_max": USAGE_SHRINK_MAX,
                   "usage_holders_min": USAGE_HOLDERS_MIN, "usage_top10_max_pct": USAGE_TOP10_MAX_PCT,
                   "benchmark": benchmark.NAME, "min_pillar": MIN_PILLAR,
                   "board_cap_max_usd": BOARD_CAP_MAX_USD, "pillar_floor": PILLAR_FLOOR},
@@ -1452,8 +1470,13 @@ def set_top_source(fn) -> None:
 
 
 def db_entry(p: dict) -> dict:
-    """A database row in board shape: what the token page and the judge read."""
-    return {**projects_db.as_item(p), "score": p.get("score"), "pillars": p.get("pillars") or {},
+    """A database row in board shape: what the token page and the judge read.
+    Layer rows (layers.py) keep their pillars as a list: keyed here like the
+    board's, or every reader's .get() fails (07/10: 500 on the token page)."""
+    pillars = p.get("pillars") or {}
+    if isinstance(pillars, list):
+        pillars = {x["key"]: x for x in pillars if isinstance(x, dict) and x.get("key")}
+    return {**projects_db.as_item(p), "score": p.get("score"), "pillars": pillars,
             "overall": p.get("overall"), "narratives": p.get("narratives") or [],
             "traction": p.get("traction"), "rank": p.get("rank"), "status": p.get("status"),
             "why": p.get("why"), "on_board": False}
@@ -1569,8 +1592,46 @@ def analyze_now(chain: str, token: str) -> bool:
     return True
 
 
+def rescore_database() -> int:
+    """Every studied database row scored again with today's formula and
+    rules (07/10, Lorenzo: "aggiornami tutti i voti di quelle presenti nel
+    database [...] con le nuove logiche"). No API call: the readings stay,
+    the weights and bars change. Board entries are left to the board, layer
+    rows to their own scorer."""
+    out = []
+    for row in projects_db.scored_rows():
+        if row["chain"] == "layer" or _key(row["chain"], row["token"]) in _entries:
+            continue
+        e = {**db_entry(row), "global_cap": row.get("cg_mcap"), "judge": judge.get(row["chain"], row["token"])}
+        try:
+            out.append((projects_db.key(row["chain"], row["token"]), final_score(e),
+                        "" if row["status"] == "ranked" else qualifies(e)))
+        except Exception:
+            logger.exception("rescore: %s skipped", row.get("symbol"))
+    return projects_db.rescore_many(out)
+
+
+def rescore_once() -> None:
+    """When the rules change (rules_version): rescore the database now, and
+    queue every studied row, plus the ones DeepSeek dropped, for a fresh
+    analysis with the new judge prompt. The nightly run works through it."""
+    rules = f"{rules_version()}:{judge.PROMPT_VERSION}"
+    if _state.get("rescored_rules") == rules:
+        return
+    try:
+        n = rescore_database()
+        q = projects_db.requeue(("studied", "ranked")) + projects_db.requeue(("rejected",), ("DeepSeek",))
+        logger.info("classifica: %d voti del database ricalcolati, %d progetti rimessi in coda", n, q)
+        _state["rescored_rules"] = rules
+        _mark()
+        _save()
+    except Exception:
+        logger.exception("classifica: ricalcolo del database fallito")
+
+
 def startup_requeue() -> None:
     """Once per start: rows judged by limits that no longer exist go back in the queue."""
+    rescore_once()
     try:
         n = projects_db.recheck_studied(("over $%", "over % days%"))
         # Rules dropped on 29/09 (age limits, radar exceptions, the $100k band).

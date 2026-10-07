@@ -189,3 +189,19 @@ def test_search_filters_by_chain_and_layer_type():
     assert [p["symbol"] for p in db.search(chain="solana")["items"]] == ["AAA"]
     assert db.search(layer="L9")["total"] == 4
     assert db.stats()["by_layer"] == {"L0": 1, "L1": 1, "L2": 1}
+
+
+def test_rescore_and_requeue_touch_only_their_rows():
+    for t in ("S", "R", "D", "F"):
+        db.upsert({"chain": "solana", "token_address": t, "symbol": t, "website": f"https://{t}.io"}, "jupiter", T0)
+    e = lambda t: {"chain": "solana", "token_address": t}  # noqa: E731
+    db.record(e("S"), "studied", "volume $712 a day", 90.0, now=T0)
+    db.record(e("R"), "ranked", "", 80.0, now=T0)
+    db.record(e("D"), "rejected", "DeepSeek: no product", now=T0)
+    db.record(e("F"), "rejected", "honeypot", now=T0)
+    assert {r["token"] for r in db.scored_rows()} == {"S", "R"}
+    assert db.rescore_many([("solana:S", 61.5, ""), ("solana:F", 99.0, "x")]) == 1
+    assert db.get("solana", "S")["score"] == 61.5 and db.get("solana", "S")["why"] is None
+    assert db.get("solana", "F")["score"] is None
+    assert db.requeue(("studied", "ranked")) == 2 and db.requeue(("rejected",), ("DeepSeek",)) == 1
+    assert db.get("solana", "F")["next_check"] > 0 and db.get("solana", "D")["next_check"] == 0

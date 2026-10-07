@@ -127,7 +127,8 @@
   .trow-main .sub { color: var(--k-text-3); overflow: hidden; text-overflow: ellipsis; }
   .hot { flex: none; font: 600 9.5px/1 var(--sans); font-style: normal; letter-spacing: .04em; text-transform: uppercase;
     padding: 2px 5px; border-radius: 99px; color: var(--k-hot); border: 1px solid var(--k-hot); background: var(--c-down-soft, rgb(255 61 110 / .12));
-    &.early { color: var(--k-amber); border-color: var(--k-amber); background: rgb(250 204 21 / .1); } }
+    &.early { color: var(--k-amber); border-color: var(--k-amber); background: rgb(250 204 21 / .1); }
+    &.hidden { color: var(--k-mint); border-color: var(--k-mint); background: var(--c-up-soft, rgb(134 239 172 / .1)); } }
   .trow-num { display: grid; justify-items: end; gap: 4px;
     & > b { font: 700 16px/1 var(--sans); letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: var(--k-text); } }
   .chg { display: inline-flex; align-items: center; gap: 4px; block-size: 20px; padding: 0 6px; border-radius: 4px;
@@ -1435,3 +1436,12 @@ html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { d
 .top-early[open] > summary::after { transform: rotate(-135deg); }
 .top-early > summary small { font-weight: 400; opacity: .6; }
 @media (prefers-reduced-motion: reduce) { .top-early > summary::after { transition: none; } }
+.track-fold { margin-top: 8px; }
+.track-fold > .track { margin-top: 4px; }
+
+/* The Early view (dock): the same rows as the Top, under a short lead. */
+.early-view { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
+.early-view > header { display: flex; align-items: baseline; gap: 8px; margin: 4px 2px 6px; }
+.early-view > header h3 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+.early-view > header span { font-size: 12px; opacity: .6; }
+.early-lead, .early-empty { margin: 0 2px 12px; font-size: 12.5px; line-height: 1.45; opacity: .7; }

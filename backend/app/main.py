@@ -4254,7 +4254,7 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
     if want:
         board = [e for e in board if _narr_keys(e.get("narratives")) & want]
     out = [{**{k: e.get(k) for k in ("chain", "token_address", "pair_address", "pair_url", "symbol", "name", "image",
-                                     "market_cap", "liquidity_usd", "change_24h", "launched_at", "score", "early", "usage")},
+                                     "market_cap", "liquidity_usd", "change_24h", "launched_at", "score", "early", "usage", "hidden")},
             "on_board": True} for e in board if not onchain_leaderboard.no_name(e.get("symbol"))]
     seen = {f"{e['chain']}:{e['token_address']}" for e in out}
     cutoff = time.time() - 30 * 86400
@@ -4293,12 +4293,14 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
         # board; the score is recomputed with today's formula. Layer chains
         # trade on exchanges, not DEX pools: their own band below.
         score = row.get("score")
+        hidden = False
         if row["chain"] != onchain_layers.CHAIN:
             # DeepSeek's reading too, so a token scores the same in both halves.
             entry = {**onchain_leaderboard.db_entry(row), "global_cap": row.get("cg_mcap"), "judge": j}
             if onchain_leaderboard.usage_gate(entry):
                 continue
             score = onchain_leaderboard.final_score(entry)
+            hidden = onchain_leaderboard.hidden_gem(entry)
         # Layer chains (layers.py) have no DEX pool: their pool is the
         # exchange pair, and the gem ceiling does not apply to them.
         pair_address = None
@@ -4316,7 +4318,7 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
                     "symbol": row.get("symbol"), "name": row.get("name"), "image": row.get("image"),
                     "market_cap": row.get("mcap"), "liquidity_usd": row.get("liq"), "change_24h": None,
                     "launched_at": row.get("launched_at"), "score": score, "early": None, "on_board": False,
-                    "usage": onchain_leaderboard.usage.latest(row["chain"], row["token"])})
+                    "hidden": hidden, "usage": onchain_leaderboard.usage.latest(row["chain"], row["token"])})
     out.sort(key=lambda e: -(e.get("score") or 0))
     return out[:n]
 

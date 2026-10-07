@@ -504,6 +504,40 @@ def recheck_studied(patterns: tuple[str, ...], statuses: tuple[str, ...] = ("stu
         return cur.rowcount
 
 
+def scored_rows() -> list[dict]:
+    """Every studied or ranked row: what a rescore walks over."""
+    with _lock:
+        rows = _db().execute("SELECT * FROM projects WHERE status IN ('studied', 'ranked')").fetchall()
+    return [_row(r) for r in rows]
+
+
+def rescore_many(rows: list[tuple[str, float | None, str]]) -> int:
+    """(key, score, why) for many rows in one transaction, no new analysis:
+    the score formula changed, the readings did not."""
+    if not rows:
+        return 0
+    with _lock:
+        cur = _db().executemany("UPDATE projects SET score = ?, why = ? WHERE key = ? AND status IN ('studied', 'ranked')",
+                                [(s, w or None, k) for k, s, w in rows])
+        _db().commit()
+        return cur.rowcount
+
+
+def requeue(statuses: tuple[str, ...] = ("studied", "ranked"), why_like: tuple[str, ...] = ()) -> int:
+    """Back in the analysis queue: rows of `statuses`, or only those whose
+    reason matches `why_like`. The nightly run takes them a few at a tick."""
+    statuses = tuple(x for x in statuses if x in STATUSES and x != "analyzing")
+    if not statuses:
+        return 0
+    marks = ", ".join("?" for _ in statuses)
+    where = (" AND (" + " OR ".join("why LIKE ?" for _ in why_like) + ")") if why_like else ""
+    with _lock:
+        cur = _db().execute(f"UPDATE projects SET next_check = 0 WHERE status IN ({marks}){where}",
+                            (*statuses, *(f"{p}%" for p in why_like)))
+        _db().commit()
+        return cur.rowcount
+
+
 _NARR_ORDER = ("CASE status WHEN 'ranked' THEN 0 WHEN 'studied' THEN 1 WHEN 'new' THEN 2"
                " WHEN 'analyzing' THEN 3 WHEN 'rejected' THEN 4 ELSE 5 END")
 

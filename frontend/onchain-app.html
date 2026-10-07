@@ -1762,7 +1762,8 @@
   :root[data-trading="off"] [data-trading-only],
   :root:not([data-trading="off"]) #gem-scan,
   #app-shell:not([data-view="meme"]) #signals,
-  #app-shell:not([data-view="top"]) #track,
+  #app-shell:not([data-view="top"]) #early-view,
+  #app-shell:not([data-view="profile"]) #track-fold,
   #app-shell :is(#meme-alerts, #memes, #pilot, #radar, #leaders),
   #app-shell:not([data-view="profile"]) #profile,
   #app-shell:not([data-view="agent"]) #agent-view,
@@ -2767,8 +2768,6 @@
         <div class="seg top-size" role="group" aria-label="How many" data-top-size></div>
         <p class="st-note" data-top-note></p>
         <ol class="memes-list" data-top-rows></ol>
-        <!-- Under $300k and past every other bar (Lorenzo, 07/10): a list apart, never on the podium. -->
-        <details class="top-early" data-top-early hidden><summary>Early <small>under $300k</small></summary><ol class="memes-list"></ol></details>
       </section>
       <section class="projects" id="projects" data-pane="gems:database" data-loading>
         <header><h3>Project database</h3><span data-projects-meta></span></header>
@@ -2848,8 +2847,13 @@
           <button type="submit" aria-label="Scan"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></button></form>
         <div data-signals-body></div>
       </section>
-      <section class="track" id="track" data-loading>
-        <div data-track-body></div>
+      <!-- Under $300k and past every other bar (Lorenzo, 07/10): a list
+           apart, never on the podium, with its own place in the dock. -->
+      <section class="early-view" id="early-view" data-early-view>
+        <header><h3>Early</h3><span>under $300k cap</span></header>
+        <p class="early-lead">Small projects that pass every other bar of the Top: real usage, holders, code and research. Smaller and riskier. Research, not advice.</p>
+        <ol class="memes-list" data-early-rows></ol>
+        <p class="early-empty" data-early-empty hidden>No project under $300k passes the bars right now. The list is refreshed by the nightly scan.</p>
       </section>
 
       <!-- Il revisore giornaliero (ai_review.py): Claude legge cosa e' successo
@@ -2874,6 +2878,14 @@
            grafico [...] scegliere anche l'immagine profilo"). Lo disegna
            static/onchain/profile.js. -->
       <section class="profile" id="profile" data-loading></section>
+      <!-- How past picks went (gem_track), folded under the profile
+           (Lorenzo, 07/10: the Early list took its place in the dock). -->
+      <details class="top-early track-fold" id="track-fold">
+        <summary>Track record <small>how past picks did</small></summary>
+        <section class="track" id="track" data-loading>
+          <div data-track-body></div>
+        </section>
+      </details>
       <!-- DeepSeek's own tab (Lorenzo, 28/09: "diamo a DeepSeek una tab
            tutta sua con animazioni molto fatte bene [...] voglio vedere come
            ragiona"). Lo disegna static/onchain/agent.js. -->
@@ -2970,7 +2982,7 @@
     <span class="dock-thumb" aria-hidden="true"></span>
     <button type="button" data-go="meme" aria-label="Signals" data-trading-only><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 5 12 2.5-6h4"/></svg><span>Signals</span></button>
     <button type="button" data-go="gems" aria-label="Gems"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="10" r="6"/><path d="M15.2 8.4a6 6 0 1 1-6.8 8.3"/></svg><span>Gems</span></button>
-    <button type="button" data-go="top" aria-label="Track record"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="m8.5 12.2 2.4 2.4 4.6-5"/></svg><span>Record</span></button>
+    <button type="button" data-go="top" aria-label="Early"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20v-8"/><path d="M12 12c0-3.5-2.5-6-6.5-6 0 3.5 2.5 6 6.5 6Z"/><path d="M12 13.5c0-3 2.2-5.5 6.5-5.5 0 3-2.2 5.5-6.5 5.5Z"/></svg><span>Early</span></button>
     <button type="button" data-go="agent" aria-label="Scout"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg><span>Scout</span></button>
     <button type="button" data-go="profile" aria-label="Profile"><i class="dock-me" data-me-avatar aria-hidden="true"></i><span>Profile</span></button>
   </nav>

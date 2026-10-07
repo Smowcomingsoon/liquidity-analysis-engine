@@ -724,8 +724,9 @@ mountAgent();
 mountAsk();
 mountTop();
 // Lorenzo, 30/09: the meme screens and the backtest hall of fame are gone.
-// The "meme" view now holds Signals, the "top" view the Track record (the
-// view names stay: the home page links, the splash and the desk use them).
+// The "meme" view now holds Signals, the "top" view the Early list (07/10;
+// the Track record folds under the profile). The view names stay: the home
+// page links, the splash and the desk use them.
 if (TRADING) mountSignals();
 mountTrack();   // the picks' track record (gem_track), not a backtest
 // The scanner, in Gems now that Signals is gone (it lived there).

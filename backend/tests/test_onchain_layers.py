@@ -183,3 +183,21 @@ def test_a_run_with_no_candidates_is_not_stamped_done():
 
     assert asyncio.run(go()) == 0
     assert layers.snapshot()["last_run"] == 0
+
+
+def test_layer_token_page_reads_list_pillars(monkeypatch):
+    """Layer rows keep their pillars as a list: the token page opened from
+    the Top answered 500 (07/10, AttributeError 'list' object has no attribute 'get')."""
+    import time
+
+    from app import main
+    monkeypatch.setattr(main.settings, "onchain_enabled", True)
+    monkeypatch.setattr(main.guest_links, "is_guest", lambda user: False)
+    now = time.time()
+    item = {"chain": "layer", "token_address": "kas-kaspa", "symbol": "KAS", "name": "Kaspa", "market_cap": 2e7}
+    projects_db.upsert(item, "layers", now)
+    pillars = [depth._pillar("github", 70, {"repo": "kaspanet/rusty-kaspa"}, []), depth._pillar("site", 60, {}, [])]
+    projects_db.record({**item, "pillars": pillars, "overall": {"score": 80}}, "studied", score=80, now=now)
+    out = asyncio.run(main.onchain_token("layer", "kas-kaspa", object()))
+    assert out["entry"]["pillars"]["github"]["score"] == 70 and out["entry"]["pillars"]["site"]["score"] == 60
+    assert lb.db_entry(projects_db.get("layer", "kas-kaspa"))["pillars"]["github"]["facts"]["repo"] == "kaspanet/rusty-kaspa"
