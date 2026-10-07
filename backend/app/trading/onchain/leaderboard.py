@@ -793,9 +793,10 @@ def deepseek_score(e: dict) -> float | None:
 
 def hidden_gem(e: dict) -> bool:
     """A strong product the market has not found yet: what the Gem Finder is
-    for (Lorenzo, 07/10). A label on the row, never a reason to drop it."""
+    for (Lorenzo, 07/10). A label on the row, never a reason to drop it; only
+    on a measured market (unmeasured is unknown, not hidden)."""
     b = score_blocks(e)
-    return (b["product"] or 0) >= HIDDEN_PRODUCT_MIN and (b["usage"] is None or b["usage"] <= HIDDEN_USAGE_MAX)
+    return (b["product"] or 0) >= HIDDEN_PRODUCT_MIN and b["usage"] is not None and b["usage"] <= HIDDEN_USAGE_MAX
 
 
 def score_blocks(e: dict) -> dict:

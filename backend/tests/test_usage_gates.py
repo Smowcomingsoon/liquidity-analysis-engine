@@ -48,6 +48,9 @@ def test_hidden_gems_are_not_dropped_for_low_volume(snap):
     e["pillars"]["site"]["score"] = e["pillars"]["github"]["score"] = 85
     assert lb.usage_gate(e) == ""
     assert lb.hidden_gem(e)
+    store.pop("T")
+    assert not lb.hidden_gem(e)                             # unmeasured: unknown, not hidden
+    store["T"] = _m(vol_7d_avg=4_000, vol_24h=3_000, tx_24h=40, buyers_24h=15, holders=180)
     store["T"] = _m(vol_7d_avg=1_500, buyers_24h=12)        # thin, but 12 people bought today
     assert lb.usage_gate(e) == ""
 
