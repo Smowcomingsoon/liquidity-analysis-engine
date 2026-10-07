@@ -2681,7 +2681,7 @@
            data-pane="<vista>:<scheda>"; il resto lo fa main.js. -->
       <nav class="tabs" data-tabs="gems" aria-label="Gems">
         <!-- Lorenzo, 28/09: "la top 15-25 etc deve andare in questa tab (icona coppa)". -->
-        <button type="button" data-tab="rankings" aria-current="page"><svg class="tab-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8.5 20h7"/></svg>Top</button>
+        <button type="button" data-tab="rankings" aria-current="page"><svg class="tab-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8.5 20h7"/></svg>Arenas</button>
         <button type="button" data-tab="database">Database</button>
       </nav>
       <div class="status-strip">
@@ -2758,16 +2758,17 @@
       <!-- Il database dei progetti (projects_db.py). Richiesta: "vedi sempre
            i soliti... ma fatti un database no?". Tutto cio' che il Gem Finder
            ha visto, con il verdetto e il perche'. Lo disegna static/onchain/projects.js. -->
-      <!-- Top (top.js): the quality low caps, 15 / 25 / 50. Replaced Picks,
-           the meme coins (Lorenzo: "non voglio assolutamente il meme coin"). -->
+      <!-- Arenas (top.js, arenas.py): the quality low caps by narrative, each
+           against its peers, with pound for pound on the podium. Replaced
+           the Top 15/25/50 (Lorenzo, 07/10: "la top50 come concetto e'
+           limitante"), which had replaced Picks, the meme coins. -->
       <section class="top-picks" id="top-picks" data-pane="gems:rankings" data-loading>
         <div class="picks-head">
           <span class="picks-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 12l9 5 9-5"/></svg></span>
-          <p><b>Quality low caps, ranked</b><small>Code, research and tokenomics checked, Scout’s reading included. No meme coins. Updated live.</small></p>
+          <p><b>Quality low caps, by arena</b><small>Each project ranked against its own narrative. Code, research and tokenomics checked. No meme coins.</small></p>
         </div>
-        <div class="seg top-size" role="group" aria-label="How many" data-top-size></div>
         <p class="st-note" data-top-note></p>
-        <ol class="memes-list" data-top-rows></ol>
+        <div class="arenas" data-top-arenas></div>
       </section>
       <section class="projects" id="projects" data-pane="gems:database" data-loading>
         <header><h3>Project database</h3><span data-projects-meta></span></header>

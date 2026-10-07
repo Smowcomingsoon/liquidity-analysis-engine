@@ -102,6 +102,7 @@ from app.trading.onchain import aggregator as onchain_aggregator
 from app.trading.onchain import balances as onchain_balances
 from app.trading.onchain import deposit as onchain_deposit
 from app.trading.onchain import ai_scan as onchain_ai_scan
+from app.trading.onchain import arenas as onchain_arenas
 from app.trading.onchain import execute as onchain_execute
 from app.trading.onchain import send as onchain_send
 from app.trading.onchain import jito as onchain_jito
@@ -1620,7 +1621,7 @@ async def lifespan(app: FastAPI):
     # strategies and the Meme Sniper only with onchain_trading_enabled (off).
     from app.trading.onchain import nightly as onchain_nightly
     research = {
-        "nightly": lambda: onchain_nightly.nightly_loop(lambda: _top_entries(50)),
+        "nightly": lambda: onchain_nightly.nightly_loop(lambda: _top_entries(ARENA_POOL)),
         "leaderboard": onchain_leaderboard.leaderboard_loop,
         "sweep": lambda: onchain_deep_recheck.sweep_loop(
             lambda: [f"{e['chain']}:{e['token_address']}" for e in _top_entries(50)]),
@@ -4192,11 +4193,14 @@ async def onchain_top(n: int = 15, narrative: str = "", user: User = Depends(aut
     if not settings.onchain_trading_enabled:
         # Strategies are off (Lorenzo, 07/10): the Top is the research ranking
         # alone, with no backtest beside it and none required to enter.
-        out = _top_entries(max(1, min(int(n), 50)), narrative)
-        for e in out:
+        # The arenas (arenas.py, Lorenzo 07/10) take every project that
+        # passed the gates, not a fixed 50; `entries` stays for older pages.
+        pool = _top_entries(ARENA_POOL, narrative)
+        for e in pool:
             e["backtests"] = None
+        out = pool[:max(1, min(int(n), 50))]
         return {"entries": out, "on_board": sum(1 for e in out if e["on_board"]), "backtests": None,
-                "early": onchain_leaderboard.board().get("early") or []}
+                "early": onchain_leaderboard.board().get("early") or [], **onchain_arenas.build(pool)}
     out = []
     for e in _top_entries(50, narrative):
         e["backtests"] = _lab_summary(onchain_strategy_lab.get(e["chain"], e["token_address"]))
@@ -4245,6 +4249,9 @@ def _require_trading() -> None:
         raise HTTPException(status_code=404, detail="Trading is switched off.")
 
 
+ARENA_POOL = 500   # every gated project; the arenas set no fixed size
+
+
 def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
     """La Top della schermata Strategie: la bacheca delle gemme piu' le
     righe studiate migliori del database, per punteggio. `narrative`
@@ -4254,8 +4261,9 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
     if want:
         board = [e for e in board if _narr_keys(e.get("narratives")) & want]
     out = [{**{k: e.get(k) for k in ("chain", "token_address", "pair_address", "pair_url", "symbol", "name", "image",
-                                     "market_cap", "liquidity_usd", "change_24h", "launched_at", "score", "early", "usage", "hidden")},
-            "on_board": True} for e in board if not onchain_leaderboard.no_name(e.get("symbol"))]
+                                     "market_cap", "liquidity_usd", "change_24h", "launched_at", "score", "early", "usage", "hidden",
+                                     "blocks")},
+            "narratives": sorted(_narr_keys(e.get("narratives")) - {None}), "on_board": True} for e in board if not onchain_leaderboard.no_name(e.get("symbol"))]
     seen = {f"{e['chain']}:{e['token_address']}" for e in out}
     cutoff = time.time() - 30 * 86400
     # "ranked" too: a row whose flag outlived its place on the board was
@@ -4294,6 +4302,7 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
         # trade on exchanges, not DEX pools: their own band below.
         score = row.get("score")
         hidden = False
+        blocks = None
         if row["chain"] != onchain_layers.CHAIN:
             # DeepSeek's reading too, so a token scores the same in both halves.
             entry = {**onchain_leaderboard.db_entry(row), "global_cap": row.get("cg_mcap"), "judge": j}
@@ -4301,6 +4310,7 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
                 continue
             score = onchain_leaderboard.final_score(entry)
             hidden = onchain_leaderboard.hidden_gem(entry)
+            blocks = onchain_leaderboard.score_blocks(entry)
         # Layer chains (layers.py) have no DEX pool: their pool is the
         # exchange pair, and the gem ceiling does not apply to them.
         pair_address = None
@@ -4318,7 +4328,8 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
                     "symbol": row.get("symbol"), "name": row.get("name"), "image": row.get("image"),
                     "market_cap": row.get("mcap"), "liquidity_usd": row.get("liq"), "change_24h": None,
                     "launched_at": row.get("launched_at"), "score": score, "early": None, "on_board": False,
-                    "hidden": hidden, "usage": onchain_leaderboard.usage.latest(row["chain"], row["token"])})
+                    "hidden": hidden, "usage": onchain_leaderboard.usage.latest(row["chain"], row["token"]),
+                    "blocks": blocks, "narratives": sorted(_narr_keys(row.get("narratives")) - {None})})
     out.sort(key=lambda e: -(e.get("score") or 0))
     return out[:n]
 

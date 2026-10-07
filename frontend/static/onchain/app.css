@@ -1069,7 +1069,7 @@ html, body { overflow-x: clip; }
 #top-picks [data-top-rows] > li.trow {
   & > button { transition: background .2s; }
   & > button:hover { background: var(--c-pill, #16291e); }
-  &:nth-child(-n+3) > button { box-shadow: inset 2px 0 #2de2b0; }
+  &.ar-champ > button { box-shadow: inset 2px 0 var(--c-amber, #2de2b0); }
   & .trow-main::after { content: ""; display: block; inline-size: 64px; block-size: 3px; border-radius: 8px;
     background: linear-gradient(90deg, var(--c-up, #2de2b0) var(--v, 0%), var(--c-press, #1d3527) 0); } }
 
@@ -1445,3 +1445,18 @@ html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { d
 .early-view > header h3 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
 .early-view > header span { font-size: 12px; opacity: .6; }
 .early-lead, .early-empty { margin: 0 2px 12px; font-size: 12.5px; line-height: 1.45; opacity: .7; }
+
+/* Arenas (top.js, arenas.py): one ranking per narrative, its bench folded. */
+.arenas { display: grid; gap: 18px; }
+.arena .ar-head { display: flex; align-items: baseline; gap: 8px; margin: 0 2px 4px; padding-block-end: 6px;
+  border-block-end: 1px dashed var(--c-line, var(--k-line)); }
+.arena .ar-head h4 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--c-text, inherit); }
+.arena .ar-heat { font-size: 10px; letter-spacing: 1px; color: var(--c-amber, #2de2b0); }
+.arena .ar-count { margin-inline-start: auto; font-size: 11px; color: var(--c-text-3, var(--k-text-3)); font-variant-numeric: tabular-nums; }
+.arena .ar-champ .trow-main b { color: var(--c-amber, #2de2b0); }
+.ar-bench > summary { cursor: pointer; list-style: none; padding: 8px 2px; font-size: 11.5px; letter-spacing: .04em;
+  color: var(--c-text-3, var(--k-text-3)); }
+.ar-bench > summary::-webkit-details-marker { display: none; }
+.ar-bench > summary::before { content: "+ "; }
+.ar-bench[open] > summary::before { content: "− "; }
+.ar-bench > summary:focus-visible { outline: 1px solid var(--c-amber, #2de2b0); outline-offset: 2px; }

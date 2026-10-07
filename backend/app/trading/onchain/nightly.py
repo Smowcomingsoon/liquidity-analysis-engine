@@ -192,6 +192,12 @@ def _top_map(top: Callable[[], list[dict]]) -> dict[str, str]:
         return {}
 
 
+async def _duels(top: Callable[[], list[dict]], now: float) -> int:
+    """The arenas' ladder: one night of duels between peers (arenas.py)."""
+    from app.trading.onchain import arenas
+    return arenas.record_night(top(), now)
+
+
 async def _guard(name: str, coro: Awaitable, default=None):
     try:
         return await coro
@@ -239,6 +245,7 @@ async def run_once(top: Callable[[], list[dict]], steps: Steps, deadline: float,
     else:
         stopped = "window"
     studies = await _guard("studies", steps.studies(), 0)
+    duels = await _guard("duels", _duels(top, clock()), 0)
     t1 = clock()
     after, top_after = steps.counters(), _top_map(top)
     return {
@@ -247,6 +254,7 @@ async def run_once(top: Callable[[], list[dict]], steps: Steps, deadline: float,
         "entered": [top_after[k] for k in top_after if k not in top_before],
         "left": [top_before[k] for k in top_before if k not in top_after],
         "top": len(top_after), "layers": n_layers or 0, "rechecked": rechecked, "studies": studies or 0,
+        "duels": duels or 0,
         "deepseek_calls": steps.deepseek_calls(t0, t1), "backlog": left,
     }
 
@@ -259,10 +267,10 @@ def text_it(s: dict) -> str:
              f"Progetti visti dalla scoperta: {s.get('discovered', 0) + s.get('skipped', 0)} "
              f"(tenuti {s.get('discovered', 0)}), entrati in esame: {s.get('examined', 0)}, "
              f"analizzati: {s.get('analysed', 0)}.",
-             f"Entrati nella Top 50: {names(s.get('entered') or [])}.",
-             f"Usciti dalla Top 50: {names(s.get('left') or [])}.",
+             f"Entrati nelle arene: {names(s.get('entered') or [])}.",
+             f"Usciti dalle arene: {names(s.get('left') or [])}.",
              f"Layer aggiornati: {s.get('layers', 0)}; ricontrolli DeepSeek: {s.get('rechecked', 0)}; "
-             f"studi: {s.get('studies', 0)}.",
+             f"studi: {s.get('studies', 0)}; duelli della scala: {s.get('duels', 0)}.",
              f"Chiamate DeepSeek: {s.get('deepseek_calls', 0)}."]
     if s.get("resumed"):
         lines.append("Ripresa dopo un riavvio del server: i conteggi coprono solo l'ultima parte, "

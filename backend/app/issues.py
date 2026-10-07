@@ -165,6 +165,9 @@ def _resolutions() -> dict[str, dict]:
 
 
 _SEED = [
+    ("seed-0255", "La Top 50 come concetto e' limitante: serve una classifica meritocratica che tenga conto delle narrative",
+     "Lorenzo, 07/10: 'secondo me la top50 come concetto e' limitante, serve un sistema meritocratico e innovativo per visualizzare i top [...] una classifica fatta in modo meno tradizionale data la complessita' dei progetti e le diverse narrative'. Tre proposte (Arene, Mappa, Scala), scelta: 'procedi come consigliato'.",
+     "media"),
     ("seed-0254", "La lista Early non si trova; la schermata Record non si capisce a cosa serva",
      "Lorenzo, 07/10: 'la sezione EARLY non la trovo pero', la metterei al posto di questa schermata che non capisco neanche a cosa serva'.",
      "media"),

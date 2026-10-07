@@ -53,6 +53,14 @@ def _trading_on(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _private_arena_ladder(monkeypatch, tmp_path):
+    """The arenas' Elo ladder is a file on the volume: every test gets its own."""
+    from app.trading.onchain import arenas
+    monkeypatch.setattr(arenas, "_FILE", tmp_path / "arena_ladder.json")
+    yield
+
+
+@pytest.fixture(autouse=True)
 def _private_deepseek_journal(monkeypatch, tmp_path):
     """The DeepSeek call journal is a file on the volume: every test gets its own."""
     from app.notify import deepseek_calls

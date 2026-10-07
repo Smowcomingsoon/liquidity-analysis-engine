@@ -151,7 +151,7 @@ def test_window_stops_the_run_at_max_hours():
     assert s["entered"] == ["CCC"] and s["left"] == ["AAA"]
     assert s["analysed"] == 2 * s["ticks"] and s["deepseek_calls"] == 4 and s["layers"] == 3
     text = nightly.text_it(s)
-    assert "Entrati nella Top 50: CCC" in text and "Usciti dalla Top 50: AAA" in text
+    assert "Entrati nelle arene: CCC" in text and "Usciti dalle arene: AAA" in text
     assert "Fermata al limite di 2 ore: restano 7 lavori" in text
 
 

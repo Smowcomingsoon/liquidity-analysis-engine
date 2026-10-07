@@ -2561,5 +2561,10 @@
     "at": 1791388456,
     "summary": "Early ha ora il suo posto nel dock, al posto di Record: i progetti sotto i $300k di cap che passano tutte le altre soglie della Top, con una riga che spiega cosa sono e un avviso quando la lista e' vuota. Lo storico delle scelte (Record) resta, piegato in fondo al Profilo sotto 'Track record'.",
     "detail": "frontend/onchain-app.html (#early-view, dock, #track-fold), static/onchain/top.js paintEarly, app.css."
+  },
+  "seed-0255": {
+    "status": "risolto",
+    "at": 1791394638,
+    "summary": "Al posto della Top 15/25/50 ci sono le Arene: una classifica per ogni narrativa (AI Agents, Privacy, RWA, DePIN...) piu' una per le chain L0/L1/L2, e ogni progetto si confronta solo con i suoi pari. Nessun numero fisso: in ogni arena e' 'dentro' chi sta sopra la mediana dei pari, gli altri sono in panchina. Un progetto con piu' narrative gareggia dove stacca di piu' i pari. Il podio e' 'pound for pound': i tre che dominano di piu' la propria arena. Da stanotte il giro delle 22:00 fa anche i duelli fra pari (rating Elo): dopo tre settimane l'ordine dentro le arene potra' passare al rating."
   }
 }
