@@ -418,9 +418,11 @@ dialog.sheet :is(.rows, [tabindex="-1"]):focus { outline: none !important; }
 @media (prefers-color-scheme: dark) { :is(.tb-deposit, .tb-bell) { box-shadow: none !important; } }
 
 /* --- layout review ---------------------------------------------------- */
-/* Voice button: a round button stacked above the search circle. */
-.ask-fab { inset: auto 24px calc(14px + 64px + 12px + env(safe-area-inset-bottom)) auto !important; inline-size: 48px !important;
-  block-size: 48px !important; border-radius: 50% !important; padding: 0 !important; display: grid; place-items: center; }
+/* Voice button: a round header button beside the bell, so it never sits
+   over list values. Absolute, so it scrolls away with the header. */
+.ask-fab { position: absolute !important; inset: calc(env(safe-area-inset-top) + 18px) 64px auto auto !important;
+  inline-size: 40px !important; block-size: 40px !important; border-radius: 50% !important; padding: 0 !important;
+  display: grid; place-items: center; translate: none !important; transform: none !important; }
 /* Record list on the page gutter; its info box is the only card. */
 .track { background: none !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; --ring: var(--c-bg); }
 /* Signals scan: a round button inside the pill field. */
