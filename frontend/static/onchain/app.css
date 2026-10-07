@@ -127,7 +127,8 @@
   .trow-main .sub { color: var(--k-text-3); overflow: hidden; text-overflow: ellipsis; }
   .hot { flex: none; font: 600 9.5px/1 var(--sans); font-style: normal; letter-spacing: .04em; text-transform: uppercase;
     padding: 2px 5px; border-radius: 99px; color: var(--k-hot); border: 1px solid var(--k-hot); background: rgb(255 61 110 / .12);
-    &.early { color: var(--k-amber); border-color: var(--k-amber); background: rgb(250 204 21 / .1); } }
+    &.early { color: var(--k-amber); border-color: var(--k-amber); background: rgb(250 204 21 / .1); }
+    &.hidden { color: var(--k-mint); border-color: var(--k-mint); background: rgb(134 239 172 / .1); } }
   .trow-num { display: grid; justify-items: end; gap: 4px;
     & > b { font: 700 16px/1 var(--sans); letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: var(--k-text); } }
   .chg { display: inline-flex; align-items: center; gap: 4px; block-size: 20px; padding: 0 6px; border-radius: 4px;

@@ -2540,8 +2540,8 @@
   },
   "seed-0251": {
     "status": "risolto",
-    "at": 1791360817,
-    "summary": "In Top entrano solo progetti usati davvero: ogni giorno si misurano volume (media 7 giorni), transazioni, compratori distinti e holder; servono cap almeno $300k, volume almeno $25k al giorno e 1% della cap, 100 transazioni e 30 compratori al giorno, 500 holder non in calo, primi 10 wallet sotto il 40%. Sotto $300k i progetti buoni vanno nella lista Early in fondo alla Top, mai sul podio. Il punteggio pesa uso 30, partecipazione 20, prodotto 25, token 15, DeepSeek 10; la somiglianza a DREGG e le narrative non danno piu' punti. DeepSeek legge i numeri d'uso e rigiudica tutti. Clawville World ($712 al giorno, 2 compratori, 245 holder) resta fuori.",
+    "at": 1791376948,
+    "summary": "In Top restano fuori solo i progetti che nessuno scambia (sotto $2k al giorno con meno di 10 compratori, come Clawville World: $712 e 2 compratori), quelli con meno di 100 holder, con holder in calo oltre il 10% in un mese o con i primi 10 wallet sopra il 40%. Volume e partecipazione pesano nel punteggio ma non lo guidano: prodotto 35, token 20, uso 20, DeepSeek 15, partecipazione 10. Un prodotto forte con poco mercato resta in classifica con l'etichetta HIDDEN GEM. Sotto $300k i progetti buoni vanno nella lista Early. La somiglianza a DREGG e le narrative non danno piu' punti; DeepSeek legge i numeri d'uso e cerca proprio le gemme nascoste.",
     "detail": "backend/app/trading/onchain/usage.py (misure e storico), leaderboard.py (usage_gate, early_list, score_blocks, final_score, warm_usage), judge.py (PROMPT_VERSION 9, usage_line, CHECK_RULES), main.py (_top_entries), frontend/static/onchain/top.js (lista Early). Test: tests/test_usage.py, tests/test_usage_gates.py."
   },
   "seed-0252": {

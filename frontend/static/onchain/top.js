@@ -145,7 +145,7 @@ function paint() {
       ageTs: e.launched_at, rank: i + 1, context: `Rank #${i + 1} · score ${Math.round(e.score ?? 0)}` });
     return tokenRow({ id, symbol: e.symbol, name: `${i + 1}. ${e.name || e.symbol}`, chain: e.chain, token: e.token_address,
       image: e.image, cap: e.market_cap, change: e.change_24h != null ? e.change_24h / 100 : null, ageTs: e.launched_at,
-      score: e.score, badge: e.early ? "early" : null, sub: TRADING ? btSub(e.backtests) : marketSub(e) });
+      score: e.score, badge: e.early ? "early" : e.hidden ? "hidden" : null, sub: TRADING ? btSub(e.backtests) : marketSub(e) });
   }).join("") : `<li class="muted pad">The board is filling up: projects appear as they pass the checks.</li>`;
   // The motion kit's score meter under each row (design/engn-motion-kit).
   root.querySelectorAll("[data-top-rows] > li.trow").forEach((li, i) => {

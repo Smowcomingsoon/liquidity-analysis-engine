@@ -137,7 +137,7 @@ export function tokenRow({ id, symbol, name, chain, token, image, cap, change, p
   return `<li class="trow" data-sign="${tone}"><button type="button" data-open="${escapeHtml(id)}">
     ${logo(symbol, image, chain, token)}
     <span class="trow-main">
-      <b>${escapeHtml(name || symbol)}${badge === "hot" ? ' <em class="hot">HOT</em>' : badge === "early" ? ' <em class="hot early">EARLY</em>' : ""}</b>
+      <b>${escapeHtml(name || symbol)}${badge === "hot" ? ' <em class="hot">HOT</em>' : badge === "early" ? ' <em class="hot early">EARLY</em>' : badge === "hidden" ? ' <em class="hot hidden">HIDDEN GEM</em>' : ""}</b>
       <small>${score != null ? `<span class="score" data-band="${score >= 60 ? "hi" : score >= 40 ? "mid" : "lo"}" title="Engine score">${Math.round(score)}</span>` : ""}${escapeHtml(symbol)}${ageTs ? ` <span class="age${fresh ? " fresh" : ""}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14V7M8 9c0-3 2-4.5 5-4.5 0 3-2 4.5-5 4.5ZM8 8C8 5.5 6.3 4 3.5 4c0 2.6 1.7 4 4.5 4Z"/></svg>${a}</span>` : ""}${sub ? ` <span class="sub">${sub}</span>` : ""}</small>
     </span>
     <span class="trow-num"><b>${usdShort(cap)}</b>${pill ?? changePill(change)}</span>

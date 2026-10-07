@@ -36,37 +36,47 @@ def test_clawville_numbers_fail(snap):
     store, _ = snap
     store["T"] = _m(vol_24h=492, vol_7d_avg=712, tx_24h=12, buyers_24h=2, holders=245, mcap=47_770)
     assert "early list" in lb.usage_gate(_e(cap=47_770))
-    assert lb.usage_gate(_e(cap=47_770), cap_floor=False).startswith("volume $712")
+    assert lb.usage_gate(_e(cap=47_770), cap_floor=False).startswith("nobody trades it: $712 a day, 2 buyers")
+
+
+def test_hidden_gems_are_not_dropped_for_low_volume(snap):
+    """Lorenzo, 07/10: volume and participation matter but must not steer
+    everything; hidden gems must still come out."""
+    store, _ = snap
+    store["T"] = _m(vol_7d_avg=4_000, vol_24h=3_000, tx_24h=40, buyers_24h=15, holders=180)
+    e = _e()
+    e["pillars"]["site"]["score"] = e["pillars"]["github"]["score"] = 85
+    assert lb.usage_gate(e) == ""
+    assert lb.hidden_gem(e)
+    store["T"] = _m(vol_7d_avg=1_500, buyers_24h=12)        # thin, but 12 people bought today
+    assert lb.usage_gate(e) == ""
 
 
 @pytest.mark.parametrize("over, why", [
-    ({"vol_7d_avg": 10_000}, "volume $10,000 a day"),
-    ({"vol_7d_avg": 30_000}, "of the cap"),            # 30k on a 5M cap is 0.6%
-    ({"tx_24h": 50}, "50 trades"),
-    ({"buyers_24h": 10}, "10 buyers"),
-    ({"holders": 300}, "300 holders"),
+    ({"vol_7d_avg": 900, "buyers_24h": 3}, "nobody trades it"),
+    ({"holders": 60}, "60 holders"),
 ])
 def test_each_bar(snap, over, why):
     store, _ = snap
     store["T"] = _m(**over)
-    assert why in lb.usage_gate(_e(cap=5_000_000 if "of the cap" in why else 2_000_000))
+    assert why in lb.usage_gate(_e())
 
 
-def test_passes_and_unknowns_are_not_zero(snap):
+def test_unknowns_and_unmeasured_pass(snap):
     store, growth = snap
-    store["T"] = _m(buyers_24h=None, holders=None)
-    assert lb.usage_gate(_e()) == ""
-    store["T"] = _m(vol_7d_avg=None, vol_24h=None)
-    assert lb.usage_gate(_e()) == "volume unknown"
+    store["T"] = _m(buyers_24h=None, holders=None, vol_7d_avg=100)
+    assert lb.usage_gate(_e()) == ""                         # few dollars but buyers unknown: not proven dead
     store.pop("T")
-    assert lb.usage_gate(_e()) == "usage not measured yet"
+    assert lb.usage_gate(_e()) == ""                         # not measured yet: unknown is not zero
 
 
 def test_shrinking_holders_and_whales(snap):
     store, growth = snap
     store["T"] = _m()
-    growth["T"] = -0.1
-    assert "holders -10% in 30 days" in lb.usage_gate(_e())
+    growth["T"] = -0.08
+    assert lb.usage_gate(_e()) == ""                         # within the 10% band
+    growth["T"] = -0.2
+    assert "holders -20% in 30 days" in lb.usage_gate(_e())
     growth["T"] = 0.05
     assert "top 10 wallets hold 55%" in lb.usage_gate(_e(top10=55))
     assert lb.usage_gate(_e(top10=20)) == ""
@@ -121,11 +131,6 @@ def test_warm_up_measures_only_tokens_without_a_fresh_snapshot(snap, monkeypatch
     import asyncio
     asyncio.run(lb.warm_usage())
     assert seen == ["OLD", "NONE"]
-    assert "not measured" in lb.usage_gate(_e("OLD"))       # stale snapshot: waits
+    assert lb.usage_gate(_e("OLD")) == ""                    # stale snapshot: unknown, not a reason
 
 
-def test_small_holder_jitter_is_not_shrinking(snap):
-    store, growth = snap
-    store["T"] = _m()
-    growth["T"] = -0.01
-    assert lb.usage_gate(_e()) == ""
