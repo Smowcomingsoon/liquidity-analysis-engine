@@ -48,6 +48,22 @@ class Settings(BaseSettings):
     # Radar dei token giovani su Solana e Robinhood (app/trading/onchain/radar.py):
     # sola lettura, propone e non compra. A False il giro di fondo non parte.
     onchain_radar_enabled: bool = True
+    # Trading and automatic strategies on the on-chain app: trend follower,
+    # RSI+BB lab, autotrader/pilot, simulated portfolio, Meme Sniper (radar,
+    # listings, sniper agents), swaps, limit orders and TWAP. Lorenzo, 07/10:
+    # "non voglio piu' vedere strategie automatiche [...] questa parte di
+    # trading deve sparire". False stops their loops and hides them in the
+    # app; saved data stays in backend/data. The gem research keeps running.
+    onchain_trading_enabled: bool = False
+    # The gem research (discovery, pillars, DeepSeek readings, layers,
+    # outcomes, weekly re-check, studies) in one run a night instead of loops
+    # around the clock (app/trading/onchain/nightly.py). Lorenzo, 07/10: "non
+    # lasciare sempre in ascolto il bot [...] tutto in una tranche a fine
+    # serata". Hour in Europe/Rome; the run stops when the queue is empty or
+    # after max_hours. False: the old loops, as before.
+    onchain_nightly_enabled: bool = True
+    onchain_nightly_hour: int = 22
+    onchain_nightly_max_hours: float = 2.0
     # La memoria degli esiti (app/trading/onchain/outcomes.py) scarta un token
     # che somiglia ai rug passati, solo quando il modello prevede i rug fuori
     # campione. Vale anche per il pilota con soldi veri, che usa lo stesso

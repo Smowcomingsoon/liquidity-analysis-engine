@@ -64,6 +64,7 @@ def test_import_judge_first_with_a_vetoed_board_entry(tmp_path):
     code = ("from pathlib import Path; from app.trading.onchain import storage; "
             f"storage.DATA_DIR = Path({str(tmp_path)!r}); "
             "from app.trading.onchain import judge, leaderboard; "
+            "leaderboard.usage_gate = lambda e, cap_floor=True: ''; "
             "assert leaderboard.qualifies(leaderboard._entries['solana:ABCmint']).startswith('DeepSeek')")
     out = subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).resolve().parents[1],
                          capture_output=True, text=True, timeout=120)

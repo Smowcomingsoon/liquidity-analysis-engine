@@ -144,6 +144,14 @@ def stats(days: float = 7, now: float | None = None) -> dict:
             "by_purpose": dict(sorted(out.items(), key=lambda kv: -kv[1]["tokens_in"]))}
 
 
+def count_between(start: float, end: float | None = None) -> int:
+    """Calls made in [start, end]: what the nightly run spent."""
+    end = end if end is not None else time.time()
+    with _lock:
+        _load()
+        return sum(1 for r in _rows if start <= r.get("t", 0) <= end)
+
+
 def recent(limit: int = 100) -> list[dict]:
     with _lock:
         _load()

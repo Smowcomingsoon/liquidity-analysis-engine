@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-engn-ui="app">
+<html lang="en" data-engn-ui="app" data-trading="off">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -1758,7 +1758,9 @@
   #app-shell:not([data-view="entry"]) #entry,
   /* Gems is research only; the live launch scanner lives with the Meme
      Sniper (Lorenzo, 25/09: "la ricerca al minuto deve stare sullo sniper"). */
-  #app-shell:not([data-view="gems"]) :is(#board, #projects),
+  #app-shell:not([data-view="gems"]) :is(#board, #projects, #gem-scan),
+  :root[data-trading="off"] [data-trading-only],
+  :root:not([data-trading="off"]) #gem-scan,
   #app-shell:not([data-view="meme"]) #signals,
   #app-shell:not([data-view="top"]) #track,
   #app-shell :is(#meme-alerts, #memes, #pilot, #radar, #leaders),
@@ -2652,7 +2654,7 @@
           <span class="agent-orb scout-cube" aria-hidden="true"><svg class="sc-svg" viewBox="-30 -23 200 200" aria-hidden="true" focusable="false"><circle class="sc-ring" cx="70" cy="77" r="94" pathLength="100"/><circle class="sc-core" cx="70" cy="64" r="17"/><g class="sc-left"><path class="sc-face" d="M0 38 70 76 70 153 0 115Z"/><path class="sc-band" d="M3 81 70 117"/></g><g class="sc-right"><path class="sc-face" d="M70 76 140 38 140 115 70 153Z"/><path class="sc-band" d="M70 117 137 81"/></g><g class="sc-top"><path class="sc-face" d="M70 0 140 38 70 76 0 38Z"/></g></svg></span>
           <span class="agent-say" data-agent-say>Scout watching</span>
         </button>
-        <button type="button" class="tb-deposit" data-sheet="receive">Deposit</button>
+        <button type="button" class="tb-deposit" data-sheet="receive" data-trading-only>Deposit</button>
         <button type="button" class="tb-bell" id="inbox-btn" aria-label="Alerts">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>
           <i data-inbox-dot hidden></i>
@@ -2732,6 +2734,11 @@
            come posizione deve essere piu' in risalto [...] e' l'unica cosa
            che conta". DREGG sta primo come metro di paragone. La disegna
            static/onchain/leaderboard.js. -->
+      <!-- The scanner (manual_scan.py): a ticker or an address through every
+           check. It lived in Signals, gone with trading (Lorenzo, 07/10). -->
+      <form class="scan-form" id="gem-scan" data-scan-form role="search">
+        <input name="q" placeholder="Scan a token: ticker or address" autocomplete="off" spellcheck="false" aria-label="Ticker or address" readonly />
+        <button type="submit" aria-label="Scan"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></button></form>
       <section class="board" id="board" data-pane="gems:rankings" data-loading>
         <p class="gem-banner" role="note"><b>Research, not advice.</b> Code, site and tokenomics scored 24/7. DYOR before you buy.</p>
         <header><h3>Leaderboard</h3><span data-board-meta></span></header>
@@ -2760,6 +2767,8 @@
         <div class="seg top-size" role="group" aria-label="How many" data-top-size></div>
         <p class="st-note" data-top-note></p>
         <ol class="memes-list" data-top-rows></ol>
+        <!-- Under $300k and past every other bar (Lorenzo, 07/10): a list apart, never on the podium. -->
+        <details class="top-early" data-top-early hidden><summary>Early <small>under $300k</small></summary><ol class="memes-list"></ol></details>
       </section>
       <section class="projects" id="projects" data-pane="gems:database" data-loading>
         <header><h3>Project database</h3><span data-projects-meta></span></header>
@@ -2959,7 +2968,7 @@
        il menu "⋯" che passava da una vista all'altra. -->
   <nav class="dock" id="dock" aria-label="Sections" hidden>
     <span class="dock-thumb" aria-hidden="true"></span>
-    <button type="button" data-go="meme" aria-label="Signals"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 5 12 2.5-6h4"/></svg><span>Signals</span></button>
+    <button type="button" data-go="meme" aria-label="Signals" data-trading-only><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 5 12 2.5-6h4"/></svg><span>Signals</span></button>
     <button type="button" data-go="gems" aria-label="Gems"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="10" r="6"/><path d="M15.2 8.4a6 6 0 1 1-6.8 8.3"/></svg><span>Gems</span></button>
     <button type="button" data-go="top" aria-label="Track record"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="m8.5 12.2 2.4 2.4 4.6-5"/></svg><span>Record</span></button>
     <button type="button" data-go="agent" aria-label="Scout"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg><span>Scout</span></button>
@@ -2988,11 +2997,11 @@
   <dialog class="sheet more-sheet" id="more" aria-label="More actions">
     <div class="grip" aria-hidden="true"></div>
     <div class="menu-list" id="actions" hidden>
-      <button type="button" class="menu-item" data-go="wallet"><span class="menu-ic" aria-hidden="true">▤</span><span><b>Wallet &amp; swap</b><small>Balances, swap, orders, history</small></span></button>
+      <button type="button" class="menu-item" data-go="wallet" data-trading-only><span class="menu-ic" aria-hidden="true">▤</span><span><b>Wallet &amp; swap</b><small>Balances, swap, orders, history</small></span></button>
       <button type="button" class="menu-item" data-sheet="receive"><span class="menu-ic" aria-hidden="true">↓</span><span><b>Receive</b><small>Wallet address and QR</small></span></button>
       <button type="button" class="menu-item" data-sheet="send"><span class="menu-ic" aria-hidden="true">↑</span><span><b>Send</b><small>Send tokens to another address</small></span></button>
-      <button type="button" class="menu-item" data-sheet="risk"><span class="menu-ic" aria-hidden="true">◧</span><span><b>Limits &amp; security</b><small>Spend caps, circuit breaker</small></span></button>
-      <button type="button" class="menu-item" data-sheet="simulate"><span class="menu-ic" aria-hidden="true">▶</span><span><b>Simulate</b><small>Test an order without signing</small></span></button>
+      <button type="button" class="menu-item" data-sheet="risk" data-trading-only><span class="menu-ic" aria-hidden="true">◧</span><span><b>Limits &amp; security</b><small>Spend caps, circuit breaker</small></span></button>
+      <button type="button" class="menu-item" data-sheet="simulate" data-trading-only><span class="menu-ic" aria-hidden="true">▶</span><span><b>Simulate</b><small>Test an order without signing</small></span></button>
     </div>
     <button type="button" class="reveal-row" id="reveal-row" hidden>
       <span class="t"><b>Reveal private key</b><small>Needs your phone, never this page alone</small></span>

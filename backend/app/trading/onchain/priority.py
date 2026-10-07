@@ -22,6 +22,9 @@ def reset_for_tests() -> None:
 
 def backtests_first(now: float | None = None) -> dict | None:
     """The meme backtest status while something is still pending, else None."""
+    from app.config import settings
+    if not settings.onchain_trading_enabled:
+        return None      # no meme backtests run with trading off (07/10): nothing to wait for
     from app.trading.onchain import alert_track
     now = now or time.time()
     st = alert_track.backtest_status("meme", now=now)

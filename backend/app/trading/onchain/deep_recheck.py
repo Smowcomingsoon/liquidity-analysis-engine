@@ -252,25 +252,32 @@ async def sweep_loop(board_keys, start_delay_s: float = 300) -> None:
                 key = next_in_sweep(board_keys(), time.time())
                 if key is None:
                     pause = 3600
-                else:
-                    chain, token = key.split(":", 1)
-                    try:
-                        res = await run(chain, token, client, limited=False)
-                        res["auto"] = True
-                        _save()
-                        _sweep_done(key)
-                    except TooSoon:
-                        pass
-                    except LookupError:
-                        _sweep_done(key)      # left the board and the database
-                    except RuntimeError as exc:
-                        logger.info("weekly re-check: %s: %s", key, exc)
-                        pause = 1800 if "not configured" in str(exc) or "unavailable" in str(exc) else SWEEP_GAP_S
-                        if pause == SWEEP_GAP_S:
-                            _sweep_done(key)  # an unreadable answer: move on, the button can retry
+                elif await sweep_one(key, client) == "down":
+                    pause = 1800
             except Exception:
                 logger.exception("weekly re-check failed")
             await asyncio.sleep(pause)
+
+
+async def sweep_one(key: str, client) -> str:
+    """One token of the weekly sweep: "done", "busy" (re-checked moments ago,
+    try later) or "down" (DeepSeek missing or unavailable: stop for now)."""
+    chain, token = key.split(":", 1)
+    try:
+        res = await run(chain, token, client, limited=False)
+        res["auto"] = True
+        _save()
+        _sweep_done(key)
+    except TooSoon:
+        return "busy"
+    except LookupError:
+        _sweep_done(key)      # left the board and the database
+    except RuntimeError as exc:
+        logger.info("weekly re-check: %s: %s", key, exc)
+        if "not configured" in str(exc) or "unavailable" in str(exc):
+            return "down"
+        _sweep_done(key)      # an unreadable answer: move on, the button can retry
+    return "done"
 
 
 async def run(chain: str, token: str, client, now: float | None = None, ask=None, limited: bool = True) -> dict:

@@ -11,7 +11,7 @@
 import * as api from "@onchain/api.js";
 import { register } from "@onchain/detail.js";
 import { isHidden, onHiddenChange, withEntrance } from "@onchain/hidden.js";
-import { escapeHtml, tile, tokenRow } from "@onchain/format.js";
+import { escapeHtml, tile, tokenRow, usdShort } from "@onchain/format.js";
 import { renderPodium } from "@onchain/podium.js";
 import { shownSummary } from "@onchain/lab-shown.js";
 import * as narr from "@onchain/narrative_pick.js";
@@ -19,6 +19,8 @@ import { disintegrate } from "@onchain/particles.js";
 import "@onchain/motion.js";
 
 const POLL_MS = 30_000;
+// Trading off (Lorenzo, 07/10): rows show the market, not a backtest.
+const TRADING = document.documentElement.dataset.trading === "on";
 const SIZES = [15, 25, 50];
 
 let root = null;
@@ -143,7 +145,7 @@ function paint() {
       ageTs: e.launched_at, rank: i + 1, context: `Rank #${i + 1} · score ${Math.round(e.score ?? 0)}` });
     return tokenRow({ id, symbol: e.symbol, name: `${i + 1}. ${e.name || e.symbol}`, chain: e.chain, token: e.token_address,
       image: e.image, cap: e.market_cap, change: e.change_24h != null ? e.change_24h / 100 : null, ageTs: e.launched_at,
-      score: e.score, badge: e.early ? "early" : null, sub: btSub(e.backtests) });
+      score: e.score, badge: e.early ? "early" : null, sub: TRADING ? btSub(e.backtests) : marketSub(e) });
   }).join("") : `<li class="muted pad">The board is filling up: projects appear as they pass the checks.</li>`;
   // The motion kit's score meter under each row (design/engn-motion-kit).
   root.querySelectorAll("[data-top-rows] > li.trow").forEach((li, i) => {
@@ -188,9 +190,37 @@ function paint() {
   const narrLine = filtered
     ? `<button type="button" class="top-narr-clear" data-top-narr-clear>${escapeHtml(narr.get().map((k) => labels[k] ?? k).join(", "))} ✕</button> `
     : "";
-  root.querySelector("[data-top-note]").innerHTML = narrLine + escapeHtml(lead + (bt?.total
+  root.querySelector("[data-top-note]").innerHTML = narrLine + escapeHtml(lead + (TRADING && bt?.total
     ? `Every strategy backtested on each token's latest chart, every hour, around the clock · ${bt.ready}/${bt.total} ready`
-    : "")) + ' <button type="button" class="top-narr-clear" data-top-wallet>$10k wallet on these trades →</button>';
+    : "")) + (TRADING ? ' <button type="button" class="top-narr-clear" data-top-wallet>$10k wallet on these trades →</button>' : "");
+}
+
+// Without trading: measured usage (usage.py), what put the project here.
+const compact = (n) => new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+
+function marketSub(e) {
+  const u = e.usage ?? {};
+  const vol = u.vol_7d_avg ?? u.vol_24h;
+  // Short enough for a phone row: "$812k/day · 15.2k holders".
+  const parts = [vol != null ? `${usdShort(vol)}/day` : null,
+    u.holders != null ? `${compact(u.holders)} holders` : null];
+  const line = parts.filter(Boolean).join(" · ");
+  return line || (e.liquidity_usd != null ? `Liquidity ${usdShort(e.liquidity_usd)}` : "");
+}
+
+function paintEarly(list) {
+  const box = root.querySelector("[data-top-early]");
+  if (!box) return;
+  box.hidden = !list.length || filtered;   // the early list is not narrowed by narrative
+  box.querySelector("ol").innerHTML = list.map((e) => {
+    const id = `gem:${e.chain}:${e.token_address}`;
+    register(id, { kind: "gem", symbol: e.symbol, name: e.name, chain: e.chain, token: e.token_address, pair: e.pair_address,
+      pairUrl: e.pair_url, image: e.image, cap: e.market_cap, change: e.change_24h != null ? e.change_24h / 100 : null,
+      ageTs: e.launched_at, context: `Early · score ${Math.round(e.score ?? 0)}` });
+    return tokenRow({ id, symbol: e.symbol, name: e.name || e.symbol, chain: e.chain, token: e.token_address,
+      image: e.image, cap: e.market_cap, change: e.change_24h != null ? e.change_24h / 100 : null, ageTs: e.launched_at,
+      score: e.score, badge: "early", sub: marketSub(e) });
+  }).join("");
 }
 
 // The H24 lab's best backtest (strategy_lab.py), in the row: what the
@@ -216,6 +246,7 @@ async function load() {
     entries = top?.entries ?? [];
     labStatus = top?.backtests ?? null;
     paint();
+    paintEarly(top?.early ?? []);
   } catch {
     // Keep the last list; with none yet, the cube says the next poll retries.
     const wait = root.querySelector(".top-wait");

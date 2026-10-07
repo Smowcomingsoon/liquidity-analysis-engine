@@ -37,10 +37,14 @@ CANDIDATE_FILE = data_file("gem_model_candidate.json")
 APPROVED_FILE = data_file("gem_model_approved.json")
 REPORT_FILE = data_file("gem_learn_report.json")
 
-FEATURES = ("quality", "pillar_github", "pillar_site", "pillar_tokenomics", "similarity", "closed_source",
-            "traction", "value", "narrative_bonus", "judge", "judge_confidence", "code", "review",
-            "mcap", "liq", "age_d")
-REPORT_KEYS = ("score",) + FEATURES
+# 07/10: DREGG's likeness and the narrative bonus are labels, not points, so
+# the learned model no longer reads them (the report still measures them);
+# the usage blocks take their place. A model approved on the old keys stops
+# applying (approved() checks the key list).
+FEATURES = ("quality", "pillar_github", "pillar_site", "pillar_tokenomics", "closed_source",
+            "traction", "value", "judge", "judge_confidence", "code", "review",
+            "block_usage", "block_participation", "mcap", "liq", "age_d")
+REPORT_KEYS = ("score",) + FEATURES + ("similarity", "narrative_bonus")
 HORIZONS_D = (1, 3, 7, 30)
 MIN_N = 40                   # same bars as the meme winners model (outcomes.WIN_*)
 MIN_POS = 8

@@ -34,10 +34,12 @@ def test_bonus_is_small_and_capped():
     assert nv.bonus(keys) <= nv.BONUS_MAX and nv.bonus([]) == 0
 
 
-def test_narrative_lifts_score_but_not_qualification():
-    plain = lb._entries.setdefault("x", {"overall": {"score": 70}, "similarity": {"score": 20}})
-    hot = {"overall": {"score": 70}, "similarity": {"score": 20}, "narratives": nv.match("zero-knowledge prover")}
-    assert lb.final_score(hot) > lb.final_score(plain)
+def test_narrative_is_a_label_not_points():
+    """07/10: a hot narrative no longer lifts the score (usage does)."""
+    pillars = {"tokenomics": {"score": 70}}
+    plain = {"chain": "solana", "token_address": "x", "overall": {"score": 70}, "pillars": pillars}
+    hot = {**plain, "narratives": nv.match("zero-knowledge prover")}
+    assert hot["narratives"] and lb.final_score(hot) == lb.final_score(plain)
 
 
 def test_chain_index_and_narrative_pages(monkeypatch):

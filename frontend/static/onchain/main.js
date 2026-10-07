@@ -48,6 +48,8 @@ import { deskView, openFirst, openFromHash } from "@onchain/detail.js";
 const ROOT = document.getElementById("onchain-embed") ?? document;
 const $ = (selector) => ROOT.querySelector(selector);
 const $$ = (selector) => ROOT.querySelectorAll(selector);
+// Trading and automatic strategies: off unless <html data-trading="on"> (see VIEWS).
+const TRADING = document.documentElement.dataset.trading === "on";
 
 const view = {
   login: $("#login-screen"),
@@ -99,10 +101,13 @@ function paintChainStatic() {
   view.chainLabel.textContent = view.chainFlip ? label : `${label}${suffix}`;
   if (view.chainFlip) view.chainFlip.title = `${label}${suffix} · tap to switch network`;
   if (view.chainIcon) view.chainIcon.textContent = CHAIN_ICON[state.chain] ?? "";
-  for (const node of [view.actions, view.status, view.reveal, view.more, view.pilot, view.marketOrderRow, view.bottomPanel, view.sniperCard, view.walletView]) {
+  for (const node of [view.actions, view.reveal, view.more, view.walletView]) {
     if (node) node.hidden = !hasWallet;
   }
-  view.empty.hidden = hasWallet;
+  for (const node of [view.status, view.pilot, view.marketOrderRow, view.bottomPanel, view.sniperCard]) {
+    if (node) node.hidden = !hasWallet || !TRADING;
+  }
+  view.empty.hidden = hasWallet || !TRADING;   // no wallet to create for research only
   view.balance.hidden = !hasWallet;
   view.address.hidden = !hasWallet;
 
@@ -110,7 +115,7 @@ function paintChainStatic() {
     view.empty.querySelector("[data-chain-name]").textContent = label;
     view.spark.hidden = true;
     if (view.holdings) view.holdings.hidden = true;
-    if (!["gems", "meme"].includes(view.shell.dataset.view)) setView("gems");
+    if (!(TRADING ? ["gems", "meme"] : ["gems", "top", "agent", "profile"]).includes(view.shell.dataset.view)) setView("gems");
     return;
   }
 
@@ -207,11 +212,13 @@ function loadChainData() {
   if (view.empty.hidden === false) return;  // nessun wallet: niente da chiedere
   refreshBalance();
   refreshStatus();
-  refreshSniperCard();
-  refreshPilot();
-  mountChart(view.marketPanel);
-  mountOrderTab(currentOrderTab);
-  mountBottomTab(currentBottomTab);
+  if (TRADING) {
+    refreshSniperCard();
+    refreshPilot();
+    mountChart(view.marketPanel);
+    mountOrderTab(currentOrderTab);
+    mountBottomTab(currentBottomTab);
+  }
   paintHoldings(true);
 }
 
@@ -219,11 +226,11 @@ function paintHoldings(force = false) {
   refreshHoldings(view.holdings, {
     force,
     // Il tocco su una moneta apre lo scambio con quella in vendita.
-    onPick: (holding) => {
+    onPick: TRADING ? (holding) => {
       setView("manual");
       if (currentOrderTab !== "swap") $('[data-order-tab="swap"]')?.click();
       window.dispatchEvent(new CustomEvent("onchain:swap-from", { detail: holding }));
-    },
+    } : undefined,
   });
 }
 
@@ -508,17 +515,28 @@ view.reveal.addEventListener("click", () => sheets.openKey({ onStart: startRevea
 // foglio) o fuori dal pannello.
 // Your picture in the header opens your profile; the wallet menu is its "…".
 view.more?.addEventListener("click", () => setView("profile"));
-document.addEventListener("lae:wallet-menu", () => view.moreSheet?.showModal());
+document.addEventListener("lae:wallet-menu", () => {
+  if (view.moreSheet?.querySelector("#actions")?.hidden) return;   // no wallet: nothing to show
+  view.moreSheet?.showModal();
+});
 
 // Two sections chosen at the door, each with its own purpose: Progetti
 // (a round-the-clock scan of serious low/micro caps, ranked) and Meme
 // (the sniper radar plus its autopilot). Then Scambia and Portafoglio.
 // The home page picks the section (#gems or #meme); that is the first view.
-const VIEWS = ["meme", "gems", "top", "agent", "profile", "wallet", "manual"];
-const DOCK = ["meme", "gems", "top", "agent", "profile"];   // the wallet lives in the profile
+// Lorenzo, 07/10: "non voglio piu' vedere strategie automatiche [...] questa
+// parte di trading deve sparire". Signals, the pilot, swaps and
+// limit orders leave the app; <html data-trading="on"> brings them back,
+// together with onchain_trading_enabled on the server.
+const VIEWS = TRADING ? ["meme", "gems", "top", "agent", "profile", "wallet", "manual"] : ["gems", "top", "agent", "profile", "wallet"];
+const DOCK = TRADING ? ["meme", "gems", "top", "agent", "profile"] : ["gems", "top", "agent", "profile"];   // the wallet lives in the profile
 
-function setView(name) {
-  if (!VIEWS.includes(name)) return;
+// Resolves once the new view is painted (after the transition's update).
+// `instant` skips the transition: a field focused right after must be on
+// screen within the tap, or phones don't open the keyboard.
+function setView(name, { instant = false } = {}) {
+  if (!VIEWS.includes(name)) return Promise.resolve();
+  let painted = Promise.resolve();
   const from = view.shell.dataset.view;
   const paint = () => {
     view.shell.dataset.view = name;
@@ -531,15 +549,16 @@ function setView(name) {
     document.querySelectorAll(".tabs[data-tabs]").forEach((nav) => { nav.hidden = nav.dataset.tabs !== name; });
     window.scrollTo({ top: 0 });
   };
-  if (from !== name && document.startViewTransition && !document.querySelector("dialog[open]")
+  if (!instant && from !== name && document.startViewTransition && !document.querySelector("dialog[open]")
       && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
     view.shell.dataset.dir = VIEWS.indexOf(name) > VIEWS.indexOf(from) ? "fwd" : "back";
-    document.startViewTransition(paint);
+    painted = document.startViewTransition(paint).updateCallbackDone.catch(() => {});
   } else paint();
   if (name === "profile") refreshProfile();
   if (name === "wallet" && !view.bottomPanel.hidden) mountBottomTab(currentBottomTab);
   paintHoldings();
   deskView(name);
+  return painted;
 }
 // One app: a floating bar at the bottom on every screen, the search button
 // beside it, the balance in the header next to your avatar.
@@ -635,12 +654,21 @@ document.querySelectorAll(".tabs[data-tabs]").forEach((nav) => {
 });
 {
   const hash = location.hash.slice(1).split("&")[0];
-  const first = VIEWS.includes(hash) ? hash : document.documentElement.dataset.section === "gems" && /gem/i.test(hash) ? "gems" : "meme";
+  const first = VIEWS.includes(hash) ? hash
+    : !TRADING || (document.documentElement.dataset.section === "gems" && /gem/i.test(hash)) ? "gems" : "meme";
   view.shell.dataset.view = first;  // same view on both sides: no transition on load
   setView(first);
 }
 // Search: straight to the swap with the token picker open.
 dockSearch?.addEventListener("click", () => {
+  // Without trading the lens is the scanner: a ticker or an address.
+  if (!TRADING) {
+    const input = document.querySelector("#gem-scan input");
+    input?.removeAttribute("readonly");
+    setView("gems", { instant: true });
+    input?.focus();
+    return;
+  }
   setView("manual");
   requestAnimationFrame(() => document.getElementById("swap-pick-out")?.click());
 });
@@ -648,7 +676,7 @@ document.getElementById("inbox-btn")?.addEventListener("click", () => openInbox(
 // Buy from a token page: the swap opens with that token as the one you get.
 document.addEventListener("lae:buy", (event) => {
   const { address, symbol } = event.detail ?? {};
-  if (!address) return;
+  if (!address || !TRADING) return;
   setView("manual");
   setChartToken({ address, symbolHint: symbol });
 });
@@ -671,12 +699,14 @@ document.addEventListener("pointerdown", unlockScan, true);
 document.addEventListener("keydown", (event) => { if (event.key !== "Tab") unlockScan(event); }, true);
 document.addEventListener("focusout", (event) => event.target.closest?.(SCAN_INPUT)?.setAttribute("readonly", ""), true);
 
-mountPilot({ toast, onChange: refreshSniperCard });
+if (TRADING) mountPilot({ toast, onChange: refreshSniperCard });
 mountAgentView();
 mountLeaderboard();
 mountProjects();
-mountAlerts();
-mountAutotrade();
+if (TRADING) {
+  mountAlerts();
+  mountAutotrade();
+}
 mountProfile({ go: (v) => setView(v) });
 loadLinked();
 // Back from Phantom (phantomlink.js): its answer is in this page's URL.
@@ -696,8 +726,14 @@ mountTop();
 // Lorenzo, 30/09: the meme screens and the backtest hall of fame are gone.
 // The "meme" view now holds Signals, the "top" view the Track record (the
 // view names stay: the home page links, the splash and the desk use them).
-mountSignals();
-mountTrack();
+if (TRADING) mountSignals();
+mountTrack();   // the picks' track record (gem_track), not a backtest
+// The scanner, in Gems now that Signals is gone (it lived there).
+document.getElementById("gem-scan")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const q = event.target.q.value.trim();
+  if (q) sheets.openScan(q);
+});
 // Desktop: the start view opens its first token once the lists are in.
 setTimeout(openFirst, 2500);
 

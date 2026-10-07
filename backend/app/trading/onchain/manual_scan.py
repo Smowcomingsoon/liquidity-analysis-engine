@@ -29,6 +29,7 @@ from urllib.parse import quote
 
 import httpx
 
+from app.config import settings
 from app.notify import deepseek_desk
 from app.trading.onchain import (ai_scan, alert_track, code_review, depth, judge, leaderboard, legit, outcomes,
                                  projects_db, research, rug_memory, scout_recheck, strategy_lab)
@@ -173,6 +174,9 @@ def add(chain: str, token: str, now: float | None = None) -> dict:
     leaderboard._gone.pop(k, None)
     fresh = leaderboard.add(dict(item), "manual", now)
     projects_db.recheck(chain, token)
+    if settings.onchain_nightly_enabled:
+        # No tick until 22:00 (nightly.py): the project is studied now.
+        leaderboard.analyze_now(chain, token)
     deepseek_desk.note("manual", f"Added {item.get('symbol')} to the Gem Finder by hand",
                        symbol=item.get("symbol"), chain=chain)
     return {"added": True, "new": fresh, "gem": gem_view(item, now)}
@@ -385,7 +389,7 @@ async def scan(query: str, emit=None) -> dict:
     if not query:
         return {"error": "Write a ticker or an address."}
     step = Steps(emit)
-    step.emit({"plan": list(STEPS)})
+    step.emit({"plan": [k for k in STEPS if k != "backtest" or settings.onchain_trading_enabled]})
     deepseek_desk.note("manual", f"Manual scan requested: {query[:40]}")
     step("pool", "run")
     async with httpx.AsyncClient(timeout=15.0, headers={"accept": "application/json"}) as client:
@@ -446,7 +450,8 @@ async def scan(query: str, emit=None) -> dict:
     pool = rug_memory.cases()
     step("memory", "ok", english(rug_memory.summary(feats, item["chain"], pool=pool)))
     step("risk", "run")
-    step("backtest", "run")
+    if settings.onchain_trading_enabled:
+        step("backtest", "run")
 
     async def risk() -> dict | None:
         out = clean_flags(await ai_scan.judge_one(item, feats, pool, project=not meme))
@@ -455,6 +460,8 @@ async def scan(query: str, emit=None) -> dict:
         return out
 
     async def bt_step() -> dict | None:
+        if not settings.onchain_trading_enabled:
+            return None             # no strategies in the app (Lorenzo, 07/10)
         out = await backtest(item)
         best = (out or {}).get("daily") or (out or {}).get("fast")
         step("backtest", "skip" if not best else "ok" if (best.get("return_pct") or 0) >= 0 else "warn",

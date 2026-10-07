@@ -19,6 +19,13 @@ export const EDGES = [["scan", "study"], ["study", "research"], ["study", "code"
   ["research", "memory"], ["memory", "decision"], ["consistency", "decision"],
   ["decision", "backtest"], ["backtest", "outcomes"], ["outcomes", "agent"],
   ["agent", "research"]];
+// Trading off (Lorenzo, 07/10): no strategy backtests, decisions go straight to outcomes.
+if (globalThis.document?.documentElement?.dataset.trading !== "on") {
+  const n = NODES.findIndex((x) => x.id === "backtest");
+  if (n >= 0) NODES.splice(n, 1);
+  const kept = EDGES.filter(([a, b]) => a !== "backtest" && b !== "backtest");
+  if (kept.length !== EDGES.length) EDGES.splice(0, EDGES.length, ...kept, ["decision", "outcomes"]);
+}
 
 const text = (v, max = 500) => typeof v === "string" ? v.slice(0, max) : "";
 const number = (v) => typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;

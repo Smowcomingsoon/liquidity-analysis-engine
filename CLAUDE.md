@@ -75,6 +75,17 @@ Tre strategie, e **una sola è trend-following**:
 Confonderle è il modo più facile di sbagliare: un filtro che chiede persistenza
 è giusto per la prima e rovesciato per le altre due.
 
+## App on-chain: niente trading (07/10)
+
+Lorenzo, 07/10: "non voglio piu' vedere strategie automatiche [...] questa
+parte di trading deve sparire". Trend follower, RSI+BB, pilota/autotrader,
+portafoglio simulato, Meme Sniper, swap e ordini limite sono spenti
+(`settings.onchain_trading_enabled = False`, `<html data-trading="off">`).
+Le regole del 28-30/09 "ogni token della Top mostra un backtest" e "frecce
+ingresso/uscita della strategia su ogni grafico" **non valgono piu'**: non
+ripristinarle. Il lavoro adesso e' la qualita' della Top (uso reale, volumi,
+partecipazione): vedi `HANDOVER.md`, voce del 07/10.
+
 ## Cose misurate, da non riderivare
 
 - **L'obiettivo del backtest è una funzione a gradini.** 200 valori di un

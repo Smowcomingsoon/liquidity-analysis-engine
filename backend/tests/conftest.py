@@ -44,6 +44,15 @@ def _onchain_wallets_on(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _trading_on(monkeypatch):
+    """The trading and strategy tests predate the switch that turned them off
+    (Lorenzo, 07/10): they run with it on. Tests of the switch re-patch it."""
+    from app.config import settings
+    monkeypatch.setattr(settings, "onchain_trading_enabled", True)
+    yield
+
+
+@pytest.fixture(autouse=True)
 def _private_deepseek_journal(monkeypatch, tmp_path):
     """The DeepSeek call journal is a file on the volume: every test gets its own."""
     from app.notify import deepseek_calls
@@ -66,3 +75,19 @@ def _private_history(monkeypatch, tmp_path):
     monkeypatch.setattr(history, "_FILE", tmp_path / "onchain_history.jsonl")
     yield
 
+
+
+@pytest.fixture(autouse=True)
+def _usage_open(request, monkeypatch):
+    """The board tests predate the usage gates (07/10): they see every token as
+    used. Tests marked usage_gates measure the gates themselves."""
+    if request.node.get_closest_marker("usage_gates"):
+        yield
+        return
+    from app.trading.onchain import leaderboard
+    monkeypatch.setattr(leaderboard, "usage_gate", lambda e, cap_floor=True: "")
+    yield
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "usage_gates: run with the real usage gates")

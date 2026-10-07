@@ -165,6 +165,15 @@ def _resolutions() -> dict[str, dict]:
 
 
 _SEED = [
+    ("seed-0252", "La ricerca delle gemme gira tutto il giorno: basta un giro solo alle 22:00",
+     "Lorenzo, 07/10: 'Non mi interessa scansionare 1 miliardo di token al secondo, mi basta fare tutto in una tranche magari a fine serata, e quindi non lasciare sempre in ascolto il bot'. Scheda: 22:00 ora italiana.",
+     "media"),
+    ("seed-0251", "In Top 50 entrano progetti che nessuno usa (Clawville World terzo con $492 di volume)",
+     "Lorenzo, 07/10: 'al terzo posto c'e' [...] Clawville World, che penso sia una merda [...] progetti che hanno un prodotto molto funzionante, che ci siano volumi, che ci sia partecipazione, e rimanendo sempre nei limiti della market cap'. Schede: cap almeno $300k (sotto: lista Early), volume 7 giorni almeno $25k/giorno e 1% della cap, 100 transazioni e 30 compratori al giorno, 500 holder non in calo, top 10 wallet sotto 40%.",
+     "alta"),
+    ("seed-0250", "Togliere dall'app il trading e le strategie automatiche: trend follower, pilota, Meme Sniper, swap",
+     "Lorenzo, 07/10: 'non voglio piu' vedere comunque strategie automatiche non hanno senso, basta questa parte di trading deve sparire'. Nelle schede: spegnere trend follower, trading automatico e Meme Sniper, e nascondere swap e ordini limite.",
+     "alta"),
     ("seed-0249", "I filtri del database sono una riga orizzontale infinita; i layer non hanno il loro tag",
      "Lorenzo, 01/10: 'i filtri nel database sono raffigurati orizzontalmente e non riesco a gestirli tutti perche' sono veramente tanti [...] devo scorrere a destra ma non finiscono mai [...] aggiornare anche L1, L0 [...] identificarli con il relativo tag'.",
      "media"),

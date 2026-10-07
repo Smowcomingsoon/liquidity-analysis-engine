@@ -93,7 +93,8 @@ def test_learned_model_changes_nothing_until_approved(tmp_path):
     cases = [_case(i, i % 3 == 0) for i in range(60)]
     cand = gem_learn.train(cases)
     assert cand["weights"] and cand["n"] == 60
-    e = {"chain": "solana", "token_address": "z", "overall": {"score": 70}, "similarity": {"score": 0}, "pillars": {}}
+    e = {"chain": "solana", "token_address": "z", "overall": {"score": 70}, "similarity": {"score": 0},
+         "pillars": {"tokenomics": {"score": 70}}}
     hand = lb.final_score(e)
     body = gem_learn._model_body(cand)
     gem_learn.APPROVED_FILE.write_text(json.dumps({"model": body, "hash": "bad", "approved": True, "reviewer": "L"}))

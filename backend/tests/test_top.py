@@ -26,6 +26,7 @@ def test_best_by_score_board_and_studied(monkeypatch):
     monkeypatch.setattr(main.onchain_projects_db, "search",
                         lambda *a, **k: {"items": [_row("D0", 99)]})
     monkeypatch.setattr(main.onchain_judge, "get", lambda *a, **k: None)
+    monkeypatch.setattr(main.onchain_leaderboard, "final_score", lambda e: 99)   # rescored with today's formula
     out = asyncio.run(main.onchain_top(n=15, user=None))
     assert [e["symbol"] for e in out["entries"]] == ["D0", "B1", "B2", "B0"]
     assert out["on_board"] == 3

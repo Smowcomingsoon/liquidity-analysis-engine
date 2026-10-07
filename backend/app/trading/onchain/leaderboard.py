@@ -35,13 +35,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 import time
 
 import httpx
 
 from app.sniper.quality import _looks_like_meme
 from app.trading.onchain import (benchmark, big_coins, code_review, consistency, depth, discovery, gem_learn, gem_track, judge, legit, narrative_map,
-                                  narratives, priority, projects_db, research, storage, traction)
+                                  narratives, priority, projects_db, research, storage, traction, usage)
 from app.atomic_write import write_text_atomic
 
 logger = logging.getLogger(__name__)
@@ -65,11 +66,6 @@ DB_FEED_MAX_WAITING = 20            # unanalysed entries in the working set befo
 DB_MARKET_S = 60
 DB_MARKET_BATCH = 150               # 5 DexScreener requests a minute
 BOARD_SIZE = 50
-SIMILARITY_WEIGHT = 0.30
-# Use and price (traction.py, DefiLlama): a lift for the projects it lists,
-# never a penalty for the many microcaps it does not.
-TRACTION_WEIGHT = 0.10
-VALUE_WEIGHT = 0.05
 MIN_PILLAR = 35                    # sotto, un pilastro e' troppo debole per stare in classifica
 # One floor per pillar, the same with or without public code (29/09). Before,
 # public code needed GitHub 70 and every pillar 60, no code needed site 70:
@@ -78,15 +74,12 @@ MIN_PILLAR = 35                    # sotto, un pilastro e' troppo debole per sta
 # "se non passano le nostre regole sono da rivedere [...] risultano troppo
 # severi". Code quality still weighs in the score and the rank.
 PILLAR_FLOOR = {"github": MIN_PILLAR, "site": 50, "tokenomics": 60}
-# Above GEM_STRICT_CAP_USD a gem needs a high final score, not excellent
-# pillars (Lorenzo, 28/09: "sta cosa dei pilastri a 85 va migliorata").
-# The band was $100k until 29/09 (Lorenzo: "alziamo semmai il tetto della
+# GEM_STRICT_CAP_USD was the band above which a gem needed a high final
+# score (28/09-07/10; replaced by the usage bars). The band was $100k until 29/09 (Lorenzo: "alziamo semmai il tetto della
 # market cap sopra i 100k, perche' tanto le gemme possono arrivare anche a
 # 1 o 2 milioni [...] sono comunque capitalizzazioni basse"). DeepSeek's
 # judge can admit what the rules exclude, or veto what passes.
 GEM_STRICT_CAP_USD = 2_000_000
-BIG_MIN_SCORE = 80
-JUDGE_WEIGHT = 0.5
 # Research sources (discovery). Since 29/09 every source follows the same
 # rules; the tuple only names them.
 SERIOUS_SOURCES = ("coingecko", "dexscreener", "github", "reference", "jupiter", "defillama")
@@ -106,27 +99,45 @@ MIN_LIQUIDITY_USD = 10_000
 # lower; the fundamentals are not: public code and every pillar solid.
 EARLY_CAP_USD = 50_000
 EARLY_MIN_LIQUIDITY_USD = 5_000
-EARLY_MIN_PILLAR = 60
-EARLY_MIN_SCORE = 65
 ALERTS_PER_TICK = 5
 # Lorenzo (28/09): "per gemme solitamente si intende roba di capitalizzazione
 # bassa [...] massimo 10 milioni". A hard ceiling for every entry, checked on
 # the token's global cap too: AAVE's Solana copy showed $585k while AAVE
 # is worth $2.2B, and a local pool cap cannot tell the two apart.
 BOARD_CAP_MAX_USD = 10_000_000
+# Real usage before any score (Lorenzo, 07/10, scheda approvata: "progetti
+# che hanno un prodotto molto funzionante, che ci siano volumi, che ci sia
+# partecipazione"; Clawville World sat 3rd with $492 of volume a day and 245
+# holders). Measured once a day by usage.py on DexScreener and GeckoTerminal.
+# Under TOP_CAP_MIN_USD a project passing every other bar is "early": a list
+# apart, never on the podium.
+TOP_CAP_MIN_USD = 300_000
+USAGE_VOL_7D_MIN_USD = 25_000
+USAGE_VOL_CAP_MIN = 0.01             # 7-day average volume a day, against the cap
+USAGE_TX_MIN = 100                   # trades in 24 hours
+USAGE_BUYERS_MIN = 30                # distinct buyers in 24 hours
+USAGE_HOLDERS_MIN = 500
+USAGE_TOP10_MAX_PCT = 40.0           # wallets only: pools and contracts are not whales
+USAGE_STALE_S = 3 * 86400           # an older snapshot is no measure: the token waits for the next
+USAGE_GROWTH_TOLERANCE = 0.02        # holder counts jitter: -1% over a month is "not shrinking"
+USAGE_PER_TICK = 10                  # tokens measured per tick, each at most once a day
+USAGE_WARM_MAX = 200                 # at start-up: ~3 GeckoTerminal calls each, 14 a minute
+# The final score (07/10): measured parts first, DeepSeek last and light.
+# Product = research (site, docs), GitHub and DeepSeek's code reading; token
+# = tokenomics; DeepSeek = its report and its board review. A part with no
+# reading is left out and the others share its weight.
+SCORE_WEIGHTS = {"usage": 0.30, "participation": 0.20, "product": 0.25, "token": 0.15, "deepseek": 0.10}
 CG_CONTRACT = "https://api.coingecko.com/api/v3/coins/{platform}/contract/{address}"
 CG_PLATFORM = {"solana": "solana", "robinhood": "robinhood"}
 GLOBAL_CAP_EVERY_S = 15            # one CoinGecko lookup per gap, shared with discovery
 GLOBAL_CAP_TTL_S = 24 * 3600
 # DeepSeek re-reads the whole board (judge.review_board): every two hours,
-# or ten minutes after the board changes. Its score weighs in the rank; a
-# drop keeps the project off for judge.REVIEW_TTL_S.
+# or ten minutes after the board changes. Its score is the DeepSeek block of
+# final_score; a drop keeps the project off for judge.REVIEW_TTL_S.
 REVIEW_EVERY_S = 2 * 3600
 REVIEW_MIN_GAP_S = 10 * 60
-REVIEW_WEIGHT = 0.3
 # DeepSeek reads the code of each project (code_review.py): complexity and
-# innovation weigh in the rank, one project at a time.
-CODE_WEIGHT = 0.2
+# innovation are part of the product block, one project at a time.
 CODE_EVERY_S = 60
 # Scan less, complete more (Lorenzo, 28/09: "quando raggiungiamo un bel bacino
 # fermiamo la scansione e concentriamoci su completare le informazioni").
@@ -160,6 +171,7 @@ _tasks: set[asyncio.Task] = set()
 _slots = asyncio.Semaphore(ANALYZE_CONCURRENCY)
 _state = {"version": 0, "examined": 0, "last_tick": 0.0, "last_market": 0.0,
           "sources": {}, "board": []}
+_counts = {"analysed": 0}          # analyses finished since start: the nightly run's summary
 _recorded: set[str] = set()         # working-set keys whose verdict was written to the database since start
 _alerted: set[str] = set()          # "new:<key>" / "early:<key>": alerts already sent
 _outbox: list[tuple[str, str]] = []
@@ -319,7 +331,7 @@ def collect_saved() -> int:
 
 
 def is_big(item: dict, now: float | None = None) -> bool:
-    """Above the strict band: on the board only with a high final score."""
+    """Above GEM_STRICT_CAP_USD: a label for the discovery pool, no longer a bar."""
     return float(item.get("market_cap") or 0) > GEM_STRICT_CAP_USD
 
 
@@ -490,6 +502,8 @@ async def _analyze(k: str, skip: set[str], client: httpx.AsyncClient) -> None:
                     "top": k in _top_rank or bool(e.get("rank"))}
             result = await depth.analyze(item, client, skip=skip)
         apply_analysis(k, result)
+        if result:
+            _counts["analysed"] += 1
         e = _entries.get(k)
         if e is not None and result:
             _note_study(e, sorted(result))
@@ -578,13 +592,57 @@ def too_big(e: dict) -> str:
 # avoid/scam verdict it is sure of, and admits a gem/watch verdict with a
 # high score past the quality bars below. The quality bar: every pillar at
 # its PILLAR_FLOOR, the same with or without public code (no code costs
-# NO_GITHUB_PENALTY in the score instead). Up to GEM_STRICT_CAP_USD ($2M)
-# that is enough; from $2M to $10M the final score must also reach
-# BIG_MIN_SCORE. Early gems (under $50k, see is_early) are flagged
-# separately. Holders that are contracts (pools, vesting) are not "a single
+# NO_GITHUB_PENALTY in the score instead). Since 07/10 the usage bars
+# (usage_gate) come first and the $2M score band is gone: a token under
+# TOP_CAP_MIN_USD that passes everything else goes to the early list. Holders that are contracts (pools, vesting) are not "a single
 # wallet" in the tokenomics pillar (depth.judge_tokenomics_evm).
-def qualifies(e: dict, now: float | None = None) -> str:
-    """"" se entra in classifica, altrimenti perche' no."""
+def _ramp(x: float, lo: float, hi: float) -> float:
+    return max(0.0, min(1.0, (x - lo) / (hi - lo)))
+
+
+def wallet_top10(e: dict) -> float | None:
+    """The top 10 wallets' share from GoPlus (contracts left out), or None:
+    GeckoTerminal's split counts pools and contracts and cannot judge this."""
+    f = ((e.get("pillars") or {}).get("tokenomics") or {}).get("facts") or {}
+    return f.get("top10_pct") if f.get("source") != "geckoterminal" else None
+
+
+def usage_gate(e: dict, cap_floor: bool = True) -> str:
+    """"" when the measured usage clears every bar, else why not. Not measured
+    yet waits: the first nightly run measures it."""
+    cap = true_cap(e)
+    if cap_floor and cap and cap < TOP_CAP_MIN_USD:
+        return f"under ${TOP_CAP_MIN_USD / 1e3:.0f}k (early list)"
+    m = usage.latest(e.get("chain"), e.get("token_address"))
+    if not m or time.time() - (m.get("at") or 0) > USAGE_STALE_S:
+        return "usage not measured yet"
+    vol = m.get("vol_7d_avg") if m.get("vol_7d_avg") is not None else m.get("vol_24h")
+    if vol is None:
+        return "volume unknown"
+    if vol < USAGE_VOL_7D_MIN_USD:
+        return f"volume ${vol:,.0f} a day (needs ${USAGE_VOL_7D_MIN_USD / 1e3:.0f}k)"
+    if cap and vol < USAGE_VOL_CAP_MIN * cap:
+        return f"volume {vol / cap:.1%} of the cap a day (needs {USAGE_VOL_CAP_MIN:.0%})"
+    if m.get("tx_24h") is None:
+        return "trades unknown"
+    if m["tx_24h"] < USAGE_TX_MIN:
+        return f"{m['tx_24h']} trades in 24h (needs {USAGE_TX_MIN})"
+    if m.get("buyers_24h") is not None and m["buyers_24h"] < USAGE_BUYERS_MIN:
+        return f"{m['buyers_24h']} buyers in 24h (needs {USAGE_BUYERS_MIN})"
+    if m.get("holders") is not None and m["holders"] < USAGE_HOLDERS_MIN:
+        return f"{m['holders']} holders (needs {USAGE_HOLDERS_MIN})"
+    growth = usage.holders_growth(e.get("chain"), e.get("token_address"), 30)
+    if growth is not None and growth < -USAGE_GROWTH_TOLERANCE:
+        return f"holders {growth:+.0%} in 30 days"
+    top10 = wallet_top10(e)
+    if top10 is not None and top10 >= USAGE_TOP10_MAX_PCT:
+        return f"top 10 wallets hold {top10:.0f}% (max {USAGE_TOP10_MAX_PCT:.0f}%)"
+    return ""
+
+
+def qualifies(e: dict, now: float | None = None, cap_floor: bool = True) -> str:
+    """"" se entra in classifica, altrimenti perche' no. cap_floor=False
+    asks whether it would enter but for the $300k floor (the early list)."""
     if benchmark.is_benchmark(e.get("chain"), e.get("token_address")):
         # The yardstick skips caps and quality bars, never a fatal finding
         # (rug, honeypot, mint...): audit 29/09, M03.
@@ -598,6 +656,10 @@ def qualifies(e: dict, now: float | None = None) -> str:
     floor = research_floor(e, now)
     if floor:
         return floor
+    # Usage first: no report, review or narrative admits a token nobody trades.
+    used = usage_gate(e, cap_floor)
+    if used:
+        return used
     o = e.get("overall") or {}
     pillars = e.get("pillars") or {}
     if not o or o.get("fatal"):
@@ -621,9 +683,6 @@ def qualifies(e: dict, now: float | None = None) -> str:
             and not (pillars[k].get("facts") or {}).get("unreadable")]
     if weak:
         return f"{weak[0]} too weak ({pillars[weak[0]]['score']})"
-    if is_big(e, now) and final_score(e) < BIG_MIN_SCORE:
-        return (f"above ${GEM_STRICT_CAP_USD / 1e6:g}M with score {round(final_score(e))}"
-                f" (needs {BIG_MIN_SCORE})")
     return ""
 
 
@@ -648,16 +707,12 @@ def research_floor(e: dict, now: float | None = None) -> str:
 
 
 def is_early(e: dict, now: float | None = None) -> bool:
-    """Under $50k with the fundamentals of a board project: public code,
-    every pillar solid, a strong final score. Worth a small bag, flagged."""
-    cap = float(e.get("market_cap") or 0)
-    if not cap or cap >= EARLY_CAP_USD or no_github(e) or benchmark.is_benchmark(e["chain"], e["token_address"]):
+    """Under TOP_CAP_MIN_USD and passing every other bar, usage included
+    (07/10: a list apart, never on the podium)."""
+    cap = true_cap(e)
+    if not cap or cap >= TOP_CAP_MIN_USD or benchmark.is_benchmark(e["chain"], e["token_address"]):
         return False
-    pillars = e.get("pillars") or {}
-    if any((pillars.get(k) or {}).get("score") is None or pillars[k]["score"] < EARLY_MIN_PILLAR
-           for k in depth.WEIGHTS):
-        return False
-    return final_score(e) >= EARLY_MIN_SCORE and not qualifies(e, now)
+    return not qualifies(e, now, cap_floor=False)
 
 
 def no_github(e: dict) -> bool:
@@ -671,29 +726,81 @@ def _fresh(d: dict, ttl: float, now: float | None = None) -> bool:
     return bool(at) and (now or time.time()) - at < 2 * ttl
 
 
-def final_score(e: dict) -> float:
-    """Qualita' (i tre pilastri) e somiglianza tecnica a DREGG."""
-    q = (e.get("overall") or {}).get("score") or 0
-    sim = (e.get("similarity") or {}).get("score") or 0
-    # Likeness to DREGG lifts a project, never sinks it: its traits are read
-    # from code, so a project without public code scored 0 there and lost 30%
-    # on top of its penalty (Solrouter: research 78, tokenomics 64, ranked 47).
-    base = max(q, (1 - SIMILARITY_WEIGHT) * q + SIMILARITY_WEIGHT * sim)
-    if no_github(e):
-        base -= NO_GITHUB_PENALTY
+def usage_score(e: dict) -> float | None:
+    """0-100: how much the token is traded and used. Volume against the cap,
+    volume in dollars, distinct buyers; DefiLlama's TVL and fees when listed."""
+    m = usage.latest(e.get("chain"), e.get("token_address")) or {}
     use = traction_of(e)
-    if use:
-        base += TRACTION_WEIGHT * use["traction"] + VALUE_WEIGHT * (use["value"] or 0)
-    rules = round(max(0.0, min(100.0, base + narratives.bonus(e.get("narratives") or []))), 1)
-    j = e.get("judge") or {}
-    if j.get("score") is not None and _fresh(j, judge.TTL_S):
-        rules = round(max(0.0, min(100.0, (1 - JUDGE_WEIGHT) * rules + JUDGE_WEIGHT * j["score"])), 1)
+    parts: list[tuple[float, float]] = []          # (weight, 0-1), only what was read
+    vol = m.get("vol_7d_avg") if m.get("vol_7d_avg") is not None else m.get("vol_24h")
+    cap = true_cap(e)
+    if vol is not None:
+        if cap:
+            parts.append((45, _ramp(math.log10(max(vol / cap, 1e-6)), -2.3, -1)))      # 0.5% -> 0, 10% -> full
+        parts.append((30, _ramp(math.log10(max(vol, 1)), math.log10(USAGE_VOL_7D_MIN_USD), 6)))   # $25k -> $1M
+    if m.get("buyers_24h") is not None:
+        parts.append((25, _ramp(math.log10(max(m["buyers_24h"], 1)), math.log10(USAGE_BUYERS_MIN), 3)))  # 30 -> 1,000
+    elif m.get("tx_24h") is not None:
+        parts.append((25, _ramp(math.log10(max(m["tx_24h"], 1)), math.log10(USAGE_TX_MIN), 3.5)))
+    if not parts and not use:
+        return None
+    pts = 100 * sum(w * x for w, x in parts) / sum(w for w, _ in parts) if parts else 0.0
+    return round(max(pts, use["traction"] if use else 0.0), 1)
+
+
+def participation_score(e: dict) -> float | None:
+    """0-100: how many hold it and whether that grows."""
+    m = usage.latest(e.get("chain"), e.get("token_address"))
+    if not m or m.get("holders") is None:
+        return None
+    pts = 60 * _ramp(math.log10(max(m["holders"], 1)), math.log10(USAGE_HOLDERS_MIN), 4.5)   # 500 -> 30k
+    growth = usage.holders_growth(e.get("chain"), e.get("token_address"), 30)
+    pts += 40 * (0.5 if growth is None else _ramp(growth, -0.05, 0.30))
+    return round(pts, 1)
+
+
+def product_score(e: dict) -> float | None:
+    """0-100: research (site, docs, app), public code and DeepSeek's code reading."""
+    pillars = e.get("pillars") or {}
+    parts = [pillars[k]["score"] for k in ("site", "github")
+             if (pillars.get(k) or {}).get("score") is not None and not (k == "github" and no_github(e))]
     c = e.get("code") or {}
     if c.get("complexity") is not None and c.get("innovation") is not None and _fresh(c, code_review.TTL_S):
-        rules = round((1 - CODE_WEIGHT) * rules + CODE_WEIGHT * (c["complexity"] + c["innovation"]) / 2, 1)
+        parts.append((c["complexity"] + c["innovation"]) / 2)
+    return round(sum(parts) / len(parts), 1) if parts else None
+
+
+def deepseek_score(e: dict) -> float | None:
+    """0-100: DeepSeek's report and its board review, when fresh."""
+    parts = []
+    j = e.get("judge") or {}
+    if j.get("score") is not None and _fresh(j, judge.TTL_S):
+        parts.append(j["score"])
     r = e.get("review") or {}
     if r.get("keep") and r.get("score") is not None and _fresh(r, judge.REVIEW_TTL_S):
-        rules = round((1 - REVIEW_WEIGHT) * rules + REVIEW_WEIGHT * r["score"], 1)
+        parts.append(r["score"])
+    return sum(parts) / len(parts) if parts else None
+
+
+def score_blocks(e: dict) -> dict:
+    tok = ((e.get("pillars") or {}).get("tokenomics") or {}).get("score")
+    return {"usage": usage_score(e), "participation": participation_score(e), "product": product_score(e),
+            "token": tok, "deepseek": deepseek_score(e)}
+
+
+def final_score(e: dict) -> float:
+    """Usage 30, participation 20, product 25, token 15, DeepSeek 10 (07/10).
+    Closed code costs NO_GITHUB_PENALTY; DREGG's likeness and the narrative
+    are labels, no longer points."""
+    blocks = score_blocks(e)
+    have = {k: v for k, v in blocks.items() if v is not None}
+    if not have:
+        return 0.0
+    w = sum(SCORE_WEIGHTS[k] for k in have)
+    base = sum(SCORE_WEIGHTS[k] * v for k, v in have.items()) / w
+    if no_github(e):
+        base -= NO_GITHUB_PENALTY
+    rules = round(max(0.0, min(100.0, base)), 1)
     if gem_learn.approved():
         p = gem_learn.chance(score_parts(e, early=False))
         if p is not None:
@@ -713,9 +820,14 @@ def score_parts(e: dict, now: float | None = None, early: bool = True) -> dict:
     c = c if c.get("complexity") is not None and _fresh(c, code_review.TTL_S, now) else {}
     r = e.get("review") or {}
     r = r if r.get("keep") and r.get("score") is not None and _fresh(r, judge.REVIEW_TTL_S, now) else {}
+    m = usage.latest(e.get("chain"), e.get("token_address")) or {}
+    blocks = score_blocks(e)
     launched = e.get("launched_at")
     return {"quality": (e.get("overall") or {}).get("score"),
             **{f"pillar_{n}": (pillars.get(n) or {}).get("score") for n in ("github", "site", "tokenomics")},
+            **{f"block_{k}": v for k, v in blocks.items()},
+            "vol_7d_avg": m.get("vol_7d_avg"), "tx_24h": m.get("tx_24h"), "buyers_24h": m.get("buyers_24h"),
+            "holders": m.get("holders"),
             "similarity": (e.get("similarity") or {}).get("score"), "closed_source": int(no_github(e)),
             "traction": use.get("traction"), "value": use.get("value"),
             "narrative_bonus": narratives.bonus(e.get("narratives") or []),
@@ -730,9 +842,10 @@ def score_parts(e: dict, now: float | None = None, early: bool = True) -> dict:
 
 def rules_version() -> str:
     """The hand weights in force, as a short hash: a receipt says which rules chose."""
-    rules = {"weights": depth.WEIGHTS, "similarity": SIMILARITY_WEIGHT, "traction": TRACTION_WEIGHT,
-             "value": VALUE_WEIGHT, "judge": JUDGE_WEIGHT, "code": CODE_WEIGHT, "review": REVIEW_WEIGHT,
-             "no_github": NO_GITHUB_PENALTY, "floor": PILLAR_FLOOR, "learned": gem_learn.approved_hash()}
+    rules = {"blocks": SCORE_WEIGHTS, "no_github": NO_GITHUB_PENALTY, "floor": PILLAR_FLOOR,
+             "usage_gates": [TOP_CAP_MIN_USD, USAGE_VOL_7D_MIN_USD, USAGE_VOL_CAP_MIN, USAGE_TX_MIN,
+                             USAGE_BUYERS_MIN, USAGE_HOLDERS_MIN, USAGE_TOP10_MAX_PCT],
+             "learned": gem_learn.approved_hash()}
     return gem_track.receipt_of({"parts": rules})[:16]
 
 
@@ -830,7 +943,8 @@ def _public(e: dict) -> dict:
             "exception": is_big(e) and not top, "score": final_score(e),
             "similarity": e.get("similarity"), "benchmark": top, "early": is_early(e), "price_usd": e.get("price_usd"),
             "narratives": narratives.labels(e.get("narratives") or []), "closed_source": no_github(e),
-            "text_moved": e.get("text_moved"),
+            "text_moved": e.get("text_moved"), "usage": usage.latest(e.get("chain"), e.get("token_address")),
+            "blocks": score_blocks(e),
             **_research_public(e), "honor": benchmark.HONOR if top else None, "traction": traction_of(e),
             "review": {k: (e.get("review") or {}).get(k) for k in ("keep", "score", "reason")} if e.get("review") else None,
             "judge": {k: (e.get("judge") or {}).get(k)
@@ -864,12 +978,23 @@ def close_calls(now: float | None = None) -> list[dict]:
     return out[:CLOSE_SIZE]
 
 
+EARLY_SIZE = 15
+
+
+def early_list() -> list[dict]:
+    """Under $300k and past every other bar, best first: never on the podium."""
+    early = [e for e in _entries.values() if not no_name(e.get("symbol")) and is_early(e)]
+    early.sort(key=lambda e: -final_score(e))
+    return [_public(e) for e in early[:EARLY_SIZE]]
+
+
 def board() -> dict:
     entries = [_entries[k] for k in _state["board"] if k in _entries and not no_name(_entries[k].get("symbol"))]
     waiting = sum(1 for k, e in _entries.items() if k not in _state["board"])
     return {
         "version": _state["version"], "updated_at": _state["last_tick"] or None,
         "entries": [_public(e) for e in entries],
+        "early": early_list(),
         "examined": _state["examined"], "analyzing": len(_busy), "waiting": waiting,
         "excluded": _excluded[:20], "excluded_total": len(_gone),
         "sources": _state["sources"], "discovery": discovery.status(),
@@ -877,12 +1002,23 @@ def board() -> dict:
         "research_ai": research.ai_status(), "close": close_calls(),
         "track": gem_track.stats(), "learning": gem_learn.status(), "defillama": traction.status(), "database": projects_db.stats(),
         "past_floor": sum(1 for e in _entries.values() if not research_floor(e)),
-        "rules": {"weights": depth.WEIGHTS, "similarity_weight": SIMILARITY_WEIGHT,
-                  "traction_weight": TRACTION_WEIGHT, "value_weight": VALUE_WEIGHT,
-                  "early_cap_usd": EARLY_CAP_USD, "early_min_pillar": EARLY_MIN_PILLAR, "early_min_score": EARLY_MIN_SCORE, "benchmark": benchmark.NAME, "min_pillar": MIN_PILLAR, "gem_cap_usd": GEM_STRICT_CAP_USD,
-                  "board_cap_max_usd": BOARD_CAP_MAX_USD, "pillar_floor": PILLAR_FLOOR,
-                  "big_min_score": BIG_MIN_SCORE, "judge_weight": JUDGE_WEIGHT},
+        "nightly": _nightly_status(),
+        "rules": {"score_weights": SCORE_WEIGHTS, "top_cap_min_usd": TOP_CAP_MIN_USD,
+                  "usage_vol_7d_min_usd": USAGE_VOL_7D_MIN_USD, "usage_vol_cap_min": USAGE_VOL_CAP_MIN,
+                  "usage_tx_min": USAGE_TX_MIN, "usage_buyers_min": USAGE_BUYERS_MIN,
+                  "usage_holders_min": USAGE_HOLDERS_MIN, "usage_top10_max_pct": USAGE_TOP10_MAX_PCT,
+                  "benchmark": benchmark.NAME, "min_pillar": MIN_PILLAR,
+                  "board_cap_max_usd": BOARD_CAP_MAX_USD, "pillar_floor": PILLAR_FLOOR},
     }
+
+
+def _nightly_status() -> dict | None:
+    try:
+        from app.trading.onchain import nightly
+        return nightly.status()
+    except Exception:
+        logger.exception("classifica: stato del giro serale illeggibile")
+        return None
 
 
 # -------------------------------------------------------------------- giro
@@ -1004,6 +1140,7 @@ async def tick(client: httpx.AsyncClient, now: float | None = None) -> None:
     await _step("database", _from_database, client, now)
     await _step("grandi monete", _refresh_big_coins, client, now)
     await _step("cap globale", _check_global_cap, client, now)
+    await _step("uso", _measure_usage, client)
     if not _state.get("reviewing") and not priority.backtests_first():
         task = asyncio.create_task(_step("revisione", _review_board, now))
         _tasks.add(task)
@@ -1041,6 +1178,56 @@ async def tick(client: httpx.AsyncClient, now: float | None = None) -> None:
         task.add_done_callback(_tasks.discard)
     if _dirty:
         _save()
+
+
+USAGE_DB_ROWS = 200                  # studied database rows measured too (the Top's other half)
+
+
+def usage_candidates() -> list[dict]:
+    """What usage.py measures once a day: the projects past the researcher's
+    floor and under the ceiling, board first, then the studied database
+    rows the Top reads (straight from the database: the Top itself drops
+    the unmeasured ones, so it cannot be the source). Only chains with a
+    DEX pool to measure (no layers)."""
+    items = [e for k, e in _entries.items() if not research_floor(e) and not too_big(e)]
+    items.sort(key=lambda e: (_key(e["chain"], e["token_address"]) not in _state["board"], -final_score(e)))
+    seen = {_key(e["chain"], e["token_address"]) for e in items}
+    cutoff = time.time() - 30 * 86400
+    try:
+        rows = [r for st in ("studied", "ranked")
+                for r in projects_db.search(status=st, sort="score", limit=USAGE_DB_ROWS)["items"]]
+    except Exception:
+        logger.exception("usage: database rows not read")
+        rows = []
+    for r in sorted(rows, key=lambda r: -(r.get("score") or 0)):
+        if (r.get("analyzed_at") or 0) < cutoff or _key(r["chain"], r["token"]) in seen:
+            continue
+        seen.add(_key(r["chain"], r["token"]))
+        items.append({"chain": r["chain"], "token_address": r["token"], "pair_address": r.get("pair")})
+    return [e for e in items if e["chain"] in research.GECKO_NET][:USAGE_WARM_MAX + USAGE_DB_ROWS]
+
+
+async def _measure_usage(client: httpx.AsyncClient, limit: int | None = USAGE_PER_TICK,
+                         items: list[dict] | None = None) -> int:
+    """Volume, trades and holders once a day (usage.py); the board is
+    re-ranked when anything new came in."""
+    items = usage_candidates() if items is None else items
+    n = await usage.refresh(client, items, limit) if items else 0
+    if n:
+        _mark()
+    return n
+
+
+async def warm_usage(limit: int = USAGE_WARM_MAX) -> int:
+    """At start-up, the candidates with no usable snapshot at all (none, or
+    older than USAGE_STALE_S): usage_gate keeps them off the Top, so the
+    first deploy would leave it empty until the night's run. Tokens measured
+    on an earlier day wait for the night, as planned."""
+    now = time.time()
+    todo = [e for e in usage_candidates()
+            if now - ((usage.latest(e["chain"], e["token_address"]) or {}).get("at") or 0) > USAGE_STALE_S]
+    async with httpx.AsyncClient(timeout=20) as client:
+        return await _measure_usage(client, limit, todo)
 
 
 async def _refresh_big_coins(client: httpx.AsyncClient, now: float) -> None:
@@ -1331,8 +1518,59 @@ DROPPED_RULES = ("above $100k", "younger than", "over % days", "beyond the%limit
                  "without an exceptional GitHub", "GitHub link without a repository", "GoPlus does not have")
 
 
-async def leaderboard_loop() -> None:
-    await asyncio.sleep(START_DELAY_S)
+def backlog(now: float | None = None) -> dict:
+    """What the research still owes tonight (nightly.py): analyses running or
+    spawned, entries never analysed, database rows due for a look, and the
+    discovery queue while the pool still wants projects. Late data (pending
+    pillars, retried for hours) does not count: it would keep the run open
+    for nothing."""
+    now = now or time.time()
+    try:
+        db_due = len(projects_db.due_for_analysis(100, set(_entries), now))
+    except Exception:
+        db_due = 0
+    queue = discovery.status().get("queue") or 0
+    if queue and pool_status(now)["pool"] >= POOL_TARGET:
+        queue = 0                   # discovery is paused or slow: its queue waits
+    unmeasured = sum(1 for e in usage_candidates() if not usage.tried_today(e["chain"], e["token_address"]))
+    return {"running": len(_busy) + len(_tasks), "unanalysed": sum(1 for e in _entries.values() if not e["pillars"]),
+            "database": db_due, "discovery": queue, "unmeasured": unmeasured}
+
+
+def drained(now: float | None = None) -> bool:
+    return not any(backlog(now).values())
+
+
+def analyze_now(chain: str, token: str) -> bool:
+    """One project analysed at once, outside the tick: with the nightly run a
+    project added by hand would otherwise wait for 22:00. False when it is
+    not in the working set or already being analysed."""
+    k = _key(chain, token)
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:            # called outside the server (tests, scripts)
+        return False
+    if k not in _entries or k in _busy:
+        return False
+    _busy.add(k)
+
+    async def _go() -> None:
+        async with httpx.AsyncClient(timeout=10.0, headers={"User-Agent": "Mozilla/5.0 (LiquidityEngine)"}) as client:
+            try:                    # usage too, or usage_gate keeps it out until the night
+                await usage.refresh(client, [_entries[k]], 1)
+            except Exception:
+                logger.exception("usage: %s not measured", k)
+            await _analyze(k, set(), client)     # its finally frees the slot
+        if _dirty:
+            _save()
+    task = loop.create_task(_go())
+    _tasks.add(task)
+    task.add_done_callback(_tasks.discard)
+    return True
+
+
+def startup_requeue() -> None:
+    """Once per start: rows judged by limits that no longer exist go back in the queue."""
     try:
         n = projects_db.recheck_studied(("over $%", "over % days%"))
         # Rules dropped on 29/09 (age limits, radar exceptions, the $100k band).
@@ -1349,6 +1587,11 @@ async def leaderboard_loop() -> None:
             logger.info("classifica: %d progetti rimessi in coda (limiti vecchi)", n)
     except Exception:
         logger.exception("classifica: recheck_studied fallito")
+
+
+async def leaderboard_loop() -> None:
+    await asyncio.sleep(START_DELAY_S)
+    startup_requeue()
     async with httpx.AsyncClient(timeout=10.0, headers={"User-Agent": "Mozilla/5.0 (LiquidityEngine)"}) as client:
         while True:
             try:
