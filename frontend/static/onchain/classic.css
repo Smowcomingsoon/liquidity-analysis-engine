@@ -23,16 +23,16 @@
   --c-press: #e6e6e6;
   --c-line: #ececec;
   --c-text: #111111;
-  --c-text-2: #5c5c5c;
-  --c-text-3: #9a9a9a;
+  --c-text-2: #4d4d4d;
+  --c-text-3: #6b6b6b;
   --c-text-4: #c4c4c4;
   --c-ink: #1b1b1b;          /* the primary button */
   --c-on-ink: #ffffff;
-  --c-up: #0f8a50;
-  --c-down: #d13a33;
-  --c-amber: #b7791f;
-  --c-up-soft: rgb(15 138 80 / .09);
-  --c-down-soft: rgb(209 58 51 / .09);
+  --c-up: #0b7a46;
+  --c-down: #b8312b;
+  --c-amber: #946200;
+  --c-up-soft: rgb(11 122 70 / .09);
+  --c-down-soft: rgb(184 49 43 / .09);
   --c-float: rgb(255 255 255 / .92);
   --c-float-line: #e9e9e9;
   --c-float-shadow: 0 6px 24px rgb(0 0 0 / .06);
@@ -44,7 +44,7 @@
   :root {
     color-scheme: dark;
     --c-bg: #0c0c0c; --c-card: #1a1a1a; --c-pill: #1f1f1f; --c-press: #2a2a2a; --c-line: #222222;
-    --c-text: #f2f2f2; --c-text-2: #a8a8a8; --c-text-3: #6e6e6e; --c-text-4: #4a4a4a;
+    --c-text: #f2f2f2; --c-text-2: #a8a8a8; --c-text-3: #8a8a8a; --c-text-4: #4a4a4a;
     --c-ink: #f2f2f2; --c-on-ink: #111111;
     --c-up: #3fb27f; --c-down: #e5534b; --c-amber: #d6a24a;
     --c-up-soft: rgb(63 178 127 / .14); --c-down-soft: rgb(229 83 75 / .14);
@@ -86,7 +86,10 @@ body :is(button, input, select, textarea) { font-family: var(--sans); }
   padding: calc(env(safe-area-inset-top) + 18px) 16px 6px !important; background: var(--c-bg) !important; border: 0 !important;
   align-items: center !important;
 }
-.tb-me .tb-bal { display: none; }
+.tb-me { flex-direction: column; align-items: flex-start !important; gap: 2px !important; }
+.tb-me .tb-bal { order: 2; }
+.tb-me .tb-bal :is(.total-bal, #balance) { font: 500 14px/1.2 var(--sans) !important; color: var(--c-text-2) !important; letter-spacing: 0 !important;
+  & .cents { color: var(--c-text-3) !important; } }
 .tb-me::before { font: 700 34px/1.1 var(--sans); letter-spacing: -.025em; color: var(--c-text); }
 html:has(#app-shell[data-view="gems"]) .tb-me::before { content: "Gems"; }
 html:has(#app-shell[data-view="meme"]) .tb-me::before { content: "Signals"; }
@@ -124,10 +127,10 @@ html:has(#app-shell[data-view="manual"]) .tb-me::before { content: "Swap"; }
 }
 
 /* --- search: a soft pill ------------------------------------------------ */
-:is(input[type="search"], input[type="text"], input:not([type]), select, textarea):not([type="checkbox"]) {
+:is(input[type="search"], input[type="text"], input[type="email"], input[type="password"], input[type="number"], input:not([type]), select, textarea):not([type="checkbox"]) {
   background: var(--c-bg) !important; border: 1px solid var(--c-line) !important; color: var(--c-text) !important;
 }
-:is(input[type="search"], input[type="text"], input:not([type])) { border-radius: 99px !important; min-block-size: 48px; min-inline-size: 0; padding-inline: 20px !important; font-size: 16px !important; }
+:is(input[type="search"], input[type="text"], input[type="email"], input[type="password"], input[type="number"], input:not([type])) { border-radius: 99px !important; min-block-size: 48px; min-inline-size: 0; padding-inline: 20px !important; font-size: 16px !important; }
 :is(input, textarea)::placeholder { color: var(--c-text-3) !important; }
 
 /* --- pills and segmented choices --------------------------------------- */
@@ -177,7 +180,7 @@ html:has(#app-shell[data-view="manual"]) .tb-me::before { content: "Swap"; }
   transition: scale var(--c-fast) var(--c-ease);
   &:active { scale: .97; }
 }
-.engn-pod .engn-rank { position: absolute; inset: 10px 14px auto auto; font: 400 30px/1 var(--sans) !important; letter-spacing: -.02em !important; color: var(--c-text-4) !important; }
+.engn-pod .engn-rank { position: absolute; inset: 10px 14px auto auto; font: 400 30px/1 var(--sans) !important; letter-spacing: -.02em !important; color: var(--c-text-3) !important; }
 .engn-pod .engn-token-logo { inline-size: 44px !important; block-size: 44px !important; width: 44px !important; height: 44px !important;
   border: 0 !important; border-radius: 12px !important; background: var(--c-pill) !important; margin: 0 0 auto !important; }
 .engn-pod .engn-symbol { margin-block-start: 14px; font: 600 15px/1.2 var(--sans) !important; color: var(--c-text) !important; }
@@ -204,7 +207,7 @@ html:has(#app-shell[data-view="manual"]) .tb-me::before { content: "Swap"; }
 .bt-live i { background: var(--c-text-4) !important; box-shadow: none !important; }
 .trow-num > b { font: 600 16px/1 var(--sans) !important; }
 .chg { border-radius: 99px !important; padding: 0 8px !important; font-weight: 500 !important; background: none !important; }
-.chg:not([data-sign]) { color: var(--c-text-4) !important; }
+.chg:not([data-sign]) { color: var(--c-text-3) !important; }
 
 /* Database rows and other list cards: flat, no dividers. */
 :is(.pj-row, .db-row, .projects li, .listing) { border: 0 !important; background: none !important; }
@@ -218,7 +221,8 @@ html:has(#app-shell[data-view="manual"]) .tb-me::before { content: "Swap"; }
 
 /* --- token page --------------------------------------------------------- */
 .dt-chart, .chart-wrap, [data-chart] { background: none !important; background-image: none !important; }
-.why-score .ring::before, .why-score .ring { background: conic-gradient(var(--c-text) calc(var(--v) * 1%), var(--c-press) 0) !important; }
+.why-score .ring { background: none !important; }
+.why-score .ring::before { background: conic-gradient(var(--c-text) calc(var(--v) * 1%), var(--c-press) 0) !important; }
 .bars i { background: linear-gradient(90deg, var(--c-text) calc(var(--v) * 1%), var(--c-press) 0) !important; }
 
 /* --- floating tab bar with labels, search as its own circle ------------ */
@@ -248,7 +252,8 @@ html:has(#app-shell[data-view="manual"]) .tb-me::before { content: "Swap"; }
 
 /* --- motion ------------------------------------------------------------ */
 /* Same names as the old keyframes: unlayered rules win, so every entrance
-   uses one short fade-and-rise and the decorative loops stop. */
+   uses one short fade-and-rise. Decorative loops get an empty body (which
+   wins by name and does nothing), working indicators one calm pulse. */
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
 @keyframes row-in { from { opacity: 0; transform: translateY(6px); } }
 @keyframes fade-in { from { opacity: 0; } }
@@ -261,26 +266,233 @@ html:has(#app-shell[data-view="manual"]) .tb-me::before { content: "Swap"; }
 @keyframes ask-in { from { opacity: 0; transform: translateY(6px); } }
 @keyframes rank-new { from { opacity: 0; } }
 @keyframes shell-in { from { opacity: 0; } }
-@keyframes gb-aurora { to { opacity: 1; } }
-@keyframes board-shine { to { opacity: 1; } }
-@keyframes gb-medal { to { opacity: 1; } }
-@keyframes tok-shimmer { to { opacity: 1; } }
-@keyframes splash-glow { to { opacity: 1; } }
-@keyframes listing-flash { to { opacity: 1; } }
-@keyframes listing-ring { to { opacity: 1; } }
-@keyframes scan-add-glow { to { opacity: 1; } }
-@keyframes wobble { to { opacity: 1; } }
-@keyframes ag-breathe { to { opacity: 1; } }
-@keyframes agent-breathe { to { opacity: 1; } }
-@keyframes am-breathe { to { opacity: 1; } }
-@keyframes pc-breathe { to { opacity: 1; } }
-@keyframes ds-step-pulse { to { opacity: 1; } }
-@keyframes ask-pulse { to { opacity: 1; } }
-.trow { animation: row-in var(--c-mid) var(--c-ease) both; }
-.trow:nth-child(2) { animation-delay: 30ms; } .trow:nth-child(3) { animation-delay: 60ms; }
-.trow:nth-child(4) { animation-delay: 90ms; } .trow:nth-child(n+5) { animation-delay: 120ms; }
-::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--c-mid); animation-timing-function: var(--c-ease); }
+@keyframes shell-out { to { opacity: 0; } }
+@keyframes gb-aurora {}
+@keyframes board-shine {}
+@keyframes gb-medal {}
+@keyframes splash-glow {}
+@keyframes listing-flash {}
+@keyframes listing-ring {}
+@keyframes scan-add-glow {}
+@keyframes wobble {}
+@keyframes ag-breathe {}
+@keyframes pc-breathe {}
+@keyframes pop-a {}
+@keyframes pop-b {}
+@keyframes ds-step-pulse { 50% { opacity: .4; } }
+@keyframes agent-breathe { 50% { opacity: .4; } }
+@keyframes am-breathe { 50% { opacity: .4; } }
+@keyframes ask-pulse { 50% { opacity: .4; } }
+@keyframes skel { 50% { opacity: .55; } }
+@keyframes tok-shimmer { 50% { opacity: .55; } }
+
+/* Loading: flat grey blocks that breathe, no neon cube. */
+:is(.memes-list, .projects-list, #board .board-podium, #radar [data-radar-list], #radar .radar-stage):empty,
+.is-skeleton :is(.tok-av, .tok-main span, .tok-main small) { background: var(--c-card) !important; animation-timing-function: ease-in-out; }
+.top-wait engn-motion { display: none; }
+.top-wait { min-block-size: 132px; display: grid; place-items: center; border-radius: 20px; background: var(--c-card);
+  animation: skel 1.6s ease-in-out infinite; }
+.top-wait p { font: 500 13px var(--sans) !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--c-text-3) !important; }
+
+/* Backtest dots: still, one calm pulse for the whole group. */
+.bt-live { animation: skel 1.6s ease-in-out infinite; }
+.bt-live i { animation: none !important; opacity: .7; }
+
+/* Sweeps, tickers and glows that belong to the old neon skin. */
+.ag-scan, .soon[data-stage="checking"]::after, .pilot-scan { display: none !important; }
+.tape-track { animation: none !important; }
+.scan-tape { overflow-x: auto; }
+:is(.sniper-card .pulse, .live .dot.is-live, .scan-dot)::after { animation: none !important; }
+:is(.scan-dot, .agent-orb, .ag-orb span) { box-shadow: none !important; }
+
+/* Rank changes on the 260 ms vocabulary; new rows wait for the move. */
+.trow.rank-moved { animation-duration: 420ms, 0s !important; }
+.trow.rank-new { animation-delay: .45s !important; }
+
+/* Splash: same cube, drawn in the new palette, gone sooner. */
+.splash { background: var(--c-bg) !important; animation-duration: .25s !important; animation-delay: .5s !important; }
+.splash-halo, .splash-cube .slit-glow { display: none !important; }
+.splash-cube .face-top { fill: var(--c-card) !important; }
+.splash-cube .face-l { fill: var(--c-pill) !important; }
+.splash-cube .face-r { fill: var(--c-press) !important; }
+.splash-cube .edge { stroke: var(--c-line) !important; }
+.splash-cube .slit { stroke: var(--c-text) !important; }
+.splash-name { color: var(--c-text) !important; font-family: var(--sans) !important; letter-spacing: .02em !important; }
+.splash-name b { color: var(--c-text-2) !important; }
+.splash-bar { background: var(--c-line) !important; }
+.splash-bar i { background: var(--c-text) !important; }
+
+/* Page changes: the old page fades out quickly, the new one fades in. The
+   search circle gets its own layer so the list never shows through it. */
+.dock-search { view-transition-name: dock-search; }
+::view-transition-old(shell) { animation-duration: 120ms; animation-timing-function: var(--c-ease); }
+::view-transition-new(shell) { animation-duration: var(--c-mid); animation-timing-function: var(--c-ease); }
+
+/* Sheets and the token page leave the way they came. */
+.sheet, .modal {
+  transition: translate var(--c-mid) var(--c-ease), opacity var(--c-mid) var(--c-ease),
+    display var(--c-mid) allow-discrete, overlay var(--c-mid) allow-discrete !important;
+}
+.sheet::backdrop, .modal::backdrop {
+  transition: opacity var(--c-mid) var(--c-ease), display var(--c-mid) allow-discrete, overlay var(--c-mid) allow-discrete !important;
+}
+dialog.detail {
+  transition: opacity var(--c-mid) var(--c-ease), translate var(--c-mid) var(--c-ease),
+    display var(--c-mid) allow-discrete, overlay var(--c-mid) allow-discrete;
+}
+dialog.detail:not([open]) { opacity: 0; translate: 0 6px; }
+@starting-style { dialog.detail[open] { opacity: 0; translate: 0 6px; } }
+
+/* --- leftovers found in review ---------------------------------------- */
+a { color: inherit; }
+.dt-links a { color: var(--c-text) !important; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--c-text-3); }
+
+/* Auto-trade modes: the chosen one is the black pill. */
+.auto-modes button[aria-checked="true"] { background: var(--c-ink) !important; color: var(--c-on-ink) !important; }
+.auto-dot[data-mode="sim"] { background: var(--c-amber) !important; }
+.auto-dot[data-mode="real"] { box-shadow: none !important; }
+
+/* Record panel, banners and other surfaces mixed from the old --live. */
+:is(.gem-banner, .al-now, .early-note, .risk-banner) { background: var(--c-card) !important; border: 0 !important; border-radius: 20px !important; }
+.early-note :is(b, button) { color: var(--c-amber) !important; }
+.risk-banner b { color: var(--c-amber) !important; }
+.bd-tags em[data-tone="early"] { color: var(--c-amber) !important; background: rgb(148 98 0 / .1) !important; border: 0 !important; }
+:is([data-tone="use"], .bd-use) { --live: var(--c-text); color: var(--c-text) !important; }
+:is(.mm-why li[data-tone="bad"], .pj-status[data-status="rejected"]) { color: var(--c-down) !important; }
+:is(.meme-row, .mm-score, .track-bands li)[data-tone="hot"] { --tone: var(--c-down); }
+:is(.meme-row, .mm-score, .track-bands li)[data-tone="warm"] { --tone: var(--c-amber); }
+.us-state a { color: var(--c-text) !important; text-decoration: underline; }
+.pf-wallets i { background: var(--c-text) !important; }
+.hide-toast button { color: var(--c-text) !important; text-decoration: underline; }
+.scan-dot { background: var(--c-amber) !important; }
+
+/* Scout: plain tags, a neutral cube, a neutral progress bar. */
+.ag-kind { color: var(--c-text-2) !important; background: var(--c-pill) !important; font: 500 12px/1.5 var(--sans) !important;
+  letter-spacing: 0 !important; text-transform: none !important; border-radius: 99px !important; }
+.ag-bar i { background: var(--c-text) !important; }
+.sc-top .sc-face { fill: var(--c-pill) !important; } .sc-left .sc-face { fill: var(--c-card) !important; } .sc-right .sc-face { fill: var(--c-press) !important; }
+.sc-face { stroke: var(--c-text-3) !important; }
+:is(.sc-band, .sc-ring) { stroke: var(--c-text) !important; }
+.sc-core { fill: var(--c-text) !important; }
+
+/* The voice tab on the right edge floats like the tab bar. */
+.ask-fab { background: var(--c-float) !important; border-color: var(--c-float-line) !important; box-shadow: var(--c-float-shadow) !important;
+  color: var(--c-text-2) !important; opacity: 1 !important; }
+
+/* Signals: hold is neutral, a count is not a gain. */
+.sig-pill { font: 600 12px var(--sans) !important; letter-spacing: 0 !important; text-transform: none !important; }
+.sig-pill[data-side="hold"] { color: var(--c-text-2) !important; background: var(--c-pill) !important; box-shadow: none !important; }
+.sig-stats [data-v="in"] dd { color: var(--c-text) !important; }
+
+/* Spaced uppercase labels become plain small text. */
+:is(.auto-chip, .hot, .pc-rank, .bd-tags em) { font: 500 12px/1.4 var(--sans) !important; letter-spacing: 0 !important; text-transform: none !important; }
+
+/* One heading scale. */
+#app-shell :is(h2, h3):not(.sheet-title) { font: 600 20px/1.2 var(--sans) !important; letter-spacing: -.01em !important; }
+#app-shell h4:not(.feed-sec) { font: 600 17px/1.25 var(--sans) !important; }
+h4.feed-sec { font: 500 14px/1.3 var(--sans) !important; color: var(--c-text-2) !important; }
+.sheet-title { font: 600 20px/1.2 var(--sans) !important; }
+
+/* Login: no account buttons before signing in. */
+html:has(#login-screen:not([hidden])) :is(.tb-deposit, .tb-bell, .ask-fab, .tb-bal) { display: none !important; }
+html:has(#login-screen:not([hidden])) .tb-me::before { content: "Log in"; }
+
+/* Sheets: white sheet, grey rows; no ring on the list that takes focus. */
+dialog.sheet { background: var(--c-bg) !important; --ring: var(--c-bg); }
+.dep-row { background: var(--c-card) !important; border: 0 !important; }
+dialog.sheet :is(.rows, [tabindex="-1"]):focus { outline: none !important; }
+
+/* Disabled pills read as unavailable, not as empty shapes. */
+.seg button:disabled { opacity: 1 !important; color: var(--c-text-3) !important; background: transparent !important; box-shadow: inset 0 0 0 1px var(--c-line) !important; }
+
+/* Chain badge ring matches the surface it sits on. */
+:root { --ring: var(--c-bg); }
+:is(.card, .panel) { --ring: var(--c-card); }
+.chain-mark { box-shadow: 0 0 0 2px var(--ring) !important; }
+
+/* podium-adapter.css is injected after this file. */
+.engn-pod { --engn-accent: var(--c-text-3) !important; }
+.engn-pod .pc-prev { font: 500 11px var(--sans) !important; color: var(--c-text-3) !important; }
+
+/* In dark mode a black shadow is invisible: the hairline does the work. */
+@media (prefers-color-scheme: dark) { :is(.tb-deposit, .tb-bell) { box-shadow: none !important; } }
+
+/* --- layout review ---------------------------------------------------- */
+/* Voice button: a round button stacked above the search circle. */
+.ask-fab { inset: auto 24px calc(14px + 64px + 12px + env(safe-area-inset-bottom)) auto !important; inline-size: 48px !important;
+  block-size: 48px !important; border-radius: 50% !important; padding: 0 !important; display: grid; place-items: center; }
+/* Record list on the page gutter; its info box is the only card. */
+.track { background: none !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; --ring: var(--c-bg); }
+/* Signals scan: a round button inside the pill field. */
+.scan-form button { min-block-size: 0 !important; block-size: 40px !important; inline-size: 40px !important; inset: 4px 4px auto auto !important; border-radius: 50% !important; }
+
+/* Token page: header on the gutter, round actions, pill tabs and chips. */
+.dt-bar { padding: 0 16px !important; border: 0 !important; block-size: 56px; }
+.dt-bar .sq { inline-size: 40px !important; block-size: 40px !important; border-radius: 50% !important; border: 0 !important; background: var(--c-pill) !important; }
+.dt-back { inline-size: 40px; block-size: 40px; margin-inline-start: -8px; }
+.dt-tabs { display: flex !important; gap: 8px; margin: 18px 0 0 !important; border: 0 !important; }
+.dt-tabs button { flex: 1; block-size: 40px !important; border: 0 !important; border-radius: 99px !important; background: var(--c-pill) !important; color: var(--c-text-2) !important; }
+.dt-tabs button[aria-current] { background: var(--c-ink) !important; color: var(--c-on-ink) !important; }
+.dt-tabs button::after { display: none !important; }
+.dt-chips { margin-inline: -16px !important; padding-inline: 16px; scroll-padding-inline: 16px; gap: 8px !important; }
+.dt-chips button { block-size: 36px; padding: 0 14px !important; border-radius: 99px !important; background: var(--c-pill) !important; }
+.dt-chips button:is([aria-current], [aria-pressed="true"]) { background: var(--c-ink) !important; color: var(--c-on-ink) !important; }
+.why-score { padding: 14px !important; gap: 14px; }
+.ds-recheck { min-block-size: 48px; border: 0 !important; border-radius: 99px !important; background: var(--c-pill) !important; font: 500 15px var(--sans) !important; }
+.dt-pane :is(.call, li, p, dl > div) { border: 0 !important; }
+.dt-pane .call { padding-block: 12px !important; }
+.dt-pane .bars i { block-size: 4px; border-radius: 99px; }
+.dt-cta { background: linear-gradient(transparent, var(--c-bg) 18px) !important; padding-top: 20px !important; }
+
+/* Scout: same cards, round selects, airy progress. */
+.quant-panel { border: 0 !important; border-radius: 20px !important; background: var(--c-card) !important; padding: 14px !important; }
+.quant-counts { gap: 8px !important; }
+.quant-counts > p { background: var(--c-bg) !important; border-radius: 14px !important; margin: 0 !important; }
+.agent-map { border: 0 !important; }
+.am-live { border: 0 !important; border-radius: 16px !important; background: var(--c-bg) !important; }
+#agent-view select { min-block-size: 48px; border-radius: 99px !important; padding-inline: 20px !important; }
+.ag-more { block-size: 40px; border-radius: 99px !important; }
+.ag-prog { display: grid; gap: 12px; }
+.ag-prog-item i { border-radius: 99px; block-size: 4px; }
+
+/* Profile: pill switches, round actions. */
+.pf-wallet { background: none !important; padding: 0 !important; gap: 8px; box-shadow: none !important; }
+.pf-wallet button { block-size: 40px; border-radius: 99px !important; padding: 0 16px !important; background: var(--c-pill) !important; color: var(--c-text-2) !important; }
+.pf-wallet button:is([aria-pressed="true"], [aria-current], [aria-selected="true"]) { background: var(--c-ink) !important; color: var(--c-on-ink) !important; }
+.pf-range { gap: 4px; justify-content: space-between; }
+.pf-range button { flex: 1; block-size: 36px; padding: 0 !important; border-radius: 99px !important; }
+.pf-range button:is([aria-pressed="true"], [aria-current], [aria-selected="true"]) { background: var(--c-ink) !important; color: var(--c-on-ink) !important; }
+:is(.pf-sq, .pf-edit) { inline-size: 44px !important; block-size: 44px !important; border-radius: 50% !important; border: 0 !important; background: var(--c-pill) !important; }
+.pf-seg button { block-size: 40px; padding: 0 16px !important; }
+#onchain-empty-state { background: var(--c-card); border-radius: 20px; padding: 16px; margin-top: 16px; & > :is(button, a) { margin-block-start: 12px; } }
+
+/* Database: filter pill beside the search pill, rows on the gutter. */
+.pj-filter-btn { block-size: 48px !important; border-radius: 99px !important; border: 0 !important; background: var(--c-pill) !important; padding: 0 18px !important; }
+:is(.projects-list > li, .projects > header) { padding-inline: 0 !important; }
+.projects > header { display: block !important; }
+.projects > header h3 { margin-bottom: 4px; }
+dialog.sheet .pjf-chips button { block-size: 40px; border: 0 !important; background: var(--c-pill) !important; border-radius: 99px !important; }
+:is(.pjf-done, .pjf-reset) { min-block-size: 52px; border-radius: 99px !important; border: 0 !important; }
+
+/* One pill height everywhere; sheets on the 16px gutter. */
+:is(.top-narr-clear, .am-chip, .rj-more, .more-row) { min-block-size: 40px; padding: 0 16px !important; display: inline-flex; align-items: center;
+  border-radius: 99px !important; background: var(--c-pill) !important; }
+.rj-more { margin-inline-start: 0 !important; }
+dialog.sheet { padding-inline: 16px !important; }
+.dep-row { border-radius: 20px !important; }
+.sheet-close { min-block-size: 52px; }
+
+/* Narrow phones: the podium number makes room for the logo. */
+@media (max-width: 374px) {
+  .engn-pod .engn-rank { font-size: 24px !important; inset: 10px 10px auto auto; }
+  .engn-pod .engn-token-logo { inline-size: 40px !important; block-size: 40px !important; width: 40px !important; height: 40px !important; }
+}
+
+/* font: shorthands above reset the figures; put tabular back last. */
+:is(.score, .trow-num b, .trow-num em, .engn-rank, .engn-value, .pj-score, .chg, .dt-mc, .pf-total, .pf-change, dd, td, .amount, #balance, .total-bal)
+  { font-variant-numeric: tabular-nums !important; }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+  *, *::before, *::after { animation-delay: 0ms !important; }
+  .qr-progress { animation: none !important; }
 }

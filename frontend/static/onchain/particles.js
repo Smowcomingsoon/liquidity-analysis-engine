@@ -127,7 +127,7 @@ export function absorb(from, into, ms = 1300) {
   const logo = from.querySelector("img, .tile, .logo, svg");
   if (logo) {
     const lr = logo.getBoundingClientRect();
-    sctx.fillStyle = "#818cf8";
+    sctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--c-text-3").trim() || "#818cf8";
     sctx.beginPath();
     sctx.arc(lr.left - origin.left + lr.width / 2, lr.top - origin.top + lr.height / 2, Math.min(lr.width, lr.height) / 2, 0, Math.PI * 2);
     sctx.fill();

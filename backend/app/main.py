@@ -8461,6 +8461,7 @@ _ONCHAIN_APP_HTML = (
     .replace('href="/static/onchain/ui.css"', f'href="/static/onchain/ui.css?v={_ASSET_VERSION}"')
     .replace('href="/static/onchain/ui-refinements.css"', f'href="/static/onchain/ui-refinements.css?v={_ASSET_VERSION}"')
     .replace('href="/static/onchain/scout-cube.css"', f'href="/static/onchain/scout-cube.css?v={_ASSET_VERSION}"')
+    .replace('href="/static/onchain/classic.css"', f'href="/static/onchain/classic.css?v={_ASSET_VERSION}"')
     # La libreria del grafico non cambia fra un deploy e l'altro: con il `?v=`
     # finisce in cache per sempre invece di rivalidarsi a ogni apertura.
     .replace(

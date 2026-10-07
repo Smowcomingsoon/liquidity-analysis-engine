@@ -45,8 +45,10 @@ function lines(node) {
 
 function colorOf(node) {
   const tone = node.getAttribute("data-tone");
-  if (tone === "good") return "#34d399";
-  if (tone === "bad") return "#f87171";
+  // The phone skin (classic.css) defines --c-up/--c-down; the desktop keeps the old tones.
+  const css = (name, fallback) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+  if (tone === "good") return css("--c-up", "#34d399");
+  if (tone === "bad") return css("--c-down", "#f87171");
   return getComputedStyle(node).color;
 }
 
