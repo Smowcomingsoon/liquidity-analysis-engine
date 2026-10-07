@@ -140,8 +140,9 @@ function paint() {
 
   const box = root.querySelector("[data-top-arenas]");
   if (only && !arenas.some((a) => a.key === only)) setOnly(null);
-  const chips = arenas.length > 1 ? `<div class="ar-chips" role="group" aria-label="Arena">${[{ key: "", label: "All" }, ...arenas]
-    .map((a) => `<button type="button" class="chip" data-arena-pick="${escapeHtml(a.key)}" aria-pressed="${(only ?? "") === a.key}">${escapeHtml(a.label)}</button>`).join("")}</div>` : "";
+  const chips = arenas.length > 1 ? `<div class="ar-chips" role="group" aria-label="Arena">${[{ key: "", label: "All", size: arenas.reduce((n, x) => n + x.size, 0), entries: [] }, ...arenas]
+    .map((a) => `<button type="button" class="ar-tile" data-arena-pick="${escapeHtml(a.key)}" aria-pressed="${(only ?? "") === a.key}">
+      <b>${escapeHtml(a.label)}</b><span class="ar-n">${a.size}</span><small>${a.entries[0] ? `♛ ${escapeHtml(a.entries[0].symbol ?? "")}` : `${arenas.length} arenas`}</small></button>`).join("")}</div>` : "";
   withEntrance(box, () => {
     const html = chips + (only ? arenaHtml(arenas.find((a) => a.key === only), true) : arenas.map((a) => arenaHtml(a)).join(""));
     box.innerHTML = html || `<p class="muted pad">The arenas are filling up: projects appear as they pass the checks.</p>`;
