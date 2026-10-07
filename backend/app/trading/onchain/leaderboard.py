@@ -139,7 +139,10 @@ USAGE_WARM_MAX = 200                 # at start-up: ~3 GeckoTerminal calls each,
 # Product = research (site, docs), GitHub and DeepSeek's code reading; token
 # = tokenomics; DeepSeek = its report and its board review. A part with no
 # reading is left out and the others share its weight.
-SCORE_WEIGHTS = {"usage": 0.20, "participation": 0.10, "product": 0.35, "token": 0.20, "deepseek": 0.15}
+# Product and DeepSeek's reading (which now sees the usage numbers too)
+# lead with 55; measured market 30 (Lorenzo: balanced, the old Top "non era
+# male"); tokenomics 15.
+SCORE_WEIGHTS = {"usage": 0.20, "participation": 0.10, "product": 0.30, "token": 0.15, "deepseek": 0.25}
 CG_CONTRACT = "https://api.coingecko.com/api/v3/coins/{platform}/contract/{address}"
 CG_PLATFORM = {"solana": "solana", "robinhood": "robinhood"}
 GLOBAL_CAP_EVERY_S = 15            # one CoinGecko lookup per gap, shared with discovery
