@@ -151,10 +151,11 @@ def gem_view(item: dict, now: float | None = None) -> dict:
                 "judge": _judge_view(e.get("judge")), "code": _code_view(e.get("code"))}
     p = projects_db.get(chain, token)
     if p is not None:
+        pl = leaderboard.db_entry(p)["pillars"]
         return {"status": p.get("status") or "new", "rank": p.get("rank"),
                 "score": round(p["score"]) if p.get("score") is not None else None, "why": p.get("why") or "",
-                "pillars": _pillars(p.get("pillars")), "judge": _judge_view(judge.get(chain, token)),
-                "code": _code_view(code_review.get(code_review.repo_of({"pillars": p.get("pillars")})))}
+                "pillars": _pillars(pl), "judge": _judge_view(judge.get(chain, token)),
+                "code": _code_view(code_review.get(code_review.repo_of({"pillars": pl})))}
     return {"status": "unknown", "rank": None, "score": None, "why": "", "pillars": {}, "judge": None, "code": None}
 
 

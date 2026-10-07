@@ -2549,5 +2549,11 @@
     "at": 1791360817,
     "summary": "La ricerca delle gemme gira una volta a sera alle 22:00 (ora italiana), per al massimo 2 ore: analisi, misure d'uso, layer, esiti e ricontrollo settimanale della Top, poi un messaggio Telegram in italiano con chi e' entrato e uscito dalla Top. Di giorno restano immediati lo scanner manuale e il ricontrollo DeepSeek di un token. Prezzi e cap della classifica si aggiornano la sera.",
     "detail": "backend/app/trading/onchain/nightly.py, settings onchain_nightly_enabled/hour/max_hours, main.py lifespan (loop_plan). Test: tests/test_nightly.py."
+  },
+  "seed-0253": {
+    "status": "risolto",
+    "at": 1791381764,
+    "summary": "La pagina dei token layer (L0/L1/L2) tornava errore 500: il motore layer salva i pilastri come lista, la pagina li leggeva come scheda. Ora vengono letti in tutte e due le forme, e la pagina mostra GitHub, ricerca e tokenomics del layer.",
+    "detail": "backend/app/trading/onchain/leaderboard.py db_entry, manual_scan.py. Test: tests/test_onchain_layers.py::test_layer_token_page_reads_list_pillars."
   }
 }

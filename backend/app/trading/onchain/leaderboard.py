@@ -1470,8 +1470,13 @@ def set_top_source(fn) -> None:
 
 
 def db_entry(p: dict) -> dict:
-    """A database row in board shape: what the token page and the judge read."""
-    return {**projects_db.as_item(p), "score": p.get("score"), "pillars": p.get("pillars") or {},
+    """A database row in board shape: what the token page and the judge read.
+    Layer rows (layers.py) keep their pillars as a list: keyed here like the
+    board's, or every reader's .get() fails (07/10: 500 on the token page)."""
+    pillars = p.get("pillars") or {}
+    if isinstance(pillars, list):
+        pillars = {x["key"]: x for x in pillars if isinstance(x, dict) and x.get("key")}
+    return {**projects_db.as_item(p), "score": p.get("score"), "pillars": pillars,
             "overall": p.get("overall"), "narratives": p.get("narratives") or [],
             "traction": p.get("traction"), "rank": p.get("rank"), "status": p.get("status"),
             "why": p.get("why"), "on_board": False}
