@@ -105,6 +105,7 @@ def assign(entries: list[dict], cat: dict[str, dict] | None = None, prefer: set[
     cands = {entry_id(e): candidates(e, cat, prefer) for e in entries}
     by_id = {entry_id(e): e for e in entries}
     dropped: set[str] = set()
+    asked = {GROUP.get(p, p) for p in prefer or ()}
     for _ in range(len(entries) + 1):
         open_ = {i: [k for k in c if k not in dropped] or [OTHER] for i, c in cands.items()}
         pool: dict[str, list[float]] = {}
@@ -116,7 +117,8 @@ def assign(entries: list[dict], cat: dict[str, dict] | None = None, prefer: set[
         size: dict[str, int] = {}
         for k in out.values():
             size[k] = size.get(k, 0) + 1
-        small = {k for k, n in size.items() if n < MIN_SIZE and k != OTHER}
+        # The arena the user filtered on stays, even with one project.
+        small = {k for k, n in size.items() if n < MIN_SIZE and k != OTHER and k not in asked}
         if not small:
             return out
         dropped |= small

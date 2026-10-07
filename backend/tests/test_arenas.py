@@ -89,3 +89,9 @@ def test_filter_keeps_projects_in_the_arena_asked(monkeypatch):
     es = [_e("X", 95, ["ai_agents", "privacy"]), _e("P1", 60, ["privacy"]), _e("P2", 50, ["privacy"])]
     out = arenas.build(es, ladder={}, prefer={"privacy"})
     assert [a["key"] for a in out["arenas"]] == ["privacy"]
+
+
+def test_filtered_arena_survives_with_one_project(monkeypatch):
+    monkeypatch.setattr(arenas, "_catalog", lambda: CAT)
+    out = arenas.build([_e("P", 60, ["privacy"])], ladder={}, prefer={"privacy"})
+    assert [a["key"] for a in out["arenas"]] == ["privacy"]
