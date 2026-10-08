@@ -1,3 +1,13 @@
+# 2026-10-08 — Narrativa Compute e gemme di calcolo — `seed-0259` (Claude, a mano)
+
+Lorenzo: "mi interessa molto compute power tipo render token, akash network, voglio anche questa narrativa e concentriamoci su scovare gemme anche su questo".
+
+- `decentralized_compute` ("AI Compute") diventa "Compute": GPU in affitto, render farm, cloud senza permessi, inferenza/training distribuiti. Ha la sua arena e la tiene (`arenas.CLAIM = (privacy, decentralized_compute)`).
+- Bug trovato: le categorie CoinGecko condivise (`depin`, `artificial-intelligence`) etichettavano Compute ogni coin DePIN o AI. Ora `keys_for_category(exclusive=True)` per l'hint; una categoria condivisa non etichetta, decide il testo. L'hint vecchio si sovrascrive alla riscoperta (anche vuoto).
+- CoinGecko non ha una categoria "compute": la discovery passa da DePIN/AI e filtra col testo.
+- Studio del 08/10 (pilastri del motore in locale, GitHub non leggibile dalla sandbox): `project-files/compute/gemme-compute-2026-10-08.md`. Migliore: ZERO (Compute Network, Solana, $0.48M, prodotto vivo ma rete minuscola). Da seguire: OGPU, ACN. Fuori dalle nostre chain: subnet Bittensor di calcolo (SN27, SN49, SN12) e Clore.
+- Resta: controllare sul server, dopo la prossima discovery, che l'arena Compute contenga solo progetti di calcolo; decidere con Lorenzo se leggere le subnet Bittensor.
+
 # 2026-10-08 — Ricontrollo DeepSeek: un fatto una volta, log sul tasto — `seed-0258` (Claude, a mano)
 
 Lorenzo, sugli screenshot di AUREON (tab Why): "sistema questi errori, e quando DeepSeek fa il rescan voglio vedere cosa fa attraverso un piccolo log direttamente sul tasto di rescan [...] cosa sta navigando, eccetera, giusto per vedere a che punto e'".
