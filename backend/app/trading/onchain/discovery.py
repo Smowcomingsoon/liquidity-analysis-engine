@@ -262,7 +262,7 @@ async def _cg_step(client: httpx.AsyncClient, add: Callable[[dict, str], bool], 
                                                        "order": "market_cap_desc", "per_page": 250,
                                                        "page": page})
         rows = rows if isinstance(rows, list) else []
-        hint = narratives.keys_for_category(cat)
+        hint = narratives.keys_for_category(cat, exclusive=True)
         fresh = []
         for chain in CG_CATEGORIES:
             ids = _chain_ids.get(chain) or set()
@@ -293,7 +293,8 @@ async def _cg_step(client: httpx.AsyncClient, add: Callable[[dict, str], bool], 
         projects_db.reject_cg(chain, base["id"], why, now)
     _note(f"cg:{chain}:{base['id']}", item is not None, why, now)
     if item:
-        item["narratives_hint"] = list(base.get("narratives_hint") or [])
+        if "narratives_hint" in base:   # found through a narrative category (possibly a shared one: [])
+            item["narratives_hint"] = list(base["narratives_hint"] or [])
         add(item, "coingecko")
     _save()
 

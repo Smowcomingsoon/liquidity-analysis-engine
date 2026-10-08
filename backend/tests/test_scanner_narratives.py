@@ -59,3 +59,17 @@ def test_narrative_counts_from_db(tmp_path, monkeypatch):
     counts = projects_db.narrative_counts()
     assert counts.get("privacy") == 2
     assert counts.get("ai_agents") == 1
+
+
+def test_shared_category_gives_no_hint():
+    """"depin" is swept for Compute and DePIN alike: it cannot say which one."""
+    assert set(narratives.keys_for_category("depin")) == {"depin", "decentralized_compute"}
+    assert narratives.keys_for_category("depin", exclusive=True) == []
+    assert narratives.keys_for_category("bittensor-subnets", exclusive=True) == ["decentralized_compute"]
+
+
+def test_compute_text_matches():
+    for text in ("Rent out your idle GPUs to AI teams", "A decentralized rendering network for 3D artists",
+                 "Permissionless cloud for containers", "GPU-as-a-service for inference"):
+        assert "decentralized_compute" in narratives.match(text), text
+    assert "decentralized_compute" not in narratives.match("Helium hotspot operators earn for coverage")

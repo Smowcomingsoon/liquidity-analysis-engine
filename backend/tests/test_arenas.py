@@ -95,3 +95,10 @@ def test_filtered_arena_survives_with_one_project(monkeypatch):
     monkeypatch.setattr(arenas, "_catalog", lambda: CAT)
     out = arenas.build([_e("P", 60, ["privacy"])], ladder={}, prefer={"privacy"})
     assert [a["key"] for a in out["arenas"]] == ["privacy"]
+
+
+def test_compute_keeps_its_projects_privacy_first():
+    cat = {**CAT, "decentralized_compute": {"key": "decentralized_compute", "label": "Compute", "kind": None,
+                                            "heat": 3}}
+    assert arenas.candidates(_e("G", 50, ["ai_agents", "decentralized_compute"]), cat) == ["decentralized_compute"]
+    assert arenas.candidates(_e("H", 50, ["decentralized_compute", "privacy"]), cat) == ["privacy"]

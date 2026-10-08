@@ -41,6 +41,9 @@ HEAT = {CHAINS: 2, OTHER: 0}
 # FHE/MPC/TEE compete there, not in arenas of their own.
 GROUP = {"zero_knowledge": "privacy", "fhe_mpc_tee": "privacy"}
 FIRST = ("privacy",)               # shown first, whatever the heat
+# Narratives that keep their projects, in this order: a privacy or compute
+# project competes there, not where it would lead by more (Lorenzo 07-08/10).
+CLAIM = ("privacy", "decentralized_compute")
 LAYER_CHAIN = "layer"
 MIN_SIZE = 2                       # an arena of one has no peers: its project goes elsewhere
 SPREAD_MIN = 3                     # a spread needs at least three projects
@@ -84,8 +87,7 @@ def candidates(e: dict, cat: dict[str, dict] | None = None, prefer: set[str] | N
         wanted = [k for k in keys if k in {GROUP.get(p, p) for p in prefer}]
         keys = wanted or keys
     else:
-        # A privacy project counts there first, not where it would lead by more.
-        keys = [k for k in keys if k in FIRST] or keys
+        keys = next(([k] for k in CLAIM if k in keys), keys)
     return keys or [OTHER]
 
 

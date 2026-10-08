@@ -165,6 +165,9 @@ def _resolutions() -> dict[str, dict]:
 
 
 _SEED = [
+    ("seed-0259", "Narrativa Compute (GPU, render, cloud decentralizzato) e gemme in questa narrativa",
+     "Lorenzo, 08/10: 'mi interessa molto compute power tipo render token, akash network, voglio anche questa narrativa e concentriamoci su scovare gemme anche su questo'.",
+     "media"),
     ("seed-0258", "Ricontrollo DeepSeek: punti ripetuti, sito JS rosso e cancellato insieme, nessuna vista di cosa sta facendo",
      "Lorenzo, 08/10, scheda AUREON tab Why: 'sistema questi errori, e quando DeepSeek fa il rescan voglio vedere cosa fa attraverso un piccolo log direttamente sul tasto di rescan [...] cosa sta navigando, eccetera, giusto per vedere a che punto e''.",
      "media"),

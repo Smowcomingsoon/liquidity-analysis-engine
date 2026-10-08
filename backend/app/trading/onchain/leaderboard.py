@@ -321,6 +321,8 @@ def add(item: dict, source: str, now: float | None = None) -> bool:
     fresh = {f: item[f] for f in ("market_cap", "liquidity_usd", "website", "github", "socials", "pair_url",
                                   "report", "scan_url", "checks", "exception", "github_verified", "description",
                                   "categories", "websites", "narratives_hint") if item.get(f)}
+    if "narratives_hint" in item:       # an empty hint clears one a shared category gave before
+        fresh["narratives_hint"] = list(item["narratives_hint"] or [])
     if k in _entries:
         _entries[k].update(fresh)
         return False

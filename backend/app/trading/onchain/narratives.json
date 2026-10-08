@@ -210,9 +210,9 @@
  },
  {
   "key": "decentralized_compute",
-  "label": "AI Compute",
+  "label": "Compute",
   "heat": 3,
-  "why": "Demand for GPUs and inference is outpacing centralised supply, and open compute markets are the crypto-native answer.",
+  "why": "Demand for GPUs, rendering and inference is outpacing centralised clouds, and open compute markets (GPU rental, render farms, permissionless cloud) are the crypto-native answer.",
   "terms": [
    "decentrali[sz]ed (gpu|compute|inference|cloud|training)",
    "gpu (marketplace|network|sharing|rental)",
@@ -223,18 +223,28 @@
    "idle gpus?",
    "open[- ]source (model|llm) hosting",
    "federated learning",
-   "bittensor subnet"
+   "bittensor subnet",
+   "decentrali[sz]ed (rendering|render farm|supercomputer|physical cloud)",
+   "(gpu|render|compute) (power|cluster|farm|provider)s?",
+   "permissionless (cloud|compute)",
+   "peer[- ]to[- ]peer (cloud|compute|gpu)",
+   "(rent|lease) (out )?(your )?(idle )?gpus?",
+   "proof of (compute|rendering)",
+   "\\bgpu[- ]as[- ]a[- ]service\\b"
   ],
   "coingecko": [
    "artificial-intelligence",
    "bittensor-subnets",
    "depin",
-   "opengpu-mainnet-ecosystem"
+   "opengpu-mainnet-ecosystem",
+   "deepbrain-chain-ecosystem"
   ],
   "github": [
    "\"decentralized gpu\" in:readme",
    "\"inference network\" token in:readme",
-   "\"compute marketplace\" solana in:readme"
+   "\"compute marketplace\" solana in:readme",
+   "\"gpu marketplace\" in:readme",
+   "\"decentralized rendering\" in:readme"
   ],
   "weak": []
  },

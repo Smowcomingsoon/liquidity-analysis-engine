@@ -73,9 +73,13 @@ def bonus(keys: list[str]) -> float:
     return min(BONUS_MAX, 2.0 * heats[0] + (1.0 if len(heats) > 1 else 0.0))
 
 
-def keys_for_category(cat: str) -> list[str]:
-    """Gem narrative keys whose CoinGecko category list contains `cat`."""
-    return [n["key"] for n in catalog() if n["kind"] == "gem" and cat in (n.get("coingecko") or [])]
+def keys_for_category(cat: str, exclusive: bool = False) -> list[str]:
+    """Gem narrative keys whose CoinGecko category list contains `cat`.
+    `exclusive`: only when one narrative owns it. A shared category ("depin",
+    "artificial-intelligence") cannot tell Compute from DePIN or AI Agents,
+    so it tags nothing and the coin's own text decides."""
+    keys = [n["key"] for n in catalog() if n["kind"] == "gem" and cat in (n.get("coingecko") or [])]
+    return keys if not exclusive or len(keys) == 1 else []
 
 
 def coingecko_categories(first: list[str] | None = None) -> list[str]:
