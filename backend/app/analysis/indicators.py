@@ -94,7 +94,10 @@ def bull_market_support_band(df: pd.DataFrame, weekly: pd.DataFrame) -> list[Ind
     bands["BMSB_EMA21W"].iloc[: min(20, len(close))] = float("nan")   # same warm-up as the SMA
     out = []
     for name, s in bands.items():
-        mapped = s.reindex(df.index, method="ffill") if s.index.is_monotonic_increasing else None
+        try:
+            mapped = s.reindex(df.index, method="ffill") if s.index.is_monotonic_increasing else None
+        except (TypeError, ValueError):   # an index the other can't be compared to: no band
+            mapped = None
         if mapped is None or mapped.isna().all():
             continue
         out.append(IndicatorSeries(name=name, values=_series_to_values(mapped)))

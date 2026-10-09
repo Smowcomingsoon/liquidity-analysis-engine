@@ -11250,8 +11250,8 @@
     try {
       const resp = await fetch(`/api/symbols?query=${encodeURIComponent(base)}`);
       const items = resp.ok ? await resp.json() : [];
-      const hit = items.find((i) => i.asset_type === "dex" && i.symbol.split("@")[0].toUpperCase() === base.toUpperCase())
-        || items.find((i) => i.asset_type === "dex");
+      // Same ticker only: another token's pool would be a different backtest.
+      const hit = items.find((i) => i.asset_type === "dex" && i.symbol.split("@")[0].toUpperCase() === base.toUpperCase());
       if (!hit) {
         status.textContent = `${base} not found on DEX.`;
         sel.value = labState.exchange || "mexc";
