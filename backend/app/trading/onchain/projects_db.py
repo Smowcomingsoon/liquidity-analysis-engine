@@ -37,7 +37,8 @@ _conn: sqlite3.Connection | None = None
 _conn_path: Path | None = None
 
 CAP_MIN = 10_000                 # early gems (leaderboard.EARLY_CAP_USD) start here
-CAP_MAX = 3_000_000
+CAP_MAX = 10_000_000             # leaderboard.BOARD_CAP_MAX_USD: was $3M until 07/10, so rows
+                                 # between $3M and $10M were never fed to the board
 LIQ_MIN = 5_000
 MARKET_TTL_S = 6 * 3600          # cap and liquidity older than this get refreshed
 RECHECK_S = 14 * 86400           # a rejected project is looked at again after two weeks
@@ -45,6 +46,7 @@ RECHECK_DATA_S = 2 * 86400       # ...sooner when it failed for missing data
 DETAIL_TTL_S = 14 * 86400        # CoinGecko page (website, GitHub) re-read
 STATUSES = ("new", "analyzing", "studied", "ranked", "rejected")
 _JSON = ("sources", "categories", "socials", "pillars", "overall", "similarity", "narratives", "traction")
+NO_LINKS = "no website or GitHub to read"
 _DATA_WORDS = ("not responding", "unreachable", "not available", "pending", "incomplete")
 
 _SCHEMA = """
@@ -196,8 +198,9 @@ def _set_links(chain: str, token: str, info: dict) -> None:
     if not (site or git):
         return
     with _lock:
-        _db().execute("UPDATE projects SET website = COALESCE(website, ?), github = COALESCE(github, ?) WHERE key = ?",
-                      (site, git, key(chain, token)))
+        _db().execute("UPDATE projects SET website = COALESCE(website, ?), github = COALESCE(github, ?),"
+                      " next_check = CASE WHEN status = 'rejected' AND why = ? THEN 0 ELSE next_check END"
+                      " WHERE key = ?", (site, git, NO_LINKS, key(chain, token)))
         _db().commit()
 
 
@@ -436,6 +439,23 @@ def due_for_analysis(limit: int, exclude: set[str] | None = None, now: float | N
     return out[:limit]
 
 
+def reject_linkless(now: float | None = None) -> int:
+    """Rows in the band with nothing to read get a verdict instead of
+    sitting "new" for ever: `due_for_analysis` skips them, and the funnel
+    counted them as neither studied nor rejected (Lorenzo, 07/10: "ce ne
+    mancano tanti"). DexScreener links put them back in the queue
+    (`_set_links`)."""
+    now = now or time.time()
+    with _lock:
+        cur = _db().execute(
+            f"UPDATE projects SET status = 'rejected', why = ?, analyzed_at = ?, next_check = ?"
+            f" WHERE {_band_sql()} AND website IS NULL AND github IS NULL AND status = 'new'",
+            (NO_LINKS, now, now + RECHECK_DATA_S))
+        if cur.rowcount:
+            _db().commit()
+        return cur.rowcount
+
+
 def as_item(p: dict) -> dict:
     """A database row in the shape the board's `add` takes."""
     return {"chain": p["chain"], "token_address": p["token"], "symbol": p.get("symbol") or "?",
@@ -586,12 +606,16 @@ def stats() -> dict:
         total = db.execute("SELECT COUNT(*) FROM projects").fetchone()[0]
         by = dict(db.execute("SELECT status, COUNT(*) FROM projects GROUP BY status").fetchall())
         band = db.execute(f"SELECT COUNT(*) FROM projects WHERE {_band_sql()}").fetchone()[0]
+        band_by = dict(db.execute(f"SELECT status, COUNT(*) FROM projects WHERE {_band_sql()} GROUP BY status").fetchall())
         chains = dict(db.execute("SELECT chain, COUNT(*) FROM projects GROUP BY chain").fetchall())
         layers = dict(db.execute("SELECT json_extract(overall, '$.layer') t, COUNT(*) FROM projects"
                                  " WHERE chain = 'layer' GROUP BY t").fetchall())
         reasons = db.execute(
             "SELECT why, COUNT(*) n FROM projects WHERE status = 'rejected' AND why IS NOT NULL"
             " GROUP BY why ORDER BY n DESC LIMIT 8").fetchall()
-    return {"total": total, "in_band": band, "by_status": by, "by_chain": chains,
+    # by_status counts every row (layers and rows outside the band included),
+    # so it never added up to in_band: band_by_status is the same funnel inside it.
+    return {"total": total, "in_band": band, "band": [CAP_MIN, CAP_MAX], "band_by_status": band_by,
+            "band_waiting": band_by.get("new", 0) + band_by.get("analyzing", 0), "by_status": by, "by_chain": chains,
             "by_layer": {k: v for k, v in layers.items() if k in LAYERS},
             "top_rejections": [{"why": r[0], "n": r[1]} for r in reasons]}

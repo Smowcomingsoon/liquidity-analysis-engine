@@ -2608,5 +2608,11 @@
     "at": 1791460115,
     "summary": "Un giro di ricerca in piu' parte appena il server si riavvia dopo il deploy, una volta sola, con lo stesso limite di 2 ore e lo stesso messaggio Telegram. Non si sovrappone mai agli altri: se nel frattempo e' dovuto un giro programmato, parte quello e basta. Il giro delle 22:00 resta.",
     "detail": "config.onchain_nightly_force: una chiave nuova = un giro extra all'avvio (nightly.forced_due, chiavi gia' fatte in data/onchain_nightly.json 'forced'). Slot del giro = ora di partenza, quindi done_slot non copre il giro delle 22. Per forzarne un altro: cambiare la chiave e fare deploy."
+
+  },
+  "seed-0263": {
+    "status": "risolto",
+    "at": 1791395576,
+    "summary": "Tre cause. 1) Il database usava ancora la fascia $10k-$3M, mentre le gemme arrivano a $10M: i progetti fra $3M e $10M non venivano mai passati al motore. Ora la fascia e' $10k-$10M (anche per la fonte DefiLlama). 2) I progetti senza sito ne' GitHub restavano 'nuovi' per sempre, senza esito: ora ricevono il verdetto 'no website or GitHub to read' e tornano in coda da soli appena DexScreener trova un link. 3) I numeri 'studied' e 'rejected' contavano tutto il database (anche fuori fascia e i layer), quindi non tornavano con quelli 'in the band': ora contano solo la fascia e c'e' una voce 'waiting' con quelli ancora senza esito. Lo studio avviene nel giro serale delle 22:00 (massimo 2 ore): la coda si smaltisce in piu' sere."
   }
 }

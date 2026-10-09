@@ -65,10 +65,10 @@ function row(p) {
 }
 
 function paintFunnel(st) {
-  const by = st?.by_status ?? {};
+  const band = st?.band_by_status ?? st?.by_status ?? {};
   root.querySelector("[data-projects-meta]").textContent = st ? `${num(st.by_chain?.solana ?? 0)} Solana · ${num(st.by_chain?.robinhood ?? 0)} Robinhood · ${num(st.by_chain?.base ?? 0)} Base · ${num(st.by_chain?.ethereum ?? 0)} Ethereum${st.by_chain?.arc ? ` · ${num(st.by_chain.arc)} Arc` : ""}${st.by_chain?.layer ? ` · ${num(st.by_chain.layer)} Layer` : ""}` : "";
   root.querySelector("[data-projects-funnel]").innerHTML = st
-    ? `<b>${num(st.total)}</b> projects known · <b>${num(st.in_band)}</b> in the $10k–$3M band · <b>${num((by.studied ?? 0) + (by.ranked ?? 0))}</b> studied · <b>${num(by.rejected ?? 0)}</b> rejected${st.top_rejections?.[0] ? ` (most often: ${escapeHtml(st.top_rejections[0].why)})` : ""}`
+    ? `<b>${num(st.total)}</b> projects known · <b>${num(st.in_band)}</b> in the ${usd(st.band?.[0] ?? 10000)}–${usd(st.band?.[1] ?? 10000000)} band · <b>${num((band.studied ?? 0) + (band.ranked ?? 0))}</b> studied · <b>${num(band.rejected ?? 0)}</b> rejected · <b>${num(st.band_waiting ?? 0)}</b> waiting${st.top_rejections?.[0] ? ` (most often: ${escapeHtml(st.top_rejections[0].why)})` : ""}`
     : "";
 }
 

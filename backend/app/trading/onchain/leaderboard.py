@@ -1134,6 +1134,7 @@ def feed_from_database(now: float | None = None) -> int:
     """Move the next projects from the database into the working set, while
     the analysis queue has room: never analysed first, then second looks."""
     now = now or time.time()
+    projects_db.reject_linkless(now)
     waiting = sum(1 for e in _entries.values() if not e["pillars"])
     if waiting >= DB_FEED_MAX_WAITING:
         return 0

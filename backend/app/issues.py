@@ -165,6 +165,9 @@ def _resolutions() -> dict[str, dict]:
 
 
 _SEED = [
+    ("seed-0263", "Il motore non studia tutti i progetti del database: ne mancano tanti",
+     "Lorenzo, 07/10: 'mi sembra che il motore del sito non stia studiando tutti quelli presenti nel database..ce ne mancano tanti ancora'. Schermata: 19.122 noti, 6.779 nella fascia $10k-$3M, 3.698 studiati, 2.514 scartati.",
+     "alta"),
     ("seed-0262", "Forzare subito un giro della ricerca delle gemme, senza aspettare le 11:35 o le 22:00",
      "Lorenzo, 08/10: 'forza il giro ora', per studiare i progetti appena inseriti (lista Robinhood e Compute).",
      "media"),

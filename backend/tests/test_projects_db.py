@@ -205,3 +205,30 @@ def test_rescore_and_requeue_touch_only_their_rows():
     assert db.get("solana", "F")["score"] is None
     assert db.requeue(("studied", "ranked")) == 2 and db.requeue(("rejected",), ("DeepSeek",)) == 1
     assert db.get("solana", "F")["next_check"] > 0 and db.get("solana", "D")["next_check"] == 0
+
+
+def test_band_reaches_the_board_ceiling_and_the_funnel_counts_inside_it():
+    # Lorenzo, 07/10: "ce ne mancano tanti". The database band stopped at $3M
+    # while the board takes up to $10M, and by_status counted every row.
+    db.upsert({"chain": "solana", "token_address": "Mid", "symbol": "MID", "website": "https://mid.io",
+               "market_cap": 6_000_000, "liquidity_usd": 80_000}, "x", T0)
+    db.upsert({"chain": "solana", "token_address": "Big", "symbol": "BIG", "website": "https://big.io",
+               "market_cap": 40_000_000, "liquidity_usd": 80_000}, "x", T0)
+    assert [p["token"] for p in db.due_for_analysis(10, now=T0)] == ["Mid"]
+    db.record({"chain": "solana", "token_address": "Big"}, "rejected", "over $10M", now=T0)
+    s = db.stats()
+    assert s["in_band"] == 1 and s["band_by_status"] == {"new": 1} and s["band_waiting"] == 1
+    assert s["by_status"] == {"new": 1, "rejected": 1} and s["band"] == [db.CAP_MIN, db.CAP_MAX]
+
+
+def test_linkless_rows_get_a_verdict_and_return_when_links_appear():
+    db.upsert({"chain": "solana", "token_address": "Bare", "symbol": "BARE",
+               "market_cap": 500_000, "liquidity_usd": 50_000}, "x", T0)
+    assert db.due_for_analysis(10, now=T0) == []
+    assert db.reject_linkless(T0) == 1
+    p = db.get("solana", "Bare")
+    assert p["status"] == "rejected" and p["why"] == db.NO_LINKS
+    assert db.stats()["band_waiting"] == 0
+    db.apply_pairs("solana", ["Bare"], [{**_pair("Bare", 500_000, 50_000),
+                                          "info": {"websites": [{"url": "https://bare.io"}]}}], T0 + 60)
+    assert [p["token"] for p in db.due_for_analysis(10, now=T0 + 60)] == ["Bare"]
