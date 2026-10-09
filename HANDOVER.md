@@ -1,3 +1,14 @@
+# 2026-10-09 — Chiusi i punti aperti dell'app DEGEN (Claude, a mano)
+
+Lorenzo: "chiudi tutti i punti aperti nel sito degen view, ora lasciamo stare lo sniper".
+
+- PR #505 (fascia $10k-$10M, esito per i progetti senza sito, contatori del Database) portata su main; la voce di bacheca diventa `seed-0263` (`seed-0256` era gia' dei grafici).
+- PR #494 (ricontrollo, scansione e domande all'agente come lavori sul server con notifica push) unita dopo otto giorni di conflitti: il tasto del ricontrollo tiene il log dal vivo (`followRecheck`) e la richiesta e' un job; in modo Voice l'agente risponde ancora con la chiamata diretta (la voce parte subito), le domande scritte sono job. Voce `seed-0264` (`seed-0250` era lo spegnimento del trading). Nuova dipendenza `pywebpush`.
+- PR #402 (mappa Agent di Codex, 30/09) chiusa: storia scollegata da main, superata.
+- Bacheca: `seed-0143` (wallet di chiunque: collegamento fatto, vault non piu' necessario senza trading), `seed-0117`, `seed-0116`, `seed-0111` (Gem Finder da ricercatore, narrative, progetti seri: oggi arene + motore notturno), `seed-0109` (pagina /engn; il lancio del token resta una decisione di Lorenzo) segnate risolte.
+- Issue GitHub #347, #357, #358, #363, #365, #366 (piani del 29/09) chiuse come superate dal lavoro del 07/10.
+- Non toccati: `seed-0078` (Sniper, escluso da Lorenzo); le segnalazioni di whitekobra su Lab/Levels/Telegram sono del sito classico, non di DEGEN.
+
 # 2026-10-08 — Permanenza minima nelle arene — `seed-0261` (Claude, a mano)
 
 Lorenzo: "se una crypto e' comparsa tra le migliori, anche se poi viene surclassata; deve rimanerci per almeno 2-3 gg prima di essere espulsa". Default scelto: 3 giorni dall'ingresso (`arenas.TENURE_S`). Un progetto che va sopra la mediana della sua arena ("in") viene segnato in `data/onchain_arena_tenure.json`; se poi scende sotto la mediana resta "in" (`held: true`) fino a 3 giorni dall'ingresso, contati dal primo ingresso e non rinnovati. Uscire dal pool (cancelli, scarto, rug) toglie subito la permanenza. Si scrive solo dalla vista senza filtro narrativa. Podio, ordine, Telegram "Entrati/Usciti" (che guarda il pool), backtest e portafoglio invariati. Il frontend non mostra ancora un segno per le righe `held`.
