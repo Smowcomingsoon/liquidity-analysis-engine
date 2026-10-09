@@ -1,0 +1,14 @@
+{
+  "name": "DEGEN",
+  "short_name": "DEGEN",
+  "id": "/onchain-app.html",
+  "start_url": "/onchain-app.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0d0e11",
+  "theme_color": "#0d0e11",
+  "icons": [
+    { "src": "/static/engn/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/static/engn/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

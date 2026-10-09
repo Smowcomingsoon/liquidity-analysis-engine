@@ -2614,5 +2614,11 @@
     "status": "risolto",
     "at": 1791395576,
     "summary": "Tre cause. 1) Il database usava ancora la fascia $10k-$3M, mentre le gemme arrivano a $10M: i progetti fra $3M e $10M non venivano mai passati al motore. Ora la fascia e' $10k-$10M (anche per la fonte DefiLlama). 2) I progetti senza sito ne' GitHub restavano 'nuovi' per sempre, senza esito: ora ricevono il verdetto 'no website or GitHub to read' e tornano in coda da soli appena DexScreener trova un link. 3) I numeri 'studied' e 'rejected' contavano tutto il database (anche fuori fascia e i layer), quindi non tornavano con quelli 'in the band': ora contano solo la fascia e c'e' una voce 'waiting' con quelli ancora senza esito. Lo studio avviene nel giro serale delle 22:00 (massimo 2 ore): la coda si smaltisce in piu' sere."
+  },
+  "seed-0264": {
+    "status": "risolto",
+    "at": 1790874387,
+    "summary": "Il ricontrollo DeepSeek, la scansione manuale e le domande all'agente ora girano sul server: se cambi finestra o chiudi l'app continuano, e alla fine arriva una notifica sul dispositivo da cui li hai lanciati. Toccandola l'app si riapre sullo stesso token e sulla stessa scheda (Why), sul pannello della scansione o sulla risposta dell'agente. Se l'app e' aperta e stai guardando, niente notifica. Se riapri l'app senza toccarla, ritrovi il risultato. Un aggiornamento del server durante un lavoro lo interrompe: arriva la notifica che va rilanciato. Su iPhone le notifiche arrivano solo dall'app aggiunta alla schermata Home (iOS 16.4+): l'app lo suggerisce la prima volta.",
+    "detail": "backend app/jobs.py (lavori persistenti in data/app_jobs.json, push a fine lavoro, watch/away), app/notify/web_push.py (chiavi VAPID generate in data/vapid_keys.json o da VAPID_PRIVATE_KEY/VAPID_PUBLIC_KEY, iscrizioni in data/push_subscriptions.json), /api/jobs, /api/push/*, /sw.js, /manifest.webmanifest. Frontend: onchain/bg.js, detail.js (recheck), ask.js, sheets.js (scan). Test: tests/test_app_jobs.py."
   }
 }

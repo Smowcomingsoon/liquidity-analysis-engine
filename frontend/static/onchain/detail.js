@@ -14,6 +14,7 @@ import { hideToken } from "@onchain/hidden.js";
 import { shownTrades } from "@onchain/lab-shown.js";
 import { morph } from "@onchain/morph-fx.js";
 import { chartOptions, chartTheme, seriesOptions, track } from "@onchain/chart-theme.js";
+import * as bg from "@onchain/bg.js";
 
 const registry = new Map();
 const INTERVALS = ["1m", "5m", "15m", "1h", "4h", "8h", "1d", "1w"];
@@ -177,10 +178,22 @@ export async function openFromHash() {
   const m = location.hash.match(/&token=([^:&]+):([^&]+)/);
   if (!m) return;
   const chain = decodeURIComponent(m[1]), token = decodeURIComponent(m[2]);
+  const t = location.hash.match(/&tab=(\w+)/)?.[1];
   history.replaceState(null, "", location.pathname + location.search + location.hash.split("&")[0]);
+  await openToken(chain, token, t);
+}
+
+// The token's page by chain and address, on a tab: the links above and the
+// end of a background re-check (bg.js) both land here.
+export async function openToken(chain, token, startTab) {
   const find = () => [...registry].find(([, e]) => e.chain === chain && String(e.token ?? "").toLowerCase() === token.toLowerCase())?.[0];
-  const r = await api.getToken(chain, token).catch(() => null);
   let id = find();
+  if (id && current?.id === id && dlg?.open) {
+    if (startTab && TABS.has(startTab) && tab !== startTab) { tab = startTab; paintTabs(); }
+    return current.e;
+  }
+  const r = id ? null : await api.getToken(chain, token).catch(() => null);
+  id = find();
   if (!id) {
     const p = r?.entry, a = r?.alerts?.[0];
     const kind = p ? "gem" : "meme";
@@ -191,14 +204,16 @@ export async function openFromHash() {
       cap: p?.market_cap ?? a?.cap0, ageTs: a?.at, alerts: r?.alerts ?? [],
     });
   }
-  openDetail(id);
+  openDetail(id, startTab);
+  return registry.get(id);
 }
 
-export function openDetail(id) {
+const TABS = new Set(["signal", "why", "info"]);
+export function openDetail(id, startTab) {
   const e = registry.get(id);
   if (!e) return;
   current = { id, e };
-  tab = FIRST_TAB;
+  tab = TABS.has(startTab) ? startTab : FIRST_TAB;
   interval = defaultInterval(e);
   const d = ensureDialog();
   const [a] = age(e.ageTs);
@@ -366,6 +381,7 @@ function deepBlock(e) {
   let label = "Re-check with DeepSeek";
   let disabled = "";
   if (e.deepBusy) { disabled = " disabled data-busy"; label = termHtml(e); }
+  else if (e.deepFailed) { disabled = " disabled"; label = "Re-check failed"; }
   else if (wait > 0) {
     disabled = " disabled";
     label = wait >= 3600 ? `Re-check in ${Math.round(wait / 3600)}h` : `Re-check in ${Math.max(1, Math.round(wait / 60))}m`;
@@ -451,10 +467,13 @@ async function followRecheck(e, cur) {
   }
 }
 
+// The re-check is a job on the server (bg.js): it goes on with the app
+// closed, and its push brings you back to this tab (Lorenzo, 01/10).
 async function deepRecheck(btn) {
   const cur = current;
   const e = cur?.e;
   if (!e?.dossier || btn.disabled) return;
+  bg.askPush();
   e.deepBusy = true;
   e.deepOwn = true;
   e.deepSteps = [];
@@ -464,22 +483,31 @@ async function deepRecheck(btn) {
   btn.dataset.busy = "";
   btn.innerHTML = termHtml(e);
   followRecheck(e, cur);
+  const view = bg.here(`&token=${encodeURIComponent(e.chain)}:${encodeURIComponent(e.token)}&tab=why`);
+  let job;
   try {
-    const r = await api.recheckToken(e.chain, e.token);
-    e.deep = r.deep;
-    e.deepWait = 0;
+    job = await bg.run("recheck", () => api.recheckJob(e.chain, e.token, { view, label: e.symbol ?? "" }), { view, label: e.symbol });
   } catch (err) {
-    if (err?.detail?.wait_s) e.deepWait = err.detail.wait_s;
-    else {
-      delete btn.dataset.busy;
-      btn.textContent = "Re-check failed";
-      setTimeout(() => { e.deepBusy = false; btn.textContent = "Re-check with DeepSeek"; btn.disabled = false; }, 4000);
-      return;
-    }
-  } finally {
-    e.deepOwn = false;
-    if (e.deep || e.deepWait) e.deepBusy = false;
+    job = { state: "fallito", detail: err?.detail };
   }
+  e.deepOwn = false;
+  await recheckDone(e, job, cur);
+}
+
+async function recheckDone(e, job, cur = current) {
+  if (job.state === "finito" && job.result?.deep) {
+    e.deep = job.result.deep;
+    e.deepWait = 0;
+  } else if (job.detail?.wait_s) {
+    e.deepWait = job.detail.wait_s;
+  } else {
+    e.deepBusy = false;
+    e.deepFailed = true;
+    setTimeout(() => { e.deepFailed = false; if (current?.e === e && tab === "why") paintTabs(); }, 4000);
+    if (current?.e === e && tab === "why") paintTabs();
+    return;
+  }
+  e.deepBusy = false;
   await showRecheck(e, cur);
 }
 
@@ -494,13 +522,26 @@ async function showRecheck(e, cur) {
   e.why = whyOf(lb, e.dossier, e);
   if (current?.e === e) {
     const body = dlg.querySelector("[data-pane-body]");
-    if (dlg.open && tab === "why" && body) {
-      await morph(body, whyHtml(e));
-    } else {
-      paintTabs();
-    }
+    if (tab === "why" && body) await morph(body, whyHtml(e));
+    else paintTabs();
   }
 }
+
+bg.handle("recheck", {
+  // Back from the notification, or on a page that was closed: the token, on Why.
+  async show(job, meta) {
+    const m = (job.view || meta.view || "").match(/&token=([^:&]+):([^&]+)/);
+    if (!m) return;
+    const e = await openToken(decodeURIComponent(m[1]), decodeURIComponent(m[2]), "why");
+    if (e) recheckDone(e, job);
+  },
+  async pending(meta) {
+    const m = (meta.view || "").match(/&token=([^:&]+):([^&]+)/);
+    if (!m) return;
+    const e = await openToken(decodeURIComponent(m[1]), decodeURIComponent(m[2]), "why");
+    if (e && !e.deepBusy) { e.deepBusy = true; paintTabs(); followRecheck(e, current); }
+  },
+});
 
 function descriptionBlock(p) {
   const links = [["Website", p.website], ["GitHub", p.github],

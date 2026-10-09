@@ -99,3 +99,20 @@ def _usage_open(request, monkeypatch):
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "usage_gates: run with the real usage gates")
+
+
+@pytest.fixture(autouse=True)
+def _private_app_jobs(monkeypatch, tmp_path):
+    """App jobs and push subscriptions are files on the volume, and a push is
+    a network call: every test gets its own files and no real push."""
+    from app import jobs
+    from app.notify import web_push
+    monkeypatch.setattr(jobs, "_FILE", tmp_path / "app_jobs.json")
+    monkeypatch.setattr(jobs, "_jobs", {})
+    monkeypatch.setattr(jobs, "_loaded", False)
+    monkeypatch.setattr(web_push, "_KEYS_FILE", tmp_path / "vapid_keys.json")
+    monkeypatch.setattr(web_push, "_SUBS_FILE", tmp_path / "push_subscriptions.json")
+    monkeypatch.setattr(web_push, "_keys", None)
+    monkeypatch.setattr(web_push, "_subs", None)
+    monkeypatch.setattr(web_push, "_deliver", lambda sub, payload: 201)
+    yield

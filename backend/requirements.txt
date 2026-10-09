@@ -1,6 +1,7 @@
 fastapi==0.141.1
 uvicorn[standard]==0.52.1
 httpx==0.28.1
+pywebpush==2.5.0
 anthropic==1.8.0
 pandas==3.0.5
 numpy==2.2.6

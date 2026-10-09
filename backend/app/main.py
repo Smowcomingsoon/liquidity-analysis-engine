@@ -1696,6 +1696,8 @@ _PUBLIC_PATHS = frozenset({
     "/onchain-approve.html",
     "/onchain-passkey-setup.html",
     "/favicon.ico",
+    "/sw.js",               # il service worker delle notifiche: il browser lo scarica da se'
+    "/manifest.webmanifest",  # chiesto senza cookie (iPhone: "Aggiungi a Home")
     "/robots.txt",
     "/api/health",          # per il controllo di salute del container
     "/api/version",
@@ -4366,21 +4368,67 @@ async def onchain_token(chain: str, token: str, user: User = Depends(auth.get_cu
             "deep_progress": onchain_deep_recheck.progress(chain, token)}
 
 
+class BackgroundOpts(BaseModel):
+    """A long task the app runs as a job (jobs.py): `view` is where the app was
+    (the URL fragment the notification reopens), `label` names it there."""
+    view: str = Field("", max_length=300)
+    label: str = Field("", max_length=40)
+
+
+def _device(request: Request) -> str:
+    """The browser that launched a job (X-Device, a random id the app keeps):
+    the one its push notification goes to."""
+    from app.notify import web_push
+    d = request.headers.get("x-device", "")
+    return d if web_push.valid_device(d) else ""
+
+
+def _recheck_note(job: dict) -> tuple[str, str]:
+    name = job["title"]
+    if job["state"] != "finito":
+        return name, job.get("error") or "Re-check failed"
+    d = (job.get("result") or {}).get("deep") or {}
+    head = "Unverified" if d.get("unsupported") else "Kept" if d.get("keep") else "Dropped"
+    return name, f"{head} · {d.get('score', '—')}/100 · {str(d.get('reason') or '')[:120]}"
+
+
+jobs_store.on_done("recheck", _recheck_note)
+
+
 @app.post("/api/onchain/token/recheck")
-async def onchain_token_recheck(chain: str, token: str, user: User = Depends(auth.get_current_user)) -> dict:
-    """A dedicated, in-depth DeepSeek re-check of one token (Lorenzo, 01/10)."""
+async def onchain_token_recheck(chain: str, token: str, request: Request, bg: BackgroundOpts | None = None,
+                                user: User = Depends(auth.get_current_user)) -> dict:
+    """A dedicated, in-depth DeepSeek re-check of one token (Lorenzo, 01/10).
+    With a body it runs as a job: {"job": id} at once, the result at
+    /api/jobs/{id} and a push notification when done."""
     _require_onchain_enabled()
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        try:
-            # Lorenzo, 01/10: "voglio poterlo fare quando voglio": only guests keep the limits.
-            result = await onchain_deep_recheck.run(chain, token, client, limited=guest_links.is_guest(user))
-        except onchain_deep_recheck.TooSoon as exc:
-            raise HTTPException(status_code=429, detail={"wait_s": exc.wait_s})
-        except LookupError:
-            raise HTTPException(status_code=404, detail="token not found")
-        except RuntimeError as exc:
-            raise HTTPException(status_code=503, detail=str(exc))
-    return {"deep": result}
+    # Lorenzo, 01/10: "voglio poterlo fare quando voglio": only guests keep the limits.
+    limited = guest_links.is_guest(user)
+
+    async def work() -> dict:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            try:
+                return {"deep": await onchain_deep_recheck.run(chain, token, client, limited=limited)}
+            except onchain_deep_recheck.TooSoon as exc:
+                raise HTTPException(status_code=429, detail={"wait_s": exc.wait_s})
+            except LookupError:
+                raise HTTPException(status_code=404, detail="token not found")
+            except RuntimeError as exc:
+                raise HTTPException(status_code=503, detail=str(exc))
+
+    if bg is None:
+        return await work()
+    wait = onchain_deep_recheck.wait_s(chain, token, limited=limited)
+    if wait > 0:
+        raise HTTPException(status_code=429, detail={"wait_s": wait})
+    if onchain_projects_db.get(chain, token) is None and not any(
+            e.get("chain") == chain and e.get("token_address") == token
+            for e in onchain_leaderboard.board().get("entries") or []):
+        raise HTTPException(status_code=404, detail="token not found")
+    job = jobs_store.create(user.id, "recheck", f"Re-check · {bg.label or token[:6]}",
+                            device=_device(request), view=bg.view)
+    jobs_store.run(job, work)
+    return {"job": job}
 
 
 @app.get("/api/onchain/token/recheck/progress")
@@ -5199,6 +5247,8 @@ class AskRequest(BaseModel):
     text: str = Field(min_length=1, max_length=1500)
     voice: bool = False
     talk: bool = False              # the answer is read aloud (ask.js talk mode)
+    background: bool = False    # run as a job (jobs.py): answer at /api/jobs/{id} and by push
+    view: str = Field("", max_length=300)
 
 
 ASK_PER_HOUR = 30
@@ -5233,7 +5283,7 @@ _TALK_NOTE = (" La risposta viene letta ad alta voce in una conversazione parlat
 
 
 @app.post("/api/agent/ask")
-async def agent_ask(body: AskRequest, user: User = Depends(auth.get_current_user)) -> dict:
+async def agent_ask(body: AskRequest, request: Request, user: User = Depends(auth.get_current_user)) -> dict:
     """The app's mic button: the same DeepSeek assistant as the Telegram chat,
     with the same read-only tools over the database (Lorenzo, 01/10: "deve
     avere accesso a tutto [...] mi possa rispondere su qualsiasi cosa").
@@ -5253,6 +5303,23 @@ async def agent_ask(body: AskRequest, user: User = Depends(auth.get_current_user
         from app.notify import voice
         if voice.available():
             _fire(asyncio.to_thread(voice.warm))   # the voice loads while DeepSeek thinks
+    if body.background:
+        job = jobs_store.create(user.id, "ask", "Agent", device=_device(request), view=body.view)
+        jobs_store.run(job, lambda: _agent_answer(body, user))
+        return {"job": job}
+    return await _agent_answer(body, user)
+
+
+def _ask_note(job: dict) -> tuple[str, str]:
+    if job["state"] != "finito":
+        return "The agent did not answer", job.get("error") or ""
+    return "The agent answered", str((job.get("result") or {}).get("answer") or "")[:170]
+
+
+jobs_store.on_done("ask", _ask_note)
+
+
+async def _agent_answer(body: AskRequest, user: User) -> dict:
     voice = ("Il testo e' dettato a voce e trascritto dal browser: puo' avere parole storpiate, "
              "soprattutto i nomi dei token (es. 'drag' = DREGG); interpreta e, se il token non e' chiaro, cercalo. "
              if body.voice else "")
@@ -5320,49 +5387,62 @@ async def onchain_manual_scan(req: ScanRequest, user: User = Depends(auth.get_cu
     return await manual_scan.scan(req.query[:80])
 
 
-# Finished manual scans by id, so a phone that lost the stream (Safari: "Load
-# failed", often on a mobile network or a locked screen) can still collect the
-# result instead of seeing an error. Lorenzo, 30/09: "ricevo spesso errore".
-_SCAN_KEEP_S = 600
-_scan_results: dict[str, tuple[float, dict | None]] = {}
-_background_tasks: set[asyncio.Task] = set()   # keeps running scans referenced
+# A manual scan is a job (jobs.py), so a phone that lost the stream (Safari:
+# "Load failed", often on a mobile network or a locked screen) still collects
+# the result, and gets a push when it is done (Lorenzo, 30/09: "ricevo spesso
+# errore"; 01/10: "deve continuare in background").
+def _scan_note(job: dict) -> tuple[str, str]:
+    r = job.get("result") or {}
+    if job["state"] != "finito" or r.get("error"):
+        return job["title"], r.get("error") or job.get("error") or "Scan failed"
+    t = r.get("token") or {}
+    g, pl = r.get("gem") or {}, r.get("pipeline") or {}
+    verdict = g.get("status") or pl.get("status") or "done"
+    risk = (r.get("ai") or {}).get("risk")
+    parts = [verdict] + ([f"rug risk {risk}"] if risk is not None else []) + ([t["chain"]] if t.get("chain") else [])
+    return f"Scan ready · {t.get('symbol') or job['title']}", " · ".join(parts)
 
 
-def _scan_forget(now: float) -> None:
-    for k in [k for k, (at, _) in _scan_results.items() if now - at > _SCAN_KEEP_S]:
-        _scan_results.pop(k, None)
+jobs_store.on_done("scan", _scan_note)
+
+
+class ScanStreamRequest(ScanRequest):
+    view: str = Field("", max_length=300)
 
 
 @app.post("/api/onchain/scan/stream")
-async def onchain_manual_scan_stream(req: ScanRequest, user: User = Depends(auth.get_current_user)) -> StreamingResponse:
+async def onchain_manual_scan_stream(req: ScanStreamRequest, request: Request,
+                                     user: User = Depends(auth.get_current_user)) -> StreamingResponse:
     """The same scan, one JSON line per step as it happens, then the result
     (Lorenzo, 30/09: he wants to watch the scout work). A line every few
     seconds of silence keeps idle mobile connections open; the scan keeps
     running if the client goes away, and its result stays at /scan/result/{id}."""
-    import secrets
     from app.trading.onchain import manual_scan
     queue: asyncio.Queue = asyncio.Queue()
-    scan_id = secrets.token_urlsafe(12)
-    _scan_forget(time.time())
-    _scan_results[scan_id] = (time.time(), None)
+    query = req.query[:80]
+    scan_id = jobs_store.create(user.id, "scan", query, device=_device(request), view=req.view)
+    steps: list = []
 
-    async def run() -> dict:
+    def emit(ev) -> None:
+        queue.put_nowait(ev)
+        steps.append(ev)
+
+    async def work() -> dict:
         try:
-            result = await manual_scan.scan(req.query[:80], emit=queue.put_nowait)
+            result = await manual_scan.scan(query, emit=emit)
         except Exception:
             logger.exception("manual scan failed")
             result = {"error": "Scan failed, try again."}
-        _scan_results[scan_id] = (time.time(), result)
-        return result
+        # The steps too: whoever reopens the app sees what the scout did.
+        return {**result, "steps": steps[:200]} if isinstance(result, dict) else result
 
-    task = asyncio.create_task(run())
-    _background_tasks.add(task)
-    task.add_done_callback(_background_tasks.discard)
+    task = jobs_store.run(scan_id, work)
 
     async def lines():
         yield json.dumps({"id": scan_id}) + "\n"
         quiet = 0.0
         while not (task.done() and queue.empty()):
+            jobs_store.watch(scan_id)   # the stream is open: someone is looking
             try:
                 ev = await asyncio.wait_for(queue.get(), 0.25)
             except asyncio.TimeoutError:
@@ -5373,7 +5453,8 @@ async def onchain_manual_scan_stream(req: ScanRequest, user: User = Depends(auth
                 continue
             quiet = 0.0
             yield json.dumps(ev) + "\n"
-        yield json.dumps({"result": task.result()}) + "\n"
+        job = jobs_store.get(scan_id) or {}
+        yield json.dumps({"result": job.get("result") or {"error": job.get("error") or "Scan failed, try again."}}) + "\n"
 
     return StreamingResponse(lines(), media_type="application/x-ndjson",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -5382,10 +5463,11 @@ async def onchain_manual_scan_stream(req: ScanRequest, user: User = Depends(auth
 @app.get("/api/onchain/scan/result/{scan_id}")
 async def onchain_manual_scan_result(scan_id: str, user: User = Depends(auth.get_current_user)) -> dict:
     """{"done": false} while the scan runs, {"done": true, "result": ...} after."""
-    hit = _scan_results.get(scan_id[:40])
-    if hit is None:
+    job = jobs_store.get(scan_id[:40], owner_id=user.id)
+    if job is None or job["kind"] != "scan":
         raise HTTPException(status_code=404, detail="scan not found: the server may have restarted, run it again")
-    return {"done": hit[1] is not None, "result": hit[1]}
+    done = job["state"] != "in corso"
+    return {"done": done, "result": (job["result"] or {"error": job["error"]}) if done else None}
 
 
 class ScanAddRequest(BaseModel):
@@ -7613,12 +7695,66 @@ async def cancel_job(
 async def job_status(
     job_id: str,
     since: int = Query(0, ge=0),
+    visible: bool = False,
     user: User | None = Depends(auth.get_current_user_optional),
 ) -> dict:
+    """`visible=1`: the page asking is on screen, so no push for this job if it
+    ends in the next seconds (jobs.watch)."""
     job = jobs_store.get(job_id, owner_id=user.id if user else None, since=since)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found or expired")
+    if visible:
+        jobs_store.watch(job_id)
     return job
+
+
+@app.post("/api/jobs/{job_id}/away")
+async def job_away(job_id: str, user: User | None = Depends(auth.get_current_user_optional)) -> dict:
+    """The page left the screen (sendBeacon on pagehide/visibilitychange):
+    the job's end goes out as a push even if it was polled a second ago."""
+    if jobs_store.get(job_id, owner_id=user.id if user else None) is not None:
+        jobs_store.away(job_id)
+    return {"ok": True}
+
+
+@app.get("/api/jobs")
+async def jobs_of_device(request: Request, user: User | None = Depends(auth.get_current_user_optional)) -> dict:
+    """This browser's jobs of the last day (X-Device): what the app resumes
+    when it is reopened without tapping the notification."""
+    device = _device(request)
+    return {"jobs": jobs_store.recent(device, owner_id=user.id if user else None) if device else []}
+
+
+class PushSubscribeRequest(BaseModel):
+    subscription: dict
+
+
+@app.get("/api/push/key")
+async def push_key() -> dict:
+    """The VAPID public key the service worker subscribes with (web_push.py)."""
+    from app.notify import web_push
+    return {"key": web_push.public_key()}
+
+
+@app.post("/api/push/subscribe")
+async def push_subscribe(body: PushSubscribeRequest, request: Request,
+                         user: User | None = Depends(auth.get_current_user_optional)) -> dict:
+    from app.notify import web_push
+    device = _device(request)
+    try:
+        web_push.subscribe(device, body.subscription, user.id if user else "")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"ok": True}
+
+
+@app.post("/api/push/unsubscribe")
+async def push_unsubscribe(request: Request) -> dict:
+    from app.notify import web_push
+    device = _device(request)
+    if device:
+        web_push.unsubscribe(device)
+    return {"ok": True}
 
 
 # --- Diario degli ordini automatici ------------------------------------------
@@ -8672,6 +8808,22 @@ def _render_onchain_app(user: User | None) -> str:
     target = "app-shell" if user else "login-screen"
     html = re.sub(rf'(<[^>]*\bid="{target}"[^>]*?) hidden>', r"\1>", html, count=1)
     return _with_guest_banner(html, user)
+
+
+@app.get("/sw.js")
+async def service_worker() -> FileResponse:
+    """The service worker at the site root, so its scope is the whole site:
+    it shows the push of a finished job and reopens the app where it was."""
+    return FileResponse(FRONTEND_DIR / "static" / "sw.js", media_type="text/javascript",
+                        headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})
+
+
+@app.get("/manifest.webmanifest")
+async def web_manifest() -> FileResponse:
+    """The app as an installable PWA: on iPhone, web push works only once it
+    is added to the home screen (iOS 16.4+)."""
+    return FileResponse(FRONTEND_DIR / "static" / "manifest.webmanifest", media_type="application/manifest+json",
+                        headers={"Cache-Control": "public, max-age=3600"})
 
 
 @app.get("/onchain-app.html")

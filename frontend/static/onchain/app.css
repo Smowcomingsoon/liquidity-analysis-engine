@@ -1480,3 +1480,14 @@ html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { d
 .ar-tile[aria-pressed="true"] { border-color: var(--c-amber, #2de2b0); background: var(--c-amber-soft, transparent); }
 .ar-tile[aria-pressed="true"] :is(b, small) { color: var(--c-amber, #2de2b0); }
 .ar-tile:focus-visible { outline: 1px solid var(--c-amber, #2de2b0); outline-offset: 2px; }
+
+/* iPhone in a Safari tab: notifications need the app on the home screen (bg.js). */
+.bg-hint { position: fixed; z-index: 60; inset: calc(env(safe-area-inset-top) + 10px) 12px auto;
+  display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 14px;
+  font-size: 13px; line-height: 1.35; color: var(--k-text-2); border: 1px solid rgb(255 255 255 / .08);
+  background: rgb(44 46 46 / .85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  animation: bg-hint-in .3s cubic-bezier(.2, .8, .2, 1); }
+.bg-hint b { color: #fff; font-weight: 600; }
+.bg-hint button { flex: none; border: 0; background: none; color: inherit; font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
+@keyframes bg-hint-in { from { opacity: 0; transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { .bg-hint { animation: none; } }

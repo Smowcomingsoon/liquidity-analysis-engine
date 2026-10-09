@@ -15,6 +15,7 @@ import * as api from "@onchain/api.js";
 import { age, escapeHtml, formatToken, formatUsd, shortAddress, tile } from "@onchain/format.js";
 import { chainInfo, state } from "@onchain/store.js";
 import { scoutCube } from "@onchain/scout-cube.js";
+import * as bg from "@onchain/bg.js";
 
 // Stesso indirizzo nativo duplicato in swap.js/limitOrders.js: qui serve
 // solo per proporre il nativo come "token che hai" nel picker, non per
@@ -63,20 +64,47 @@ export const setMessage = (text, tone = "") =>
 const pctS = (f) => (f == null ? "—" : `${f > 0 ? "+" : ""}${Math.round(f * 100)}%`);
 const usdS = (n) => (n == null ? "—" : n >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${Math.round(n)}`);
 
-export async function openScan(query) {
+function scanning(query) {
   open(`Scanning ${query}`, "Scout checks market data, security, the project site and previous risk signals.");
   setBody(`<div class="scan-live"><div class="scan-live-head"><span class="agent-orb scout-cube" aria-hidden="true">${scoutCube}</span>
     <p>Scout is examining <b>${escapeHtml(query)}</b></p></div><ol class="scan-steps"></ol></div>`);
-  const list = bodyEl.querySelector(".scan-steps");
+  return bodyEl.querySelector(".scan-steps");
+}
+
+// The scan is a job on the server (bg.js): it goes on if the app is closed,
+// and its push reopens this sheet with the result (Lorenzo, 01/10).
+export async function openScan(query) {
+  bg.askPush();
+  const list = scanning(query);
   const t0 = performance.now();
-  let d;
+  const view = bg.here("&scan=1");
+  let d, id = null;
   try {
-    d = await api.streamScan(query, (ev) => scanStep(list, ev));
+    d = await api.streamScan(query, (ev) => scanStep(list, ev),
+      { view, onId: (x) => { id = x; bg.follow(x, "scan", { view, label: query }); } });
   } catch (err) {
+    if (id) bg.settle(id);
     setMessage(err.message ?? "Scan failed.", "is-warn");
     return;
   }
-  const took = ((performance.now() - t0) / 1000).toFixed(1);
+  if (id) bg.settle(id);
+  await showScan(d, list, ((performance.now() - t0) / 1000).toFixed(1));
+}
+
+bg.handle("scan", {
+  show(job, meta) {
+    const list = scanning(meta.label || job.title || "token");
+    for (const ev of job.result?.steps ?? []) scanStep(list, ev);
+    if (job.state !== "finito") { setMessage(job.error || "Scan failed.", "is-warn"); return; }
+    showScan(job.result, list, job.elapsed_s != null ? String(job.elapsed_s) : "");
+  },
+  pending(meta) {
+    const list = scanning(meta.label || "token");
+    scanStep(list, { reconnecting: true });
+  },
+});
+
+async function showScan(d, list, took) {
   const ran = list.querySelectorAll('li:not([data-state="skip"]):not([data-state="wait"])').length;
   const [{ gemWhy }] = await Promise.all([import("@onchain/leaderboard.js"), new Promise((r) => setTimeout(r, 450))]);
   if (d.error) { setMessage(d.error, "is-warn"); return; }
@@ -112,7 +140,7 @@ export async function openScan(query) {
     ${d.alert ? `<p class="sheet-note">Alerted ${new Date(d.alert.at * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" })}, now ${pctS(d.alert.now)}.</p>` : ""}
     <ul class="scan-checks">${(d.checks ?? []).map((c) => `<li data-ok="${c.ok === true ? "yes" : c.ok === false ? "no" : "unknown"}">
       <span>${escapeHtml(c.label)}</span><small>${escapeHtml(c.detail ?? "")}</small></li>`).join("")}</ul>
-    <details class="scan-trail"><summary>Scout ran ${ran} checks in ${took}s</summary><ol class="scan-steps is-done">${stepsDone}</ol></details>
+    <details class="scan-trail"><summary>Scout ran ${ran} checks${took ? ` in ${took}s` : ""}</summary><ol class="scan-steps is-done">${stepsDone}</ol></details>
     <div class="scan-links">${g && (g.status === "unknown" || g.status === "rejected" || g.status === "studied") ? `<button type="button" class="btn-quiet scan-add" data-add><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg><span>${g.status === "unknown" ? "Add to database" : "Study again"}</span></button>` : ""}
     <button type="button" class="btn-quiet" data-full>Full token page</button>
     ${t.pair_url ? `<a class="btn-quiet" href="${escapeHtml(t.pair_url)}" target="_blank" rel="noopener">DexScreener</a>` : ""}</div>`);

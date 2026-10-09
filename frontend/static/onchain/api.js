@@ -9,6 +9,17 @@ export class ApiError extends Error {}
 
 const DEFAULT_TIMEOUT_MS = 8000;
 
+// This browser, for the push of a finished job (bg.js, backend jobs.py): a
+// random id kept here, sent on every call as X-Device.
+export const device = (() => {
+  try {
+    let d = localStorage.getItem("lae.device");
+    if (!d) { d = crypto.randomUUID().replace(/-/g, ""); localStorage.setItem("lae.device", d); }
+    return d;
+  } catch { return ""; }
+})();
+const headersFor = (body) => ({ ...(body ? { "Content-Type": "application/json" } : {}), ...(device ? { "X-Device": device } : {}) });
+
 // GET identici in volo insieme diventano una richiesta sola: all'avvio
 // saldo e stato di rischio li chiedevano due pannelli ciascuno, e ogni
 // saldo e' una chiamata RPC vera lato server. Chi arriva dopo riceve la
@@ -33,7 +44,7 @@ async function send(path, { method = "GET", body, timeoutMs = DEFAULT_TIMEOUT_MS
   try {
     response = await fetch(path, {
       method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
+      headers: headersFor(body),
       body: body ? JSON.stringify(body) : undefined,
       // AbortSignal.timeout al posto di una Promise.race con setTimeout:
       // qui la richiesta viene davvero interrotta, non solo ignorata.
@@ -152,11 +163,11 @@ export const getLinkedWallets = () => request("/api/wallets/linked");
 export const scanToken = (query) => request("/api/onchain/scan", { method: "POST", body: { query }, timeoutMs: 60000 });
 // The scan step by step (manual_scan.Steps): one JSON line per event, the
 // last one carries the result.
-export async function streamScan(query, onEvent) {
+export async function streamScan(query, onEvent, { view = "", onId } = {}) {
   let response;
   try {
     response = await fetch("/api/onchain/scan/stream", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query }),
+      method: "POST", headers: headersFor(true), body: JSON.stringify({ query, view }),
       signal: AbortSignal.timeout(300000),
     });
   } catch (cause) {
@@ -177,7 +188,7 @@ export async function streamScan(query, onEvent) {
         if (!line) continue;
         const ev = JSON.parse(line);
         if ("result" in ev) result = ev.result;
-        else if ("id" in ev) id = ev.id;
+        else if ("id" in ev) { id = ev.id; onId?.(id); }
         else if (!("ping" in ev)) onEvent(ev);
       }
     }
@@ -209,6 +220,13 @@ export const recheckToken = (chain, token) =>
 export const recheckProgress = (chain, token) =>
   request(`/api/onchain/token/recheck/progress?chain=${encodeURIComponent(chain)}&token=${encodeURIComponent(token)}`,
           { timeoutMs: 8000 });
+// The same re-check as a job (bg.js): {job} at once, the result by poll or push.
+export const recheckJob = (chain, token, bg) =>
+  request(`/api/onchain/token/recheck?chain=${encodeURIComponent(chain)}&token=${encodeURIComponent(token)}`,
+          { method: "POST", body: bg, timeoutMs: 20000 });
+export const getJob = (id, visible = false) => send(`/api/jobs/${encodeURIComponent(id)}${visible ? "?visible=1" : ""}`, { timeoutMs: 10000 });
+export const getPushKey = () => request("/api/push/key");
+export const pushSubscribe = (subscription) => request("/api/push/subscribe", { method: "POST", body: { subscription } });
 export const getSlippage = (chain, token) => request(`/api/onchain/slippage?chain=${encodeURIComponent(chain)}&token=${encodeURIComponent(token)}`, { timeoutMs: 12000 });
 export const getAgent = () => request("/api/agent");
 export const getDeposit = () => request("/api/wallets/deposit");
@@ -252,3 +270,5 @@ export async function speakAgent(text, lang = "it") {
   if (!response.ok) throw Object.assign(new ApiError(`error ${response.status}`), { status: response.status });
   return response.blob();
 }
+export const askJob = (text, voice, view) =>
+  request("/api/agent/ask", { method: "POST", body: { text, voice, view, background: true }, timeoutMs: 20000 });

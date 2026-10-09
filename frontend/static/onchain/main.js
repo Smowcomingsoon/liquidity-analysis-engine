@@ -35,6 +35,7 @@ import { loadLinked } from "@onchain/userswap.js";
 import { mountMemes } from "@onchain/memes.js";
 import { mountAgent, mountAgentView } from "@onchain/agent.js";
 import { mountAsk } from "@onchain/ask.js";
+import * as bg from "@onchain/bg.js";
 import { mountTop } from "@onchain/top.js";
 import { mountSignals } from "@onchain/signals.js";
 import { mountTrack } from "@onchain/track.js";
@@ -818,9 +819,10 @@ async function boot() {
 
   paintChainStatic();
   loadChainData();
-  // A shared or Telegram link to a token opens it once signed in, so the
-  // destination survives the login screen.
-  openFromHash();
+  // A finished task's notification (bg.js) puts you back where it started;
+  // otherwise a shared or Telegram link to a token opens it once signed in,
+  // so the destination survives the login screen.
+  if (!(await bg.boot())) openFromHash();
 }
 
 boot();
