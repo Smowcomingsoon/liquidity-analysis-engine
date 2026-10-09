@@ -185,6 +185,8 @@
         <label class="layer-toggle"><input type="checkbox" data-layer="hints" /> Contextual signals</label>
         <label class="layer-toggle"><input type="checkbox" data-layer="divergences" /> RSI divergences</label>
         <label class="layer-toggle"><input type="checkbox" data-layer="angleLines" /> Slope lines</label>
+        <label class="layer-toggle"><input type="checkbox" data-layer="bmsb" /> Bull Market Support Band</label>
+        <p class="panel-hint">20-week SMA (red) and 21-week EMA (green), on any timeframe. Exchange pairs only.</p>
       </div>
       <div class="panel">
         <h3>Indicators</h3>
@@ -448,6 +450,7 @@
               <option value="binance">Binance</option>
               <option value="kucoin">KuCoin</option>
               <option value="kraken">Kraken</option>
+              <option value="dexscreener">DEX</option>
             </select>
           </div>
 
@@ -511,10 +514,11 @@
               <label>Slippage % <input type="text" inputmode="decimal" id="lab-slippage" value="0" /></label>
               <label class="lab-fill-at">Signal execution
                 <select id="lab-fill-at">
-                  <option value="signal_close">As soon as the condition is met</option>
+                  <option value="signal_close">At candle close</option>
+                  <option value="on_condition">As soon as the condition is met</option>
                 </select>
               </label>
-              <p class="panel-hint lab-fill-hint">Fills at the close of the signal candle, when the live alert fires.</p>
+              <p class="panel-hint lab-fill-hint" id="lab-fill-hint">The alert fires when the timeframe candle closes; the backtest fills at that close.</p>
             </div>
           </details>
 
@@ -661,6 +665,9 @@
             <div id="telegram-setup" class="telegram-setup">
               <label>Your Telegram chat ID
                 <input type="text" id="telegram-chat-id-input" placeholder="es. 123456789" autocomplete="off" />
+              </label>
+              <label>Strategy signals chat ID <small>(optional: a separate chat only for strategy alerts)</small>
+                <input type="text" id="telegram-signal-chat-id-input" placeholder="es. -1001234567890" autocomplete="off" />
               </label>
               <button type="button" id="telegram-chat-id-save">Save</button>
               <p class="panel-hint">Send any message to the bot, then open <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> to find your chat ID — ask for the bot link if you don't have it.</p>

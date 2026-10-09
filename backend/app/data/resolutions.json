@@ -1179,8 +1179,8 @@
   },
   "72f880af": {
     "status": "risolto",
-    "at": 1789657947,
-    "summary": "Verificato che il moltiplicatore Bollinger e' fissato di proposito, non per un limite della ricerca: nel percorso \"Ricerca stabile\" (plateau) la larghezza della banda viene DERIVATA dalla frequenza di ingresso desiderata invece che cercata a tentativi — una scelta interpretabile (\"quanti segnali voglio vedere\") al posto di un numero trovato per tentativi, spiegata nel codice (backend/app/analysis/priors.py). Lunghezza RSI e lunghezza Bollinger restano invece cercate nei dati, e la ricerca casuale/a griglia le fa variare tutte e cinque: confermato eseguendo la pipeline su tre serie diverse, dove lunghezza RSI e lunghezza Bollinger sono uscite ogni volta diverse (16/32, 10/20, 7/10) mentre solo il moltiplicatore restava fisso — esattamente il comportamento descritto nella segnalazione, ma per un motivo statistico dichiarato, non un difetto. Il problema reale era che questa scelta non si vedeva da nessuna parte nei risultati: la nota gia' generata dal motore (\"bb_mult derived from...\") era troppo tecnica per capire che non era un blocco. Riscritta in italiano semplice, dicendo esplicitamente che lunghezza RSI e Bollinger restano cercate.",
+    "at": 1791571842,
+    "summary": "Vedi 6453f4df: ora i tre parametri restano sempre 14/20/2, qualunque valore ci sia nei campi del Lab. Storia: Verificato che il moltiplicatore Bollinger e' fissato di proposito, non per un limite della ricerca: nel percorso \"Ricerca stabile\" (plateau) la larghezza della banda viene DERIVATA dalla frequenza di ingresso desiderata invece che cercata a tentativi — una scelta interpretabile (\"quanti segnali voglio vedere\") al posto di un numero trovato per tentativi, spiegata nel codice (backend/app/analysis/priors.py). Lunghezza RSI e lunghezza Bollinger restano invece cercate nei dati, e la ricerca casuale/a griglia le fa variare tutte e cinque: confermato eseguendo la pipeline su tre serie diverse, dove lunghezza RSI e lunghezza Bollinger sono uscite ogni volta diverse (16/32, 10/20, 7/10) mentre solo il moltiplicatore restava fisso — esattamente il comportamento descritto nella segnalazione, ma per un motivo statistico dichiarato, non un difetto. Il problema reale era che questa scelta non si vedeva da nessuna parte nei risultati: la nota gia' generata dal motore (\"bb_mult derived from...\") era troppo tecnica per capire che non era un blocco. Riscritta in italiano semplice, dicendo esplicitamente che lunghezza RSI e Bollinger restano cercate.",
     "detail": "backend/app/analysis/priors.py, _gabriele_space(): nota del ramo \"gabriele-constrained\" riscritta da \"bb_mult=X derived from N entries over M bars\" a una frase che dice esplicitamente che il moltiplicatore e' fissato per scelta (non cercato) e che lunghezza RSI/Bollinger restano invece cercate nei dati. La nota compare gia' nei risultati del Lab quando si usa la modalita' \"Ricerca stabile\" (renderRegimeBox in app.js, riga ~10176). Nessuna modifica alla logica di ricerca: il comportamento era corretto, mancava solo la spiegazione leggibile. Verificato eseguendo run_pipeline() su tre serie sintetiche con dinamiche diverse (semi 1/2/3): rsi_length e bb_length variano (16/10/7 e 32/20/10), bb_mult resta identico come atteso dal disegno. 520 test passano, ruff pulito.",
     "files": [
       "backend/app/analysis/priors.py"
@@ -1188,8 +1188,8 @@
   },
   "37637f11": {
     "status": "risolto",
-    "at": 1789657947,
-    "summary": "Tolta l'opzione \"Apertura della candela successiva\" dai Parametri backtest del Lab, come chiesto (\"inutile\" ora che il backtest gira su tutti i timeframe). L'unica opzione rimasta, \"Chiusura della candela del segnale\", e' stata rinominata \"Al momento in cui si verifica la condizione\": e' letteralmente lo stesso istante — un segnale basato su indicatori (RSI, medie, Bollinger) si puo' verificare solo alla chiusura della candela che lo genera, e quello e' anche il momento in cui parte l'alert dal vivo (stessa logica gia' misurata e corretta in seed-0077). Non serviva un terzo meccanismo: serviva chiamare con il suo nome quello che il motore fa gia'.",
+    "at": 1791571842,
+    "summary": "Vedi 8bd7884c: le due opzioni 'At candle close' e 'As soon as the condition is met' sono tornate. Storia: Tolta l'opzione \"Apertura della candela successiva\" dai Parametri backtest del Lab, come chiesto (\"inutile\" ora che il backtest gira su tutti i timeframe). L'unica opzione rimasta, \"Chiusura della candela del segnale\", e' stata rinominata \"Al momento in cui si verifica la condizione\": e' letteralmente lo stesso istante — un segnale basato su indicatori (RSI, medie, Bollinger) si puo' verificare solo alla chiusura della candela che lo genera, e quello e' anche il momento in cui parte l'alert dal vivo (stessa logica gia' misurata e corretta in seed-0077). Non serviva un terzo meccanismo: serviva chiamare con il suo nome quello che il motore fa gia'.",
     "detail": "frontend/index.html: rimossa <option value=\"next_open\">, rinominata l'opzione \"signal_close\" e riscritto il testo esplicativo sotto il menu. frontend/static/app.js: aggiornata l'etichetta e il tooltip mostrati accanto ai risultati del backtest (riga ~10439) per riflettere il nuovo nome, senza piu' definirla \"ottimistica\" — non lo e', e' il prezzo reale di chi reagisce all'alert alla chiusura della candela. Il backend (backtest.py, main.py) non e' stato toccato: continua ad accettare \"next_open\" come valore valido per compatibilita' con backtest e ottimizzazioni gia' archiviati che lo referenziano, semplicemente non viene piu' offerto nel menu. node --check pulito, 520 test passano, ruff pulito.",
     "files": [
       "frontend/index.html",
@@ -2619,5 +2619,41 @@
     "at": 1790874387,
     "summary": "Il ricontrollo DeepSeek, la scansione manuale e le domande all'agente ora girano sul server: se cambi finestra o chiudi l'app continuano, e alla fine arriva una notifica sul dispositivo da cui li hai lanciati. Toccandola l'app si riapre sullo stesso token e sulla stessa scheda (Why), sul pannello della scansione o sulla risposta dell'agente. Se l'app e' aperta e stai guardando, niente notifica. Se riapri l'app senza toccarla, ritrovi il risultato. Un aggiornamento del server durante un lavoro lo interrompe: arriva la notifica che va rilanciato. Su iPhone le notifiche arrivano solo dall'app aggiunta alla schermata Home (iOS 16.4+): l'app lo suggerisce la prima volta.",
     "detail": "backend app/jobs.py (lavori persistenti in data/app_jobs.json, push a fine lavoro, watch/away), app/notify/web_push.py (chiavi VAPID generate in data/vapid_keys.json o da VAPID_PRIVATE_KEY/VAPID_PUBLIC_KEY, iscrizioni in data/push_subscriptions.json), /api/jobs, /api/push/*, /sw.js, /manifest.webmanifest. Frontend: onchain/bg.js, detail.js (recheck), ask.js, sheets.js (scan). Test: tests/test_app_jobs.py."
+  },
+  "6453f4df": {
+    "status": "risolto",
+    "at": 1791571842,
+    "summary": "L'ottimizzazione delle due strategie Gabriele tiene sempre lunghezza RSI 14, lunghezza Bollinger 20 e moltiplicatore 2, e cerca solo RSI ipercomprato e ipervenduto, in tutte e tre le modalita' (casuale, griglia, ricerca stabile). Prima prendeva quei tre valori dai campi del Lab: dopo un'ottimizzazione applicata o un ticker con parametri salvati non erano piu' 14/20/2, e restavano diversi.",
+    "detail": "backend/app/analysis/optimize.py GABRIELE_FIXED (random, grid, default_params), priors._gabriele_space; test_optimize_gabriele_locked, test_priors."
+  },
+  "8bd7884c": {
+    "status": "risolto",
+    "at": 1791571842,
+    "summary": "In Lab > Parametri backtest > Esecuzione del segnale ci sono di nuovo due opzioni: 'At candle close' (l'alert parte alla chiusura della candela del timeframe) e 'As soon as the condition is met' (l'alert parte appena la condizione si verifica sulla candela in formazione, e puo' sparire prima della chiusura). La scelta passa all'alert quando attivi la strategia dal Lab. Il backtest vede solo candele intere, quindi in entrambi i casi entra al prezzo di chiusura della candela del segnale, e lo dice accanto ai risultati.",
+    "detail": "frontend/index.html #lab-fill-at, app.js (on_close dell'alert dalla scelta, PATCH se il ticker era gia' in lista, testo sotto il menu e etichetta dei risultati); main.py fill_at accetta 'on_condition'."
+  },
+  "1f8f7246": {
+    "status": "risolto",
+    "at": 1791571842,
+    "summary": "'Close manually' ora chiude anche le voci riaperte: uno stato messo a mano dalla bacheca vince sulla risoluzione e sulla riapertura che c'erano prima. Prima la vecchia riapertura tornava a vincere al giro dopo e la voce restava 'reopened'. Una risposta con 'Not resolved, reopen' la riapre ancora.",
+    "detail": "backend/app/issues.py status_at in update_issue e list_issues; test_issues."
+  },
+  "a6b36231": {
+    "status": "risolto",
+    "at": 1791571842,
+    "summary": "Nel pannello Alert (Telegram) c'e' un secondo campo, 'Strategy signals chat ID': se lo compili, gli alert delle strategie vanno in quella chat (arriva subito un messaggio di prova), mentre la chat principale resta per il resto. Vuoto = tutto come prima. Le tre chat: gemme e messaggi del sito nella chat principale, aggiornamenti nella chat di sistema, segnali in questa. Basta creare un gruppo con il bot e incollarne l'id (inizia con -100).",
+    "detail": "models.User.telegram_signal_chat_id, auth.set_telegram_chat_id, PATCH /api/auth/telegram, main._signal_chat nel ciclo degli alert; index.html/app.js campo nuovo."
+  },
+  "893ea67a": {
+    "status": "risolto",
+    "at": 1791571842,
+    "summary": "In Levels > Structure & Liquidity c'e' 'Bull Market Support Band': SMA 20 settimane (rossa) ed EMA 21 settimane (verde) calcolate sulle chiusure settimanali e disegnate su qualunque timeframe del grafico, come su TradingView. Funziona sui pair degli exchange; sui pool DEX no, per non consumare le chiamate limitate della loro API.",
+    "detail": "indicators.bull_market_support_band, /api/analyze scarica le candele 1w (cache); app.js layer bmsb."
+  },
+  "1f9baaea": {
+    "status": "risolto",
+    "at": 1791571842,
+    "summary": "Nel menu degli exchange del Lab c'e' 'DEX': sceglie il pool on-chain piu' liquido dello stesso ticker (ricerca DexScreener) e ci fa backtest, ottimizzazione e alert, anche per token che non sono su MEXC, Binance, KuCoin o Kraken (es. DREGG su Solana). Anche cercando il token nel campo ticker compaiono i pool DEX. Corretto anche il motivo per cui l'alert non partiva: per un pool DEX il Lab mandava come exchange 'dexscreener', che il server rifiutava.",
+    "detail": "app.js switchLabToDex, labExchange(), sync dal grafico con assetType; index.html opzione dexscreener."
   }
 }

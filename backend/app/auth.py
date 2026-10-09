@@ -233,11 +233,14 @@ def verify_login(email: str, password: str) -> User | None:
     return user
 
 
-def set_telegram_chat_id(user_id: str, chat_id: str) -> User | None:
+def set_telegram_chat_id(user_id: str, chat_id: str, signal_chat_id: str | None = None) -> User | None:
     user = _users.get(user_id)
     if user is None:
         return None
-    updated = user.model_copy(update={"telegram_chat_id": chat_id.strip()})
+    update = {"telegram_chat_id": chat_id.strip()}
+    if signal_chat_id is not None:
+        update["telegram_signal_chat_id"] = signal_chat_id.strip()
+    updated = user.model_copy(update=update)
     _users[user_id] = updated
     _save_users()
     return updated

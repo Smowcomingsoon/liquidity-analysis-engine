@@ -80,3 +80,22 @@ def compute_indicators(df: pd.DataFrame) -> list[IndicatorSeries]:
         out.append(IndicatorSeries(name="STOCH_D", values=_series_to_values(stoch_d)))
 
     return out
+
+
+def bull_market_support_band(df: pd.DataFrame, weekly: pd.DataFrame) -> list[IndicatorSeries]:
+    """Bull Market Support Band (segnalazione 893ea67a): SMA 20 and EMA 21 of
+    the weekly close, drawn on any chart timeframe. Each chart candle takes the
+    value of the weekly bar it falls in, as TradingView does live; candles
+    before the 21st week get nothing."""
+    if weekly is None or weekly.empty or df.empty:
+        return []
+    close = weekly["close"].astype(float)
+    bands = {"BMSB_SMA20W": close.rolling(20).mean(), "BMSB_EMA21W": close.ewm(span=21, adjust=False).mean()}
+    bands["BMSB_EMA21W"].iloc[: min(20, len(close))] = float("nan")   # same warm-up as the SMA
+    out = []
+    for name, s in bands.items():
+        mapped = s.reindex(df.index, method="ffill") if s.index.is_monotonic_increasing else None
+        if mapped is None or mapped.isna().all():
+            continue
+        out.append(IndicatorSeries(name=name, values=_series_to_values(mapped)))
+    return out

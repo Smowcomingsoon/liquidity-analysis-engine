@@ -351,21 +351,19 @@ def _lorenzo_space(stats: SeriesStats, trendfilter: bool, volatilityfilter: bool
 
 def _gabriele_space(stats: SeriesStats, target_entries: int,
                     locked: dict | None = None) -> ConstrainedSpace:
-    """Gabriele con lunghezza RSI, lunghezza Bollinger e moltiplicatore presi
-    da chi cerca, non dalla ricerca.
+    """Gabriele con lunghezza RSI 14, lunghezza Bollinger 20 e moltiplicatore
+    2 sempre fissi: si cercano solo RSI ipercomprato e ipervenduto.
 
-    Richiesto esplicitamente (segnalazione 72f880af / whitekobra): il tasto
-    Ottimizza per le due varianti Gabriele deve toccare solo RSI ipercomprato
-    e ipervenduto, lasciando gli altri tre esattamente ai valori impostati nei
-    campi del Lab. Prima qui c'era una derivazione statistica del
-    moltiplicatore (dalla frequenza di ingresso voluta) e una ricerca di
-    lunghezza RSI/Bollinger — tecnica valida ma non quello che e' stato
-    chiesto: chi imposta quei tre numeri a mano vuole che restino quelli.
+    Segnalazioni 72f880af e 6453f4df (whitekobra): "lascia sempre predefiniti
+    [...] LUNGHEZZA RSI (14), LUNGHEZZA BOLLINGER (20) e MOLTIPLICATORE
+    BOLLINGER (2)". Prima i tre valori venivano dai campi del Lab, che dopo
+    un'ottimizzazione applicata o un ticker salvato non erano piu' i default.
+    `locked` resta nella firma per i chiamanti ma non cambia questi tre.
     """
-    locked = locked or {}
-    rsi_length = int(locked.get("rsi_length", 14))
-    bb_length = int(locked.get("bb_length", 20))
-    bb_mult = float(locked.get("bb_mult", band_multiplier_for_frequency(target_entries, stats.n)))
+    from app.analysis.optimize import GABRIELE_FIXED
+    rsi_length = GABRIELE_FIXED["rsi_length"]
+    bb_length = GABRIELE_FIXED["bb_length"]
+    bb_mult = GABRIELE_FIXED["bb_mult"]
 
     # If the band already selects a 2-sigma event, an RSI threshold of 45 is
     # not a second filter: it fires on nearly everything the band caught.
@@ -386,7 +384,7 @@ def _gabriele_space(stats: SeriesStats, target_entries: int,
         label="gabriele-constrained", dims=dims, to_params=to_params,
         fixed={"rsi_length": rsi_length, "bb_length": bb_length, "bb_mult": bb_mult},
         notes=[f"RSI length={rsi_length}, Bollinger length={bb_length}, "
-               f"multiplier={bb_mult:.2f}: taken from the set fields, not searched — "
+               f"multiplier={bb_mult:.2f}: always fixed, not searched — "
                "only RSI overbought and oversold are searched",
                f"rsi_oversold capped at {rsi_os_hi}"],
     )

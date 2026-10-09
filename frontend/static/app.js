@@ -32,6 +32,8 @@
     bbMid: "rgba(91, 156, 246, 0.45)",
     bbLower: "rgba(91, 156, 246, 0.85)",
     vwap: "#8b8bff",
+    bmsbSma: "#ff6b6b",
+    bmsbEma: "#2ec27e",
     rsi: "#5b9cf6",
     macd: "#5b9cf6",
     macdSignal: "#f0a500",
@@ -64,6 +66,8 @@
     bbMid: "rgba(0, 0, 0, 0.25)",
     bbLower: "rgba(0, 0, 0, 0.50)",
     vwap: "#555555",
+    bmsbSma: "#333333",
+    bmsbEma: "#777777",
     rsi: "#666666",
     macd: "#555555",
     macdSignal: "#aaaaaa",
@@ -947,6 +951,7 @@
       ema: false,
       bbands: false,
       vwap: false,
+      bmsb: false,
       rsi: false,
       macd: false,
       stoch: false,
@@ -1274,6 +1279,7 @@
     el("opera-authenticated").classList.toggle("hidden", !loggedIn);
     if (loggedIn) {
       el("telegram-chat-id-input").value = state.user.telegram_chat_id || "";
+      el("telegram-signal-chat-id-input").value = state.user.telegram_signal_chat_id || "";
       updateTelegramSetupUI();
       loadWatchlist();
       loadArchive();
@@ -2495,10 +2501,11 @@
 
     el("telegram-chat-id-save").addEventListener("click", async () => {
       const chatId = el("telegram-chat-id-input").value.trim();
+      const signalChatId = el("telegram-signal-chat-id-input").value.trim();
       const resp = await fetch("/api/auth/telegram", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telegram_chat_id: chatId }),
+        body: JSON.stringify({ telegram_chat_id: chatId, telegram_signal_chat_id: signalChatId }),
       });
       if (resp.ok) state.user = await resp.json();
       updateTelegramSetupUI();
@@ -3765,7 +3772,7 @@
       body: JSON.stringify({
         symbol: labState.symbol,
         asset_type: labState.assetType,
-        exchange: labState.exchange,
+        exchange: labExchange(),
         ltf_interval: labState.tf,
         strategy_name: labState.strategy,
         params,
@@ -7463,6 +7470,17 @@
       }
     }
 
+    // Bull Market Support Band: SMA 20 and EMA 21 of the weekly close.
+    if (state.layers.bmsb) {
+      [["BMSB_SMA20W", COLORS.bmsbSma], ["BMSB_EMA21W", COLORS.bmsbEma]].forEach(([name, color]) => {
+        const vals = findIndicator(analysis.indicators, name);
+        if (!vals) return;
+        const s = mainChart.addLineSeries({ color, lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+        s.setData(seriesFromIndicatorValues(candles, vals));
+        addLineOverlay(mainChart, s, null, mainChart);
+      });
+    }
+
     // --- RSI / MACD sub-panes ---
     el("rsi-chart").classList.toggle("hidden", !state.layers.rsi);
     if (state.layers.rsi) {
@@ -10521,7 +10539,10 @@
     const strategyName = labState.strategy || "";
     // Exchange selector overrides labState when explicitly changed by user
     const exchangeSel = el("lab-exchange-select");
-    const exchange = exchangeSel ? exchangeSel.value : (labState.exchange || "mexc");
+    // A DEX pair ignores the exchange (the backend reads the pool), but the
+    // parameter still has to be one of the four exchanges.
+    const picked = exchangeSel ? exchangeSel.value : (labState.exchange || "mexc");
+    const exchange = labState.assetType === "dex" || picked === "dexscreener" ? "mexc" : picked;
     const params = new URLSearchParams();
     params.set("symbol", labState.symbol || "BTCUSDT");
     params.set("asset_type", labState.assetType);
@@ -10985,7 +11006,9 @@
     const fillAt = bt.fill_at || "signal_close";
     const fillTag = fillAt === "next_open"
       ? ' · <span class="fill-tag fill-real" title="Entries and exits filled at the open of the candle after the signal: the price you can actually get.">next open</span>'
-      : ' · <span class="fill-tag fill-real" title="Entries and exits filled at the close of the candle that meets the condition: the same moment the live alert fires.">on condition</span>';
+      : fillAt === "on_condition"
+      ? ' · <span class="fill-tag fill-real" title="Alert as soon as the condition is met. The backtest only sees whole candles, so it fills at the close of the signal candle.">on condition</span>'
+      : ' · <span class="fill-tag fill-real" title="Entries and exits filled at the close of the signal candle: the same moment the live alert fires.">candle close</span>';
 
     labEl("lab-result-meta").innerHTML = `<button type="button" class="lab-trades-link">${bt.num_trades} trades</button> · ${bt.interval || labState.tf}${dateRange}${fillTag}`;
 
@@ -11189,6 +11212,10 @@
   });
   let labSuggestTimer = null;
 
+  // The exchange to send for the Lab's pair: a DEX pool has none, and the
+  // backend only takes one of the four exchanges there (it ignores it).
+  const labExchange = () => (labState.assetType === "dex" ? "mexc" : labState.exchange || "mexc");
+
   function selectLabSuggestion(item) {
     labState.symbol = item.symbol;
     labState.displaySymbol = item.symbol.replace(/USDT$|USD$|BTC$/, "") || item.symbol;
@@ -11211,7 +11238,51 @@
     }
   }
 
+  // "DEX" in the exchange menu (segnalazione 1f9baaea): the same ticker,
+  // read from its best on-chain pool (DexScreener search, most liquid first),
+  // so a token listed on no exchange can be backtested and get alerts.
+  async function switchLabToDex(sel) {
+    const base = (labState.displaySymbol || labState.symbol || "").split("@")[0].replace(/USDT$|USDC$|USD$/, "");
+    if (!base) return;
+    const status = labEl("lab-status");
+    status.textContent = `Looking for ${base} on DEX…`;
+    status.classList.remove("hidden");
+    try {
+      const resp = await fetch(`/api/symbols?query=${encodeURIComponent(base)}`);
+      const items = resp.ok ? await resp.json() : [];
+      const hit = items.find((i) => i.asset_type === "dex" && i.symbol.split("@")[0].toUpperCase() === base.toUpperCase())
+        || items.find((i) => i.asset_type === "dex");
+      if (!hit) {
+        status.textContent = `${base} not found on DEX.`;
+        sel.value = labState.exchange || "mexc";
+        return;
+      }
+      selectLabSuggestion(hit);
+      status.textContent = `${hit.name} · ${hit.exchange}`;
+    } catch {
+      status.textContent = "DEX search failed.";
+      sel.value = labState.exchange || "mexc";
+    }
+  }
+
   function bindLabUI() {
+    el("lab-exchange-select")?.addEventListener("change", (ev) => {
+      const sel = ev.target;
+      if (sel.value === "dexscreener") {
+        if (labState.assetType !== "dex") switchLabToDex(sel);
+        return;
+      }
+      if (labState.assetType === "dex") {
+        // Back to an exchange: the plain ticker, quoted in USDT.
+        const base = (labState.symbol || "").split("@")[0].toUpperCase();
+        labState.assetType = "crypto";
+        labState.baseTokenAddress = null;
+        labState.symbol = base ? base + "USDT" : labState.symbol;
+        labState.displaySymbol = base || labState.displaySymbol;
+        labEl("lab-ticker-val").textContent = labState.symbol || "—";
+      }
+      labState.exchange = sel.value;
+    });
     const input = labEl("lab-ticker-input");
     const hero = labEl("lab-ticker-hero");
 
@@ -11287,6 +11358,14 @@
     });
 
     labEl("lab-run-btn").addEventListener("click", runLabBacktest);
+    // Two ways for the alert to fire (segnalazione 8bd7884c). The backtest
+    // only has whole candles, so it fills at the signal candle's close in both.
+    labEl("lab-fill-at")?.addEventListener("change", (ev) => {
+      const hint = labEl("lab-fill-hint");
+      if (hint) hint.textContent = ev.target.value === "on_condition"
+        ? "The alert fires as soon as the condition is met on the forming candle, and can still vanish before the close; the backtest only sees whole candles and fills at the close."
+        : "The alert fires when the timeframe candle closes; the backtest fills at that close.";
+    });
     labEl("lab-optimize-btn").addEventListener("click", runLabOptimize);
 
     labEl("lab-apply-btn").addEventListener("click", () => {
@@ -11297,7 +11376,7 @@
       // quelli di un'altra cosa.
       applyConfigToChart({
         assetType: labState.assetType,
-        exchange: el("lab-exchange-select")?.value || labState.exchange,
+        exchange: labState.assetType === "dex" ? "mexc" : (el("lab-exchange-select")?.value || labState.exchange),
         symbol: labState.symbol,
         displaySymbol: labState.displaySymbol,
         interval: labState.tf,
@@ -11326,6 +11405,7 @@
       const prevText = btn.textContent;
       btn.textContent = "…";
 
+      const labOnClose = labEl("lab-fill-at")?.value !== "on_condition";
       try {
         // 1. Add (or upsert) the ticker to watchlist
         const addResp = await fetch("/api/watchlist", {
@@ -11334,9 +11414,9 @@
           body: JSON.stringify({
             symbol: labState.symbol,
             asset_type: labState.assetType,
-            exchange: labState.exchange,
+            exchange: labExchange(),
             interval: labState.tf,
-            on_close: true,
+            on_close: labOnClose,
             base_token_address: labState.baseTokenAddress || null,
           }),
         });
@@ -11351,6 +11431,14 @@
           btn.disabled = false; btn.textContent = prevText; return;
         }
         const entry = await addResp.json();
+        // A ticker already in the watchlist keeps its old setting on add.
+        if (entry.on_close !== labOnClose) {
+          await fetch(`/api/watchlist/${entry.id}/on_close`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ on_close: labOnClose }),
+          });
+        }
 
         // 2. I parametri trovati dal laboratorio PRIMA di accendere. Accendere
         // scatta la fotografia che finisce in archivio: fatta prima, quella
@@ -11489,7 +11577,10 @@
         if (val) val.textContent = sym;
         // Sync exchange if possible
         const exchSelect = el("lab-exchange-select");
-        if (exchSelect && state.exchange && exchSelect.querySelector(`option[value="${state.exchange}"]`)) {
+        labState.assetType = state.assetType === "dex" ? "dex" : "crypto";
+        if (exchSelect && labState.assetType === "dex") {
+          exchSelect.value = "dexscreener";
+        } else if (exchSelect && state.exchange && exchSelect.querySelector(`option[value="${state.exchange}"]`)) {
           exchSelect.value = state.exchange;
           labState.exchange = state.exchange;
         }

@@ -206,6 +206,8 @@ class User(BaseModel):
     email: str
     password_hash: str
     telegram_chat_id: str = ""  # user pastes this in from their own DM with the shared bot
+    # A separate chat for strategy signals only (segnalazione a6b36231); empty = telegram_chat_id
+    telegram_signal_chat_id: str = ""
     trading_credentials: dict[str, ExchangeCredential] = {}  # key = exchange slug ("binance", "mexc", "kucoin")
     futures_credentials: dict[str, FuturesCredential] = {}  # key = exchange slug — mai popolato da trading_credentials
     onchain_wallets: dict[OnchainChain, OnchainWallet] = {}  # key = chain ("solana", "robinhood")

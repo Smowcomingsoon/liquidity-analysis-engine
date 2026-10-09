@@ -1,3 +1,16 @@
+# 2026-10-09 — Segnalazioni aperte del sito classico (Claude, a mano)
+
+Lorenzo: "io volevo solo chiudere i punti aperti del sito classico.. vabbe' ora concentrati su quello". Le otto voci aperte o riaperte di whitekobra:
+
+- `6453f4df`/`72f880af`: ottimizzazione Gabriele con lunghezza RSI 14, Bollinger 20, moltiplicatore 2 **sempre** (`optimize.GABRIELE_FIXED`), non piu' presi dai campi del Lab.
+- `8bd7884c`/`37637f11`: due opzioni in "Signal execution": `signal_close` (alla chiusura) e `on_condition` (alert sulla candela in formazione = `on_close: false` della watchlist). Il backtest riempie alla chiusura in tutti e due i casi (non vede dentro la candela) e lo dice.
+- `1f8f7246`: `status_at` in `issues.update_issue`: lo stato messo a mano vince su risoluzione e riapertura precedenti. Il tasto "Delete" non l'ho aggiunto (l'endpoint DELETE esiste; cancellare voci altrui va deciso).
+- `a6b36231`: `User.telegram_signal_chat_id` + campo nel pannello Alert; gli alert del ciclo watchlist vanno li' (`main._signal_chat`), vuoto = chat principale.
+- `893ea67a`: Bull Market Support Band (SMA 20w + EMA 21w) nel pannello Levels, solo pair degli exchange; `/api/analyze` scarica anche le candele 1w.
+- `1f9baaea`: opzione "DEX" nel menu exchange del Lab (pool DexScreener piu' liquido). Bug trovato: per i pool DEX il Lab mandava `exchange=dexscreener` all'aggiunta in watchlist e all'archivio, rifiutato dal server: ora `labExchange()`.
+
+Restano in corso del sito classico: `seed-0054` (Ricerca stabile lenta), `seed-0051` (avviso Telegram al deploy, serve il server), `seed-0028` (ridisegno).
+
 # 2026-10-09 — Chiusi i punti aperti dell'app DEGEN (Claude, a mano)
 
 Lorenzo: "chiudi tutti i punti aperti nel sito degen view, ora lasciamo stare lo sniper".

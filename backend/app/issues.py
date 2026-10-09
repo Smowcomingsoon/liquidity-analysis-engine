@@ -983,6 +983,12 @@ def list_issues() -> list[dict]:
         reopened = int(it.get("reopened_at", 0) or 0)
         if reopened and reopened > int((r or {}).get("at", 0) or 0):
             merged["status"] = "riaperto"
+        # Uno stato messo a mano dalla bacheca vince su cio' che e' venuto
+        # prima (risoluzione o riapertura): senza, "Close manually" su una
+        # voce riaperta tornava "riaperto" al giro dopo (segnalazione 1f8f7246).
+        set_at = int(it.get("status_at", 0) or 0)
+        if set_at and set_at > reopened and set_at >= int((r or {}).get("at", 0) or 0):
+            merged["status"] = it["status"]
         thread = [dict(x, side="loro") for x in _replies if x.get("issue_id") == it["id"]]
         thread += [dict(x, side="claude") for x in mine.get(it["id"], [])]
         merged["replies"] = sorted(thread, key=lambda x: x.get("created_at", 0))
@@ -1020,6 +1026,7 @@ def update_issue(issue_id: str, *, status: str | None = None,
             if status not in _VALID_STATUS:
                 raise ValueError(f"Stato non valido: {status}")
             it["status"] = status
+            it["status_at"] = int(time.time())
             # list_issues() rilegge lo stato dalla risoluzione quando ce n'e'
             # una: senza segnare anche qui la riapertura, un "Riapri" manuale
             # spariva al giro dopo perche' la vecchia risoluzione "risolto"

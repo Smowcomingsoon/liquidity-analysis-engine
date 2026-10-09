@@ -58,7 +58,7 @@ from app.analysis.futures_math import DEFAULT_MAINTENANCE_MARGIN_RATE, liquidati
 from app.analysis.cancel import SearchCancelled
 from app.export import build_backtest_workbook
 from app.analysis.confluence import compute_confluence
-from app.analysis.indicators import compute_indicators
+from app.analysis.indicators import bull_market_support_band, compute_indicators
 from app.analysis import indicator_catalog
 from app.analysis.fibonacci import compute_fib_zones
 from app.analysis.optimize import (
@@ -541,6 +541,12 @@ async def _run_onchain_auto_trade(owner: User, entry: WatchlistEntry, strategy_n
 _stale_notified: set[str] = set()   # voci gia' avvisate per dati fermi, finche' non ripartono
 
 
+def _signal_chat(owner: User) -> str:
+    """Where a strategy alert goes: the user's signals chat if set, else their
+    main chat (segnalazione a6b36231: gems, updates and signals in three chats)."""
+    return owner.telegram_signal_chat_id or owner.telegram_chat_id
+
+
 async def _watchlist_alert_loop() -> None:
     """Background loop, independent of any browser tab: evaluates every
     watchlist ticker against each of its enabled strategies and fires
@@ -559,7 +565,7 @@ async def _watchlist_alert_loop() -> None:
             if not entry.strategies:
                 continue
             owner = auth.get_user(entry.owner_id)
-            if owner is None or not owner.telegram_chat_id or not _telegram_allowed(owner):
+            if owner is None or not _signal_chat(owner) or not _telegram_allowed(owner):
                 continue  # no chat_id yet, or this account isn't on the Telegram delivery allowlist
             if _quota_paused(entry.asset_type, entry.exchange):
                 continue
@@ -590,7 +596,7 @@ async def _watchlist_alert_loop() -> None:
                         _stale_notified.add(entry.id)
                         _old = f"{int(_age // 3600)} h" if _age >= 3600 else f"{int(_age // 60)} min"
                         _fire(telegram.send_to(
-                            owner.telegram_chat_id,
+                            _signal_chat(owner),
                             f"⚠️ Dati fermi: <b>{entry.symbol}</b> [{entry.interval}] — ultima candela {_old} fa",
                         ))
                 # Price-level alerts (checked once per entry poll regardless of strategies)
@@ -605,7 +611,7 @@ async def _watchlist_alert_loop() -> None:
                             f"Prezzo attuale: {current_price:g}"
                             + (f"\n{pa.note}" if pa.note else "")
                         )
-                        _fire(telegram.send_to(owner.telegram_chat_id, msg))
+                        _fire(telegram.send_to(_signal_chat(owner), msg))
                         alert_log.append_entry(
                             owner_id=owner.id,
                             symbol=pa.symbol,
@@ -614,7 +620,7 @@ async def _watchlist_alert_loop() -> None:
                             signal_type=pa.condition.value,
                             price=current_price,
                             label=f"Price {'above' if direction == 'sopra' else 'below'} {pa.price:g}",
-                            chat_id=owner.telegram_chat_id,
+                            chat_id=_signal_chat(owner),
                         )
 
                 for strategy_name in entry.strategies:
@@ -639,7 +645,7 @@ async def _watchlist_alert_loop() -> None:
                     strategy = build_strategy_state(strategy_name, strat_df, params=params, signals=spot_signals)
                     frequency = entry.alert_frequency.get(strategy_name, "every")
                     fresh = _dispatch_telegram_alerts(
-                        owner.telegram_chat_id,
+                        _signal_chat(owner),
                         entry.symbol,
                         strategy_interval,
                         strategy,
@@ -698,10 +704,10 @@ async def _watchlist_alert_loop() -> None:
                                         strategy_name=strategy_name, signal_type=signal.type,
                                         outcome="eseguito", detail=str(result)[:400], price=signal.price,
                                     )
-                                    if owner.telegram_chat_id and _telegram_allowed(owner):
+                                    if _signal_chat(owner) and _telegram_allowed(owner):
                                         cap_note = f" (tetto {cap:g} USDT)" if cap else ""
                                         _fire(telegram.send_to(
-                                            owner.telegram_chat_id,
+                                            _signal_chat(owner),
                                             f"💱⚠️ Ordine FUTURES ESEGUITO <b>{entry.symbol}</b> [{signal.type}] "
                                             f"su {entry.exchange} a {signal.price:g}{cap_note}",
                                         ))
@@ -712,9 +718,9 @@ async def _watchlist_alert_loop() -> None:
                                         strategy_name=strategy_name, signal_type=signal.type,
                                         outcome="fallito", detail=str(exc), price=signal.price,
                                     )
-                                    if owner.telegram_chat_id and _telegram_allowed(owner):
+                                    if _signal_chat(owner) and _telegram_allowed(owner):
                                         _fire(telegram.send_to(
-                                            owner.telegram_chat_id,
+                                            _signal_chat(owner),
                                             f"⚠️ Ordine FUTURES FALLITO <b>{entry.symbol}</b> [{signal.type}]: {exc}",
                                         ))
                     if cred and fresh and entry.auto_trade.get(strategy_name):
@@ -754,13 +760,13 @@ async def _watchlist_alert_loop() -> None:
                                         strategy_name=strategy_name, signal_type=signal.type,
                                         outcome="eseguito", detail=str(result)[:400], price=signal.price,
                                     )
-                                    if owner.telegram_chat_id and _telegram_allowed(owner):
+                                    if _signal_chat(owner) and _telegram_allowed(owner):
                                         # Un ordine partito va detto quanto uno
                                         # fallito: era l'unico dei due casi che
                                         # restava muto.
                                         cap_note = f" (tetto {cap:g} USDT)" if cap else ""
                                         _fire(telegram.send_to(
-                                            owner.telegram_chat_id,
+                                            _signal_chat(owner),
                                             f"💱 Ordine ESEGUITO <b>{entry.symbol}</b> [{signal.type}] "
                                             f"su {entry.exchange} a {signal.price:g}{cap_note}",
                                         ))
@@ -771,9 +777,9 @@ async def _watchlist_alert_loop() -> None:
                                         strategy_name=strategy_name, signal_type=signal.type,
                                         outcome="fallito", detail=str(exc), price=signal.price,
                                     )
-                                    if owner.telegram_chat_id and _telegram_allowed(owner):
+                                    if _signal_chat(owner) and _telegram_allowed(owner):
                                         _fire(telegram.send_to(
-                                            owner.telegram_chat_id,
+                                            _signal_chat(owner),
                                             f"⚠️ Ordine FALLITO <b>{entry.symbol}</b> [{signal.type}]: {exc}",
                                         ))
                     if is_dex and fresh and entry.auto_trade.get(strategy_name):
@@ -786,7 +792,7 @@ async def _watchlist_alert_loop() -> None:
                 streak = _pause_for_unreachable(entry.asset_type, entry.exchange)
                 if _notify_unreachable_once(entry.asset_type, entry.exchange, streak):
                     _fire(telegram.send_to(
-                        owner.telegram_chat_id,
+                        _signal_chat(owner),
                         f"📡 <b>{entry.exchange}</b> non risponde da qualche minuto.\n"
                         f"Il monitoraggio riprende da solo appena torna raggiungibile.\n\n"
                         f"<i>{exc}</i>",
@@ -805,7 +811,7 @@ async def _watchlist_alert_loop() -> None:
                 _pause_for_quota(entry.asset_type, entry.exchange, exc)
                 if _notify_quota_once(owner.id, entry.asset_type, entry.exchange):
                     _fire(telegram.send_to(
-                        owner.telegram_chat_id,
+                        _signal_chat(owner),
                         f"⏸️ <b>Crediti dati esauriti</b> ({entry.exchange if entry.asset_type == 'crypto' else 'Twelve Data'})\n"
                         f"Il monitoraggio dei titoli riprende automaticamente quando la quota si azzera. "
                         f"Le crypto non sono toccate.\n\n<i>{exc}</i>",
@@ -813,10 +819,10 @@ async def _watchlist_alert_loop() -> None:
                 continue
             except Exception as exc:  # noqa: BLE001
                 logger.error("Alert loop error for %s: %s", entry.symbol, exc, exc_info=True)
-                if settings.telegram_bot_token and owner.telegram_chat_id and _telegram_allowed(owner):
+                if settings.telegram_bot_token and _signal_chat(owner) and _telegram_allowed(owner):
                     _fire(
                         telegram.send_to(
-                            owner.telegram_chat_id,
+                            _signal_chat(owner),
                             f"⚠️ Errore monitoraggio <b>{entry.symbol}</b> [{entry.interval}]: {exc}",
                         )
                     )
@@ -1961,7 +1967,7 @@ class BacktestParamsQuery(BaseModel):
     # Quando si considera eseguito il segnale: alla chiusura della candela
     # che lo genera (storico, ottimista) oppure all'apertura della candela
     # dopo (realizzabile). Vedi DEFAULT_BACKTEST_PARAMS in backtest.py.
-    fill_at: Literal["signal_close", "next_open"] = "signal_close"
+    fill_at: Literal["signal_close", "next_open", "on_condition"] = "signal_close"
 
 
 class TradingCredentialRequest(BaseModel):
@@ -2336,6 +2342,7 @@ class LoginRequest(BaseModel):
 
 class TelegramChatIdRequest(BaseModel):
     telegram_chat_id: str
+    telegram_signal_chat_id: str | None = None  # None = leave as is
 
 
 def _user_out(user: User) -> dict:
@@ -2343,6 +2350,7 @@ def _user_out(user: User) -> dict:
         "id": user.id,
         "email": user.email,
         "telegram_chat_id": user.telegram_chat_id,
+        "telegram_signal_chat_id": getattr(user, "telegram_signal_chat_id", ""),
         "guest": guest_links.is_guest(user),
     }
 
@@ -2453,7 +2461,14 @@ async def me(user: User | None = Depends(auth.get_current_user_optional)) -> dic
 async def update_telegram_chat_id(
     req: TelegramChatIdRequest, user: User = Depends(auth.get_current_user)
 ) -> dict:
-    updated = auth.set_telegram_chat_id(user.id, req.telegram_chat_id)
+    before = user.telegram_signal_chat_id
+    updated = auth.set_telegram_chat_id(user.id, req.telegram_chat_id, req.telegram_signal_chat_id)
+    if (updated.telegram_signal_chat_id and updated.telegram_signal_chat_id != before
+            and _telegram_allowed(updated)):
+        _fire(telegram.send_to(
+            updated.telegram_signal_chat_id,
+            "✅ Chat dei segnali collegata: da qui in poi gli alert delle strategie arrivano qui.",
+        ))
     if updated.telegram_chat_id and _telegram_allowed(updated):
         # Confirms the chat_id was actually saved and is reachable — sent
         # immediately on save, not the first real alert, so a typo'd id
@@ -6824,7 +6839,21 @@ async def analyze(
             raise HTTPException(status_code=502, detail=str(exc)) from exc
         return tf_key, df
 
-    fetched = await asyncio.gather(*(fetch_timeframe(tf_key) for tf_key in settings.timeframe_keys))
+    async def fetch_weekly():
+        # Bull Market Support Band: always on weekly closes, whatever the chart.
+        # Exchange pairs only: a DEX pool's candle API is rate limited.
+        if asset_type != "crypto":
+            return None
+        try:
+            return await _fetch_cached((f"{asset_type}:{exchange}:{symbol.upper()}", "1w", 300),
+                                       provider, symbol, "1w", 300)
+        except Exception:
+            return None
+
+    fetched, weekly_df = await asyncio.gather(
+        asyncio.gather(*(fetch_timeframe(tf_key) for tf_key in settings.timeframe_keys)),
+        fetch_weekly(),
+    )
 
     timeframes: dict[str, TimeframeAnalysis] = {}
     strategies: dict[str, list[StrategyState]] = {}
@@ -6836,6 +6865,8 @@ async def analyze(
         swings = compute_swings(df, tf_key)
         levels = compute_levels(df, swings)
         indicators = compute_indicators(df)
+        if tf_key == "ltf":
+            indicators += bull_market_support_band(df, weekly_df)
         bias = determine_bias(levels)
         dealing_range = compute_dealing_range(df, swings)
         fib_zones = compute_fib_zones(df, tf_key, intervals[tf_key])

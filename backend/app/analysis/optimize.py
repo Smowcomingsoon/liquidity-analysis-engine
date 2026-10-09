@@ -202,15 +202,19 @@ def _random_exhaustion_params(rng: random.Random, base: dict | None = None) -> d
     }
 
 
+# Segnalazioni 72f880af e 6453f4df (whitekobra): l'ottimizzazione di
+# Gabriele tiene sempre lunghezza RSI 14, lunghezza Bollinger 20 e
+# moltiplicatore 2, qualunque valore ci sia nei campi del Lab, e cerca solo
+# RSI ipercomprato/ipervenduto.
+GABRIELE_FIXED = {"rsi_length": 14, "bb_length": 20, "bb_mult": 2.0}
+GABRIELE_STRATEGIES = ("Gabriele (RSI+BB reversal)", "Gabriele 2 (RSI+BB long/short)")
+
+
 def _random_gabriele_params(rng: random.Random, base: dict | None = None) -> dict:
-    """Solo RSI ipercomprato/ipervenduto sono cercati: lunghezza RSI,
-    lunghezza Bollinger e moltiplicatore restano ai valori di chi cerca
-    (segnalazione 72f880af)."""
-    base = base or {}
+    """Solo RSI ipercomprato/ipervenduto sono cercati; gli altri tre sono
+    sempre GABRIELE_FIXED."""
     return {
-        "rsi_length": base.get("rsi_length", 14),
-        "bb_length": base.get("bb_length", 20),
-        "bb_mult": base.get("bb_mult", 2.0),
+        **GABRIELE_FIXED,
         "rsi_oversold": rng.randint(15, 40),
         "rsi_overbought": rng.randint(60, 85),
     }
@@ -226,9 +230,8 @@ _STRATEGY_SPACES: dict[str, tuple[dict, callable]] = {
 _GRID_GABRIELE = {
     "rsi_oversold":   [18, 22, 26, 30, 35],
     "rsi_overbought": [65, 70, 75, 80, 85],
-}  # 5^2 = 25 combinations — lunghezza RSI/Bollinger e moltiplicatore restano
-   # ai valori di chi cerca (default_params), non sono una dimensione della
-   # griglia (segnalazione 72f880af)
+}  # 5^2 = 25 combinations — lunghezza RSI/Bollinger e moltiplicatore sono
+   # sempre GABRIELE_FIXED, non una dimensione della griglia
 
 _GRID_EXHAUSTION = {
     "swing_length":        [4, 8, 12],
@@ -338,6 +341,8 @@ def optimize_strategy(
     # (per Gabriele: tutto tranne RSI ipercomprato/ipervenduto).
     if base_params:
         default_params = {**default_params, **base_params}
+    if strategy_name in GABRIELE_STRATEGIES:
+        default_params = {**default_params, **GABRIELE_FIXED}
 
     rng = random.Random(seed)
     constraints = constraints or _NO_CONSTRAINTS

@@ -373,3 +373,17 @@ def test_a_resolution_without_a_date_never_wins_over_a_reopen(board):
     board.add_reply(iid, "no", reopen=True)
     _write_resolutions(board, {iid: {"summary": "vecchia", "status": "risolto"}})
     assert board.list_issues()[0]["status"] == "riaperto"
+
+
+def test_closing_a_reopened_issue_by_hand_sticks(board, monkeypatch):
+    """1f8f7246: "Close manually" su una voce riaperta deve chiuderla."""
+    iid = board.add_issue("bug")["id"]
+    _write_resolutions(board, {iid: {"summary": "fatto", "status": "risolto", "at": 100}})
+    board.add_reply(iid, "non è risolto", reopen=True)
+    assert board.list_issues()[0]["status"] == "riaperto"
+    later = board._replies[-1]["created_at"] + 5
+    monkeypatch.setattr(board.time, "time", lambda: later)
+    board.update_issue(iid, status="risolto")
+    assert board.list_issues()[0]["status"] == "risolto"
+    board.update_issue(iid, status="aperto")
+    assert board.list_issues()[0]["status"] == "riaperto"

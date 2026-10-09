@@ -199,13 +199,14 @@ def test_gabriele_only_searches_rsi_overbought_and_oversold():
             assert cs.to_params(u)[key] == pytest.approx(fixed)
 
 
-def test_gabriele_holds_caller_supplied_values():
+def test_gabriele_always_holds_14_20_2():
+    """6453f4df: i valori nei campi non cambiano i tre parametri fissi."""
     st = estimate_series_stats(_series(_ar1(900, 0.2, 21)))
     cs = build_spaces(GABRIELE, st, locked={"rsi_length": 9, "bb_length": 25, "bb_mult": 1.4})[0]
     params = cs.to_params(np.full(cs.d, 0.3))
-    assert params["rsi_length"] == 9
-    assert params["bb_length"] == 25
-    assert params["bb_mult"] == pytest.approx(1.4)
+    assert params["rsi_length"] == 14
+    assert params["bb_length"] == 20
+    assert params["bb_mult"] == pytest.approx(2.0)
 
 
 def test_spaces_record_why_each_constraint_applied_or_did_not():
