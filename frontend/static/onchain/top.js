@@ -108,8 +108,8 @@ function chaptersHtml() {
     const pct = ch == null ? "" : `<em class="${ch >= 0 ? "up" : "down"}">${ch >= 0 ? "+" : "−"}${Math.abs(ch).toFixed(1)}%</em>`;
     return `<section class="chap" data-arena="${escapeHtml(a.key)}">
       <header><h4>${escapeHtml(a.label)}</h4><span>${rows.length} project${rows.length === 1 ? "" : "s"}</span>${pct}</header>
-      <ol class="memes-list" data-top-rows>${(full ? rows : rows.slice(0, CHAP_TOP)).map((e) => row(e, a)).join("")}</ol>
-      ${rows.length > CHAP_TOP + 1 ? `<button type="button" class="chap-more" data-chap-more="${escapeHtml(a.key)}" aria-expanded="${full}">${full ? "Show less" : `Show all ${rows.length}`}</button>` : ""}
+      <ol class="memes-list" id="chap-${escapeHtml(a.key)}" data-top-rows>${(full ? rows : rows.slice(0, CHAP_TOP)).map((e) => row(e, a)).join("")}</ol>
+      ${rows.length > CHAP_TOP + 1 ? `<button type="button" class="chap-more" data-chap-more="${escapeHtml(a.key)}" aria-controls="chap-${escapeHtml(a.key)}" aria-expanded="${full}">${full ? "Show less" : `Show all ${rows.length}`}</button>` : ""}
     </section>`;
   });
   return chaps.join("");
