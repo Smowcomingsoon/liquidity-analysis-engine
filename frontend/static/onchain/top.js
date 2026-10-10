@@ -32,7 +32,7 @@ let filtered = false;   // the last load was narrowed by narrative
 let labels = {};        // narrative key -> label, from the coverage
 // One arena on its own, bench open (Lorenzo, 07/10: "la top aggiornata per
 // ogni categoria"); null shows them all. Remembered per device.
-let only = (() => { try { return localStorage.getItem("lae:arena") || null; } catch { return null; } })();
+let only = null;   // the single-arena list; the mosaic opens arenas in place now (10/10)
 function setOnly(k) { only = k; try { k ? localStorage.setItem("lae:arena", k) : localStorage.removeItem("lae:arena"); } catch { /* private mode */ } }
 
 // Each arena's champion on the last visit (Lorenzo, 28/09: "se rientro dopo
@@ -105,9 +105,10 @@ const SHORT = {
   "Robotics / Physical AI": "Robotics", "Identity / Personhood": "Identity", "AI Data / Oracles": "AI Data",
   "Prediction Markets": "Predictions", "Chain Abstraction": "Chain Abstr.", "AI-Managed Money": "AI Money",
 };
-function mosaicHtml() {
+function mosaicHtml(width = 360) {
   if (!arenas.length) return "";
-  const list = [...arenas].sort((a, b) => (b.key === "privacy") - (a.key === "privacy") || shownCount(b) - shownCount(a));
+  // Privacy is one arena among the others (Lorenzo, 10/10): biggest first, no pin.
+  const list = [...arenas].sort((a, b) => shownCount(b) - shownCount(a));
   const cut = mosaicAll || list.length <= MOSAIC_MAX ? list.length : MOSAIC_MAX - 1;
   const tiles = list.slice(0, cut).map((a, i) => {
     const [c, r] = SPANS[i] ?? [2, 1];
@@ -117,13 +118,14 @@ function mosaicHtml() {
     const top = unhidden(a)[0];
     const lead = top ? `♛ ${escapeHtml(top.symbol ?? "")}` : "searching";
     const pct = ch == null ? "" : ` <span class="${ch >= 0 ? "up" : "down"}">${ch >= 0 ? "+" : "−"}${Math.abs(ch).toFixed(Math.abs(ch) < 10 ? 1 : 0)}%</span>`;
-    return `<button type="button" class="mz${a.key === "privacy" ? " mz-pin" : ""} ${tone}" data-arena-pick="${escapeHtml(a.key)}"
+    const open = a.key === hive;
+    return `<button type="button" class="mz ${tone}${open ? " mz-open" : ""}" data-arena-pick="${escapeHtml(a.key)}" aria-expanded="${open}"
       style="grid-column: span ${c}; grid-row: span ${r}" aria-label="${escapeHtml(a.label)}: ${n} projects">
-      <b>${escapeHtml(SHORT[a.label] || a.label)}</b>${r > 1 ? `<span class="mz-n">${n}<em> projects</em></span><small>${lead}${pct}</small>` : `<small>${n} · ${lead}</small>`}</button>`;
+      <b>${escapeHtml(SHORT[a.label] || a.label)}</b>${r > 1 ? `<span class="mz-n">${n}<em> projects</em></span><small>${lead}${pct}</small>` : `<small>${n} · ${lead}</small>`}</button>${open ? hiveHtml(a, width) : ""}`;
   });
   if (cut < list.length) tiles.push(`<button type="button" class="mz mz-more" data-mosaic-more style="grid-column: span 2">
     <b>+ ${list.length - cut} more</b><small>smaller arenas</small></button>`);
-  return `<p class="mz-intro">Each tile is a narrative: its projects compete only with each other. Tap one for its ranking.</p>
+  return `<p class="mz-intro">Each tile is a narrative: its projects compete only with each other. Tap one to open its projects.</p>
     <div class="mosaic" role="group" aria-label="Arenas">${tiles.join("")}</div>
     <p class="mz-legend"><span>♛ leader · size = projects</span><span><i class="up">■</i> up 24h <i class="down">■</i> down 24h</span></p>`;
 }
@@ -164,13 +166,14 @@ function hiveHtml(a, width = 360) {
       <span class="hx-b">${tile(e.symbol, e.image, e.chain, e.token_address)}</span>
       <small>${i ? "" : "♛ "}${escapeHtml(e.symbol ?? "")}</small></button>`;
   });
-  return `<section class="hive" style="transform-origin: ${hiveFrom}" aria-label="${escapeHtml(a.label)}">
-    <header class="hive-head"><button type="button" class="ar-back" data-hive-close>← All arenas</button>
-      <b>${escapeHtml(a.label)}</b><span>${all.length} projects</span></header>
+  // The mosaic's rows are fixed (48px + gap on the phone, 44 + 4 on desktop): span enough of them.
+  const unit = matchMedia("(max-width: 1099px)").matches ? 56 : 48;
+  const span = Math.ceil(((rows.length ? h : 40) + 90) / unit);
+  return `<section class="hive" style="transform-origin: ${hiveFrom}; grid-row: span ${span}" aria-label="${escapeHtml(a.label)} projects">
+    <header class="hive-head"><b>${escapeHtml(a.label)}</b><span>${all.length} projects</span></header>
     ${rows.length ? `<div class="hive-cells" style="height: ${Math.round(h)}px">${cells.join("")}</div>`
       : `<p class="muted pad">No ${escapeHtml(a.label)} project has passed the checks yet.</p>`}
-    <p class="mz-legend"><span>Tap a project to open it · ring <i class="up">■</i> up <i class="down">■</i> down 24h${all.length > rows.length ? ` · top ${rows.length} shown` : ""}</span>
-      <button type="button" class="hive-list" data-arena-pick="${escapeHtml(a.key)}">Full ranking →</button></p>
+    <p class="hive-foot">Tap a project to open it${all.length > rows.length ? ` · best ${rows.length} of ${all.length}` : ""}</p>
   </section>`;
 }
 const sigma = (z) => `${z >= 0 ? "+" : "−"}${Math.abs(z).toFixed(1)}σ`;
@@ -235,12 +238,11 @@ function paint() {
   // No arena picked: the mosaic of every arena (Lorenzo, 10/10, "Mosaico");
   // one picked: its whole list under a way back.
   const picked = only ? arenas.find((a) => a.key === only) : null;
-  const comb = !picked && hive ? arenas.find((a) => a.key === hive) : null;
-  if (!comb) hive = null;
+  if (hive && !arenas.some((a) => a.key === hive)) hive = null;
   withEntrance(box, () => {
     const html = picked
       ? `<button type="button" class="ar-back" data-arena-pick="">← All arenas</button>${arenaHtml(picked, true)}`
-      : comb ? hiveHtml(comb, box?.clientWidth || 360) : mosaicHtml();
+      : mosaicHtml(box?.clientWidth || 360);
     box.innerHTML = html || `<p class="muted pad">The arenas are filling up: projects appear as they pass the checks.</p>`;
   });
 
@@ -364,16 +366,12 @@ export function mountTop() {
       const box = root.querySelector("[data-top-arenas]").getBoundingClientRect();
       const t = tileHit.getBoundingClientRect();
       hiveFrom = `${Math.round(t.left + t.width / 2 - box.left)}px ${Math.round(t.top + t.height / 2 - box.top)}px`;
-      hive = tileHit.dataset.arenaPick;
+      const key = tileHit.dataset.arenaPick;
+      hive = hive === key ? null : key;        // the same tile again closes it
       paint();
-      root.querySelector("[data-hive-close]")?.focus({ preventScroll: true });
-      return;
-    }
-    if (event.target.closest("[data-hive-close]")) {
-      const back = hive;
-      hive = null;
-      paint();
-      root.querySelector(`[data-arena-pick="${CSS.escape(back ?? "")}"]`)?.focus({ preventScroll: true });
+      const again = root.querySelector(`.mz[data-arena-pick="${CSS.escape(key)}"]`);
+      again?.focus({ preventScroll: true });
+      if (hive) root.querySelector(".hive")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
       return;
     }
     const pick = event.target.closest("[data-arena-pick]");
