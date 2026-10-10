@@ -1485,6 +1485,8 @@ html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { d
 .mz.r1 { background: var(--c-down-soft, rgb(255 107 90 / .14)); } .mz.r2 { background: rgb(255 107 90 / .07); }
 .mz.mz-open { border-color: var(--c-ink, var(--c-amber, #2de2b0)); }
 .mz.mz-more b { color: var(--c-text-2, inherit); }
+.mz.mz-empty { opacity: .55; }
+.mz.mz-empty.mz-open { opacity: 1; }
 .mz:focus-visible, .ar-back:focus-visible { outline: 1px solid var(--c-amber, #2de2b0); outline-offset: 2px; }
 .mz-legend { display: flex; justify-content: space-between; margin: 6px 2px 0; font-size: 10.5px; color: var(--c-text-3, var(--k-text-3)); }
 .mz-legend i { font-style: normal; } .mz-legend .up { color: var(--c-up, #2de2b0); } .mz-legend .down { color: var(--c-down, #ff6b5a); }
