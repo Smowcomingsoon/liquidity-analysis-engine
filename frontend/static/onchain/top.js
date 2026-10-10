@@ -312,9 +312,10 @@ export function mountTop() {
     if (event.target.closest("[data-top-narr-clear]")) { narr.set([]); return; }
     const pick = event.target.closest("[data-arena-pick]");
     if (pick) {
+      const back = only;
       setOnly(pick.dataset.arenaPick || null);
       paint();
-      root.querySelector(only ? ".ar-back" : `[data-arena-pick="${CSS.escape(pick.dataset.arenaPick)}"]`)?.focus({ preventScroll: true });
+      root.querySelector(only ? ".ar-back" : `[data-arena-pick="${CSS.escape(back ?? "")}"]`)?.focus({ preventScroll: true });
       if (only) root.querySelector("[data-top-arenas]")?.scrollIntoView({ block: "start" });
       return;
     }
