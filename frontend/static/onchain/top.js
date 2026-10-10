@@ -86,6 +86,44 @@ async function sequence(changes, crowns) {
 const heatBar = (h) => `<span class="ar-heat" aria-label="Narrative heat ${h} of 3">${"█".repeat(h)}${"░".repeat(Math.max(0, 3 - h))}</span>`;
 // What the tile counts is what the list shows: tokens hidden by the user left out.
 const shownCount = (a) => a.entries.filter((e) => !isHidden(e.chain, e.token_address)).length;
+// The mosaic: the biggest arenas take the biggest tiles, privacy first;
+// the colour is how the arena's projects moved in 24 hours (their median).
+const SPANS = [[4, 3], [2, 3], [3, 2], [3, 2], [2, 2], [2, 2], [2, 2]];
+const MOSAIC_MAX = 13;     // tiles before "+ N more"
+let mosaicAll = false;
+function move(a) {
+  const xs = a.entries.map((e) => e.change_24h).filter((v) => v != null).sort((x, y) => x - y);
+  if (!xs.length) return null;
+  const m = xs.length >> 1;
+  return xs.length % 2 ? xs[m] : (xs[m - 1] + xs[m]) / 2;
+}
+const SHORT = {
+  "Perps & Derivatives": "Perps", "Chains L0/L1/L2": "Chains", "Stablecoin Payments": "Payments",
+  "Wallets & Account Abstraction": "Wallets", "NFT & Collectibles": "NFT", "Lending & Credit": "Lending",
+  "Music & Media": "Music", "Dev Tools & RPC": "Dev tools", "Yield & Vaults": "Yield",
+  "Robotics / Physical AI": "Robotics", "Identity / Personhood": "Identity", "AI Data / Oracles": "AI Data",
+  "Prediction Markets": "Predictions", "Chain Abstraction": "Chain Abstr.", "AI-Managed Money": "AI Money",
+};
+function mosaicHtml() {
+  if (!arenas.length) return "";
+  const list = [...arenas].sort((a, b) => (b.key === "privacy") - (a.key === "privacy") || shownCount(b) - shownCount(a));
+  const cut = mosaicAll || list.length <= MOSAIC_MAX ? list.length : MOSAIC_MAX - 1;
+  const tiles = list.slice(0, cut).map((a, i) => {
+    const [c, r] = SPANS[i] ?? [2, 1];
+    const n = shownCount(a);
+    const ch = move(a);
+    const tone = ch == null ? "" : ch >= 3 ? "g1" : ch >= 0.5 ? "g2" : ch <= -3 ? "r1" : ch <= -0.5 ? "r2" : "";
+    const lead = a.entries[0] ? `♛ ${escapeHtml(a.entries[0].symbol ?? "")}` : "searching";
+    const pct = ch == null ? "" : ` <span class="${ch >= 0 ? "up" : "down"}">${ch >= 0 ? "+" : "−"}${Math.abs(ch).toFixed(Math.abs(ch) < 10 ? 1 : 0)}%</span>`;
+    return `<button type="button" class="mz${a.key === "privacy" ? " mz-pin" : ""} ${tone}" data-arena-pick="${escapeHtml(a.key)}"
+      style="grid-column: span ${c}; grid-row: span ${r}" aria-label="${escapeHtml(a.label)}: ${n} projects">
+      <b>${escapeHtml(SHORT[a.label] || a.label)}</b>${r > 1 ? `<span class="mz-n">${n}</span><small>${lead}${pct}</small>` : `<small>${n} · ${lead}</small>`}</button>`;
+  });
+  if (cut < list.length) tiles.push(`<button type="button" class="mz mz-more" data-mosaic-more style="grid-column: span 2">
+    <b>+ ${list.length - cut} more</b><small>smaller arenas</small></button>`);
+  return `<div class="mosaic" role="group" aria-label="Arenas">${tiles.join("")}</div>
+    <p class="mz-legend"><span>size = projects</span><span><i class="up">■</i> up 24h <i class="down">■</i> down 24h</span></p>`;
+}
 const sigma = (z) => `${z >= 0 ? "+" : "−"}${Math.abs(z).toFixed(1)}σ`;
 
 function row(e, a) {
@@ -145,11 +183,13 @@ function paint() {
 
   const box = root.querySelector("[data-top-arenas]");
   if (only && !arenas.some((a) => a.key === only)) setOnly(null);
-  const chips = arenas.length > 1 ? `<div class="ar-chips" role="group" aria-label="Arena">${[{ key: "", label: "All", entries: arenas.flatMap((x) => x.entries) }, ...arenas]
-    .map((a) => `<button type="button" class="ar-tile" data-arena-pick="${escapeHtml(a.key)}" aria-pressed="${(only ?? "") === a.key}">
-      <b>${escapeHtml(a.label)}</b><span class="ar-n">${shownCount(a)}</span><small>${a.key ? (a.entries[0] ? `♛ ${escapeHtml(a.entries[0].symbol ?? "")}` : "searching") : `${arenas.length} arenas`}</small></button>`).join("")}</div>` : "";
+  // No arena picked: the mosaic of every arena (Lorenzo, 10/10, "Mosaico");
+  // one picked: its whole list under a way back.
+  const picked = only ? arenas.find((a) => a.key === only) : null;
   withEntrance(box, () => {
-    const html = chips + (only ? arenaHtml(arenas.find((a) => a.key === only), true) : arenas.map((a) => arenaHtml(a)).join(""));
+    const html = picked
+      ? `<button type="button" class="ar-back" data-arena-pick="">← All arenas</button>${arenaHtml(picked, true)}`
+      : mosaicHtml();
     box.innerHTML = html || `<p class="muted pad">The arenas are filling up: projects appear as they pass the checks.</p>`;
   });
 
@@ -272,9 +312,11 @@ export function mountTop() {
     if (pick) {
       setOnly(pick.dataset.arenaPick || null);
       paint();
-      root.querySelector(`[data-arena-pick="${CSS.escape(only ?? "")}"]`)?.focus({ preventScroll: true });
+      root.querySelector(only ? ".ar-back" : `[data-arena-pick="${CSS.escape(pick.dataset.arenaPick)}"]`)?.focus({ preventScroll: true });
+      if (only) root.querySelector("[data-top-arenas]")?.scrollIntoView({ block: "start" });
       return;
     }
+    if (event.target.closest("[data-mosaic-more]")) { mosaicAll = true; paint(); return; }
     if (event.target.closest("[data-top-wallet]")) { import("@onchain/sim-backtest.js").then((m) => m.openSimBacktest()); }
   });
   onHiddenChange(paint);

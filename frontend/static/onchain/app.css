@@ -1468,18 +1468,28 @@ html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { d
 .ar-bench > summary::before { content: "+ "; }
 .ar-bench[open] > summary::before { content: "− "; }
 .ar-bench > summary:focus-visible { outline: 1px solid var(--c-amber, #2de2b0); outline-offset: 2px; }
-.ar-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-block: 2px 4px; }
-.ar-chips::-webkit-scrollbar { display: none; }
-.ar-tile { flex: none; display: grid; grid-template-columns: auto auto; justify-content: space-between; gap: 2px 12px;
-  min-inline-size: 112px; padding: 8px 10px; text-align: start; cursor: pointer; font: inherit;
-  background: var(--c-card, transparent); color: var(--c-text-2, inherit); border: 1px solid var(--c-line, var(--k-line)); border-radius: 2px;
-  transition: border-color .15s, background-color .15s; }
-.ar-tile b { font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; color: var(--c-text, inherit); }
-.ar-tile .ar-n { font-size: 11px; font-variant-numeric: tabular-nums; color: var(--c-text-3, var(--k-text-3)); }
-.ar-tile small { grid-column: 1 / -1; font-size: 10.5px; color: var(--c-text-3, var(--k-text-3)); white-space: nowrap; }
-.ar-tile[aria-pressed="true"] { border-color: var(--c-amber, #2de2b0); background: var(--c-amber-soft, transparent); }
-.ar-tile[aria-pressed="true"] :is(b, small) { color: var(--c-amber, #2de2b0); }
-.ar-tile:focus-visible { outline: 1px solid var(--c-amber, #2de2b0); outline-offset: 2px; }
+/* The arena mosaic (top.js mosaicHtml): tile size by projects, tint by the 24h move. */
+.mosaic { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: 44px; gap: 4px; grid-auto-flow: dense; }
+.mz { display: flex; flex-direction: column; justify-content: space-between; min-inline-size: 0; overflow: hidden; padding: 7px 8px;
+  text-align: start; font: inherit; cursor: pointer; color: var(--c-text, inherit);
+  background: var(--c-card, transparent); border: 1px solid var(--c-line, var(--k-line)); border-radius: 2px;
+  transition: border-color .15s, transform .15s; }
+.mz:active { transform: scale(.98); }
+.mz b { font-size: 11px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mz .mz-n { font-size: 22px; line-height: 1; font-variant-numeric: tabular-nums; }
+.mz small { font-size: 10px; color: var(--c-text-3, var(--k-text-3)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.mz small .up { color: var(--c-up, #2de2b0); } .mz small .down { color: var(--c-down, #ff6b5a); }
+.mz.g1 { background: rgb(127 209 127 / .16); } .mz.g2 { background: rgb(127 209 127 / .07); }
+.mz.r1 { background: rgb(255 107 90 / .14); } .mz.r2 { background: rgb(255 107 90 / .07); }
+.mz.mz-pin { border-color: var(--c-amber, #2de2b0); background: var(--c-amber-soft, transparent); }
+.mz.mz-pin :is(b, .mz-n) { color: var(--c-amber, #2de2b0); }
+.mz.mz-more b { color: var(--c-text-2, inherit); }
+.mz:focus-visible, .ar-back:focus-visible { outline: 1px solid var(--c-amber, #2de2b0); outline-offset: 2px; }
+.mz-legend { display: flex; justify-content: space-between; margin: 6px 2px 0; font-size: 10.5px; color: var(--c-text-3, var(--k-text-3)); }
+.mz-legend i { font-style: normal; } .mz-legend .up { color: var(--c-up, #2de2b0); } .mz-legend .down { color: var(--c-down, #ff6b5a); }
+.ar-back { justify-self: start; padding: 6px 2px; font: inherit; font-size: 12px; letter-spacing: .04em; cursor: pointer;
+  background: none; border: 0; color: var(--c-amber, #2de2b0); }
+@media (prefers-reduced-motion: reduce) { .mz { transition: none; } .mz:active { transform: none; } }
 
 /* iPhone in a Safari tab: notifications need the app on the home screen (bg.js). */
 .bg-hint { position: fixed; z-index: 60; inset: calc(env(safe-area-inset-top) + 10px) 12px auto;

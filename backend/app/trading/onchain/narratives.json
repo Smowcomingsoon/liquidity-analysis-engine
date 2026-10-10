@@ -685,6 +685,262 @@
   "weak": []
  },
  {
+  "key": "dex_amm",
+  "label": "DEX & AMM",
+  "heat": 2,
+  "why": "Decentralized exchanges and AMMs are where on-chain volume lives; new designs (concentrated liquidity, hooks, intents) keep winning share.",
+  "terms": [
+   "decentrali[sz]ed exchange",
+   "\\bamm\\b",
+   "automated market maker",
+   "concentrated liquidity",
+   "liquidity pools?",
+   "\\bdex aggregator",
+   "order ?book dex",
+   "\\bswap (protocol|aggregator)"
+  ],
+  "coingecko": [
+   "decentralized-exchange"
+  ],
+  "github": [],
+  "weak": [
+   "liquidity pools?",
+   "\\bamm\\b"
+  ]
+ },
+ {
+  "key": "perps_derivatives",
+  "label": "Perps & Derivatives",
+  "heat": 2,
+  "why": "Perpetual futures and on-chain options are the largest DeFi revenue line after spot trading.",
+  "terms": [
+   "perpetual (futures|swaps?|exchange|dex)",
+   "\\bperps?\\b (dex|exchange|trading|protocol)",
+   "on[- ]?chain (options|derivatives)",
+   "options (protocol|vaults?)",
+   "leveraged trading",
+   "up to \\d+x leverage"
+  ],
+  "coingecko": [
+   "perpetuals",
+   "derivatives"
+  ],
+  "github": [],
+  "weak": [
+   "leveraged trading"
+  ]
+ },
+ {
+  "key": "lending_credit",
+  "label": "Lending & Credit",
+  "heat": 1,
+  "why": "Money markets and on-chain credit turn idle tokens into collateral and yield.",
+  "terms": [
+   "lending (protocol|market|pool)s?",
+   "money markets?",
+   "borrow(ing)? (and|&) lend(ing)?",
+   "lend(ing)? (and|&) borrow(ing)?",
+   "undercollaterali[sz]ed",
+   "on[- ]?chain credit",
+   "\\bcdp\\b"
+  ],
+  "coingecko": [
+   "lending-borrowing"
+  ],
+  "github": [],
+  "weak": [
+   "\\bcdp\\b"
+  ]
+ },
+ {
+  "key": "yield_vaults",
+  "label": "Yield & Vaults",
+  "heat": 1,
+  "why": "Vaults and yield aggregators package DeFi strategies for people who do not run them by hand.",
+  "terms": [
+   "yield (aggregator|optimi[sz]er|vaults?|strateg(y|ies))",
+   "auto[- ]?compound(ing|er)?",
+   "(strategy|structured) vaults?",
+   "real yield"
+  ],
+  "coingecko": [
+   "yield-aggregator",
+   "yield-farming"
+  ],
+  "github": [],
+  "weak": [
+   "real yield"
+  ]
+ },
+ {
+  "key": "liquid_staking",
+  "label": "Liquid Staking",
+  "heat": 1,
+  "why": "Liquid staking tokens keep staked assets usable in DeFi and are the base layer of restaking.",
+  "terms": [
+   "liquid staking",
+   "liquid staked",
+   "\\blsts?\\b",
+   "staking derivatives?"
+  ],
+  "coingecko": [
+   "liquid-staking-tokens"
+  ],
+  "github": [],
+  "weak": [
+   "\\blsts?\\b"
+  ]
+ },
+ {
+  "key": "launchpads",
+  "label": "Launchpads",
+  "heat": 1,
+  "why": "Launchpads decide which new tokens get a market; the good ones vet projects and lock liquidity.",
+  "terms": [
+   "\\blaunch ?pad\\b",
+   "token launch(es)? platform",
+   "\\bido platform",
+   "fair launch platform",
+   "bonding curve launch"
+  ],
+  "coingecko": [
+   "launchpad"
+  ],
+  "github": [],
+  "weak": []
+ },
+ {
+  "key": "bridges",
+  "label": "Bridges",
+  "heat": 1,
+  "why": "Bridges move assets and messages between chains; security is the whole product.",
+  "terms": [
+   "cross[- ]chain bridge",
+   "\\bbridg(e|ing) (protocol|assets?|tokens?)",
+   "messaging protocol",
+   "cross[- ]chain messaging"
+  ],
+  "coingecko": [],
+  "github": [],
+  "weak": []
+ },
+ {
+  "key": "wallets_aa",
+  "label": "Wallets & Account Abstraction",
+  "heat": 2,
+  "why": "Smart wallets, passkeys and account abstraction remove seed phrases and gas from the user's way.",
+  "terms": [
+   "smart (contract )?wallets?",
+   "account abstraction",
+   "\\berc[- ]?4337\\b",
+   "passkey wallets?",
+   "non[- ]custodial wallet",
+   "embedded wallets?",
+   "gasless transactions?"
+  ],
+  "coingecko": [
+   "wallets"
+  ],
+  "github": [],
+  "weak": [
+   "non[- ]custodial wallet"
+  ]
+ },
+ {
+  "key": "dev_tools",
+  "label": "Dev Tools & RPC",
+  "heat": 1,
+  "why": "RPC, indexing and developer tooling are the picks and shovels every app on a chain pays for.",
+  "terms": [
+   "\\brpc (provider|nodes?|infrastructure|endpoints?)",
+   "node infrastructure",
+   "developer (tools|tooling|platform|sdk)",
+   "\\bindexer\\b",
+   "indexing (protocol|service)",
+   "\\bsdk for\\b"
+  ],
+  "coingecko": [],
+  "github": [],
+  "weak": [
+   "\\bindexer\\b",
+   "\\bsdk for\\b"
+  ]
+ },
+ {
+  "key": "storage",
+  "label": "Storage",
+  "heat": 1,
+  "why": "Decentralized storage keeps data available without a single cloud provider.",
+  "terms": [
+   "decentrali[sz]ed storage",
+   "(permanent|persistent) storage",
+   "storage network",
+   "\\bipfs\\b",
+   "file ?coin",
+   "data storage (protocol|layer)"
+  ],
+  "coingecko": [
+   "storage"
+  ],
+  "github": [],
+  "weak": [
+   "\\bipfs\\b"
+  ]
+ },
+ {
+  "key": "gaming",
+  "label": "Gaming",
+  "heat": 1,
+  "why": "On-chain games and gaming infrastructure bring users who come for play, not for yield.",
+  "terms": [
+   "web3 gam(e|es|ing)",
+   "on[- ]?chain gam(e|es|ing)",
+   "play[- ]to[- ]earn",
+   "blockchain gam(e|es|ing)",
+   "gaming (platform|studio|guild)",
+   "\\bmmorpg\\b"
+  ],
+  "coingecko": [
+   "gaming"
+  ],
+  "github": [],
+  "weak": []
+ },
+ {
+  "key": "nft_collectibles",
+  "label": "NFT & Collectibles",
+  "heat": 1,
+  "why": "NFT markets and digital collectibles, from art to tokenized trading cards.",
+  "terms": [
+   "\\bnft (marketplace|platform|launchpad|collections?)",
+   "digital collectibles",
+   "\\bnft[- ]?fi\\b",
+   "ordinals? (marketplace|protocol)"
+  ],
+  "coingecko": [
+   "non-fungible-tokens-nft"
+  ],
+  "github": [],
+  "weak": []
+ },
+ {
+  "key": "music_media",
+  "label": "Music & Media",
+  "heat": 1,
+  "why": "Artists and media owning their distribution: streaming, royalties and creator tokens.",
+  "terms": [
+   "music (streaming|nfts?|royalt(y|ies)|platform)",
+   "artists? (royalt(y|ies)|own(ership)?)",
+   "(video|media) streaming platform",
+   "decentrali[sz]ed (music|video|media)"
+  ],
+  "coingecko": [
+   "music"
+  ],
+  "github": [],
+  "weak": []
+ },
+ {
   "key": "meme_dogs",
   "kind": "meme",
   "label": "Dog Memes",
