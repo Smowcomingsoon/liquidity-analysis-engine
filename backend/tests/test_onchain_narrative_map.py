@@ -68,3 +68,4 @@ def test_rows_mapped_before_the_catalogue_grew_are_asked_again():
 
     out = asyncio.run(nm.step(nm.CATALOGUE_AT + 3600, ask=ask))
     assert out == {"solana:T0": ["rwa", "dex_amm"]}                         # old keys kept
+    assert db.need_narratives(10, before=nm.CATALOGUE_AT) == []             # out of the queue
