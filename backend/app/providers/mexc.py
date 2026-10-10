@@ -23,6 +23,7 @@ _QUOTE_ASSETS = ["USDT", "USDC", "FDUSD", "TUSD", "DAI", "BTC", "ETH"]
 _MAX_SUGGESTIONS = 25
 
 _symbols_cache: TTLCache = TTLCache(maxsize=1, ttl=3600)
+_last_good: dict[str, list[dict]] = {}
 
 
 def format_symbol(symbol: str) -> str:
@@ -121,21 +122,39 @@ class MexcProvider(DataProvider):
             return df[["open", "high", "low", "close", "volume"]]
         return df[["open", "high", "low", "close", "volume"]].tail(outputsize)
 
+    async def _listed_symbols(self) -> list[dict]:
+        """MEXC's pair list, re-read every hour so new listings and delistings
+        show up on their own. A failed or empty read keeps the last good list
+        instead of caching nothing for an hour."""
+        symbols = _symbols_cache.get("all")
+        if symbols is not None:
+            return symbols
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.get(f"{self._base_url}/api/v3/exchangeInfo")
+            payload = resp.json()
+            fresh = payload.get("symbols", []) if isinstance(payload, dict) else []
+        except Exception:  # noqa: BLE001 — network/JSON failure falls back below
+            fresh = []
+        if fresh:
+            _symbols_cache["all"] = fresh
+            _last_good["all"] = fresh
+            return fresh
+        return _last_good.get("all", [])
+
     async def search_symbols(self, query: str) -> list[dict]:
         query = query.strip()
         if not query:
             return []
 
-        symbols = _symbols_cache.get("all")
-        if symbols is None:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.get(f"{self._base_url}/api/v3/exchangeInfo")
-            payload = resp.json()
-            symbols = payload.get("symbols", []) if isinstance(payload, dict) else []
-            _symbols_cache["all"] = symbols
+        symbols = await self._listed_symbols()
 
         q = query.upper().replace("/", "")
-        all_spot = [s for s in symbols if s.get("isSpotTradingAllowed")]
+        # status "1" = listed and trading. isSpotTradingAllowed only says
+        # whether the pair takes *API* orders: ~80 live pairs have it false
+        # (RAINUSDT, USDEUSDT...) yet trade on the site and serve klines, and
+        # filtering on it hid them from search (segnalazione 7410bba2).
+        all_spot = [s for s in symbols if s.get("status") == "1"]
         starts = [s for s in all_spot if s.get("symbol", "").startswith(q)]
         contains = [s for s in all_spot if q in s.get("symbol", "") and not s.get("symbol", "").startswith(q)]
         matches = starts + contains

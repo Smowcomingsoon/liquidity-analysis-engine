@@ -2661,5 +2661,29 @@
     "at": 1791580711,
     "summary": "Lab e Analizza ora mostrano la stessa cosa in entrambi i versi. Aprendo il Lab prende dal grafico pair, timeframe, strategia e parametri; tornando su Analizza dal Lab, il grafico prende pair, timeframe, strategia e parametri del Lab e ricalcola. Prima il Lab copiava solo il ticker e il grafico si aggiornava solo col tasto Apply.",
     "detail": "frontend/static/app.js syncLabFromChart, syncChartFromLab, setArea"
+  },
+  "e67ae945": {
+    "status": "risolto",
+    "at": 1791634492,
+    "summary": "Ogni backtest e ogni ottimizzazione nel Lab partono da una colonna risultati vuota: spariscono numeri, curva, trade aperti, mappa dei candidati, dati usati, gate di regime, rami e stato dell'alert della prova precedente. Prima il backtest nascondeva solo il blocco risultato e la striscia Apply, e i riquadri dell'ottimizzazione precedente restavano sotto il nuovo risultato.",
+    "detail": "frontend/static/app.js clearLabResults (runLabBacktest, runLabOptimize)"
+  },
+  "87cc755b": {
+    "status": "risolto",
+    "at": 1791634492,
+    "summary": "Lab e Analizza si passano anche l'exchange, oltre a pair, timeframe, strategia e parametri, in entrambi i versi e anche da telefono. Prima l'exchange non passava mai: il Lab leggeva un campo del grafico che non esiste. Ora lo sincronizza anche quando il pair e' lo stesso, e tornando su Analizza il grafico ricalcola se cambia solo l'exchange.",
+    "detail": "frontend/static/app.js syncLabFromChart (state.cryptoExchange), syncChartFromLab, showMobileScreen"
+  },
+  "7410bba2": {
+    "status": "risolto",
+    "at": 1791634492,
+    "summary": "La ricerca scartava 79 coppie MEXC attive (es. RAINUSDT, $2,2M di volume, USDEUSDT, JGGLUSDT): MEXC le segna come non negoziabili via API, ma si scambiano sul sito e hanno grafico. Ora entrano tutte le coppie quotate. La lista MEXC si rilegge da sola ogni ora (meglio dei 7 giorni chiesti), quindi nuovi listing e delisting compaiono senza intervento; se una lettura fallisce resta l'ultima buona invece di sparire per un'ora.",
+    "detail": "backend/app/providers/mexc.py _listed_symbols, filtro status=='1'; tests/test_mexc_symbols.py"
+  },
+  "7f9cd5ed": {
+    "status": "risolto",
+    "at": 1791634492,
+    "summary": "In Levels > Structure & Liquidity c'e' 'Elliott Waves': sul grafico disegna le onde d'impulso 1-5 e le correttive a-b-c trovate sullo zigzag (pivot a 10 candele), tratteggiate finche' l'ultimo punto puo' ancora muoversi o se la correzione rompe l'inizio dell'impulso, e i ritracciamenti di Fibonacci 0.5 / 0.618 / 0.764 / 0.854 dell'ultimo impulso. Regole dalla descrizione dell'indicatore LuxAlgo indicato (onda 2 non oltre l'inizio dell'1, onda 4 fuori dal territorio dell'1, onda 3 mai la piu' corta), codice scritto da zero. Gli alert dell'originale non ci sono.",
+    "detail": "frontend/static/elliott.js, app.js applyElliott/renderElliott, index.html; tests/test_elliott_js.py"
   }
 }

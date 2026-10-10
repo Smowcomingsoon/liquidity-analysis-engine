@@ -27,6 +27,12 @@ Seguito (Lorenzo: "altri punti aperti da white kobra"):
 - `411e4c7c` Lab <-> Analizza: `syncLabFromChart` all'ingresso nel Lab, `syncChartFromLab` tornando su Analizza (pair, timeframe, strategia, parametri).
 - Restano in corso, non toccate: `seed-0054`, `seed-0051`, `seed-0028`.
 
+Seguito 10/10 (Lorenzo: "quelle nuove ?"): 4 voci di white kobra del 09/10 sera.
+- `e67ae945` Lab: `clearLabResults()` svuota tutta la colonna risultati prima di backtest e ottimizzazione.
+- `87cc755b` exchange Analizza <-> Lab: il grafico tiene l'exchange in `state.cryptoExchange` (non `state.exchange`); sync anche su telefono (`showMobileScreen`, Lab = schermata "backtest").
+- `7410bba2` MEXC: filtro `status == "1"` invece di `isSpotTradingAllowed` (79 coppie vive escluse). Lista riletta ogni ora, ultima buona tenuta se la lettura fallisce. Niente job settimanale: l'ora basta.
+- `7f9cd5ed` Elliott Waves: `frontend/static/elliott.js` (classic script, anche `require` per i test), disegno su canvas come le divergenze. Senza alert.
+
 # 2026-10-08 — Permanenza minima nelle arene — `seed-0261` (Claude, a mano)
 
 Lorenzo: "se una crypto e' comparsa tra le migliori, anche se poi viene surclassata; deve rimanerci per almeno 2-3 gg prima di essere espulsa". Default scelto: 3 giorni dall'ingresso (`arenas.TENURE_S`). Un progetto che va sopra la mediana della sua arena ("in") viene segnato in `data/onchain_arena_tenure.json`; se poi scende sotto la mediana resta "in" (`held: true`) fino a 3 giorni dall'ingresso, contati dal primo ingresso e non rinnovati. Uscire dal pool (cancelli, scarto, rug) toglie subito la permanenza. Si scrive solo dalla vista senza filtro narrativa. Podio, ordine, Telegram "Entrati/Usciti" (che guarda il pool), backtest e portafoglio invariati. Il frontend non mostra ancora un segno per le righe `held`.

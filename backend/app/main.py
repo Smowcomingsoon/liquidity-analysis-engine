@@ -8616,6 +8616,7 @@ def _compute_asset_version() -> str:
         parts = [
             (FRONTEND_DIR / "static" / "style.css").read_bytes(),
             (FRONTEND_DIR / "static" / "app.js").read_bytes(),
+            (FRONTEND_DIR / "static" / "elliott.js").read_bytes(),
             (FRONTEND_DIR / "static" / "onchain-embed.css").read_bytes(),
             (FRONTEND_DIR / "static" / "engn-system.css").read_bytes(),
             (FRONTEND_DIR / "static" / "engn-landing.css").read_bytes(),
@@ -8669,6 +8670,7 @@ _INDEX_HTML = (
     .read_text(encoding="utf-8")
     .replace('href="/static/style.css"', f'href="/static/style.css?v={_ASSET_VERSION}"')
     .replace('src="/static/app.js"', f'src="/static/app.js?v={_ASSET_VERSION}"')
+    .replace('src="/static/elliott.js"', f'src="/static/elliott.js?v={_ASSET_VERSION}"')
     .replace(
         "</head>",
         f'<meta name="lae-asset-version" content="{_ASSET_VERSION}" />\n'
