@@ -1468,31 +1468,19 @@ html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { d
 .ar-bench > summary::before { content: "+ "; }
 .ar-bench[open] > summary::before { content: "− "; }
 .ar-bench > summary:focus-visible { outline: 1px solid var(--c-amber, #2de2b0); outline-offset: 2px; }
-/* The arena mosaic (top.js mosaicHtml): tile size by projects, tint by the 24h move. */
-.mosaic { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: 44px; gap: 4px; grid-auto-flow: dense; }
-.mz { display: flex; flex-direction: column; justify-content: space-between; min-inline-size: 0; overflow: hidden; padding: 7px 8px;
-  text-align: start; font: inherit; cursor: pointer; color: var(--c-text, inherit);
-  background: var(--c-card, transparent); border: 1px solid var(--c-line, var(--k-line)); border-radius: var(--mz-r, 2px);
-  transition: border-color .15s, transform .15s; }
-.mz:active { transform: scale(.98); }
-.mz b { font-size: var(--mz-b, 11px); font-weight: 500; letter-spacing: var(--mz-ls, .05em); text-transform: var(--mz-case, uppercase); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mz .mz-n { font-size: 22px; line-height: 1; font-variant-numeric: tabular-nums; }
-.mz .mz-n em { font-style: normal; font-size: 10px; letter-spacing: .04em; color: var(--c-text-3, var(--k-text-3)); }
-.mz-intro { margin: 0 2px 8px; font-size: 12px; line-height: 1.4; color: var(--c-text-2, var(--k-text-2)); }
-.mz small { font-size: 10px; color: var(--c-text-3, var(--k-text-3)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.mz small .up { color: var(--c-up, #2de2b0); } .mz small .down { color: var(--c-down, #ff6b5a); }
-.mz.g1 { background: var(--c-up-soft, rgb(127 209 127 / .16)); } .mz.g2 { background: rgb(127 209 127 / .07); }
-.mz.r1 { background: var(--c-down-soft, rgb(255 107 90 / .14)); } .mz.r2 { background: rgb(255 107 90 / .07); }
-.mz.mz-open { border-color: var(--c-ink, var(--c-amber, #2de2b0)); }
-.mz.mz-more b { color: var(--c-text-2, inherit); }
-.mz:focus-visible, .ar-back:focus-visible { outline: 1px solid var(--c-amber, #2de2b0); outline-offset: 2px; }
-.mz-legend { display: flex; justify-content: space-between; margin: 6px 2px 0; font-size: 10.5px; color: var(--c-text-3, var(--k-text-3)); }
-.mz-legend i { font-style: normal; } .mz-legend .up { color: var(--c-up, #2de2b0); } .mz-legend .down { color: var(--c-down, #ff6b5a); }
+/* The arenas as chapters of one list (top.js chaptersHtml). */
+.chap { display: grid; gap: 4px; margin-block-start: 18px; }
+.chap > header { display: flex; align-items: baseline; gap: 8px; padding-inline: 2px; }
+.chap > header h4 { margin: 0; font-size: 16px; font-weight: 600; }
+.chap > header span { font-size: 12px; color: var(--c-text-2, var(--k-text-2)); }
+.chap > header em { margin-inline-start: auto; font-style: normal; font-size: 12px; font-variant-numeric: tabular-nums; }
+.chap > header .up { color: var(--c-up, #2de2b0); } .chap > header .down { color: var(--c-down, #ff6b5a); }
+.chap-more { justify-self: center; padding: 8px 16px; font: inherit; font-size: 13px; cursor: pointer; border: 0; border-radius: 99px;
+  background: var(--c-pill, transparent); color: var(--c-text-2, var(--k-text-2)); }
+.chap-more:focus-visible { outline: 1px solid var(--c-amber, #2de2b0); outline-offset: 2px; }
 .ar-back { justify-self: start; padding: 6px 2px; font: inherit; font-size: 12px; letter-spacing: .04em; cursor: pointer;
   background: none; border: 0; color: var(--c-amber, #2de2b0); }
-.ar-open { margin-block-start: 14px; scroll-margin-block-start: 12px; animation: ar-open-in .22s ease-out both; }
-@keyframes ar-open-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .mz { transition: none; } .mz:active { transform: none; } .ar-open { animation: none; } }
+.ar-back:focus-visible { outline: 1px solid var(--c-amber, #2de2b0); outline-offset: 2px; }
 
 /* iPhone in a Safari tab: notifications need the app on the home screen (bg.js). */
 .bg-hint { position: fixed; z-index: 60; inset: calc(env(safe-area-inset-top) + 10px) 12px auto;
@@ -1504,13 +1492,4 @@ html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { d
 .bg-hint button { flex: none; border: 0; background: none; color: inherit; font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
 @keyframes bg-hint-in { from { opacity: 0; transform: translateY(-8px); } }
 @media (prefers-reduced-motion: reduce) { .bg-hint { animation: none; } }
-/* The phone skin (classic.css, Nordic, 10/10): mosaic in the
-   same cards as the rest of the app, big soft radii, no borders, sentence case. */
-@media (max-width: 1099px) {
-  .mosaic { --mz-r: 16px; --mz-r-big: 20px; --mz-case: none; --mz-b: 14px; --mz-ls: 0; }
-  .mosaic { gap: 8px; grid-auto-rows: 48px; }
-  .mz { border-color: transparent; }
-  .mz { padding: 10px 12px; }
-  .mz.mz-open { border-color: var(--c-ink, currentColor); }
-  .mz .mz-n { font-size: 26px; font-weight: 500; }
 }

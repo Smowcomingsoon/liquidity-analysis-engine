@@ -32,7 +32,7 @@ let filtered = false;   // the last load was narrowed by narrative
 let labels = {};        // narrative key -> label, from the coverage
 // One arena on its own, bench open (Lorenzo, 07/10: "la top aggiornata per
 // ogni categoria"); null shows them all. Remembered per device.
-let only = null;   // the single-arena list; the mosaic opens arenas in place now (10/10)
+let only = null;   // the single-arena list; arenas now open in place as chapters (10/10)
 function setOnly(k) { only = k; try { k ? localStorage.setItem("lae:arena", k) : localStorage.removeItem("lae:arena"); } catch { /* private mode */ } }
 
 // Each arena's champion on the last visit (Lorenzo, 28/09: "se rientro dopo
@@ -87,53 +87,33 @@ const heatBar = (h) => `<span class="ar-heat" aria-label="Narrative heat ${h} of
 // What the tile counts is what the list shows: tokens hidden by the user left out.
 const unhidden = (a) => a.entries.filter((e) => !isHidden(e.chain, e.token_address));
 const shownCount = (a) => unhidden(a).length;
-// The mosaic: the biggest arenas take the biggest tiles, privacy first;
-// the colour is how the arena's projects moved in 24 hours (their median).
-const SPANS = [[4, 3], [2, 3], [3, 2], [3, 2], [2, 2], [2, 2], [2, 2]];
-const MOSAIC_MAX = 13;     // tiles before "+ N more"
-let mosaicAll = false;
+// The arenas as chapters of one list (Lorenzo, 10/10, "B a capitoli"): the
+// biggest first, each with its best three; "Show all" lengthens it in place.
+// No mosaic, no sub-menu. The 24h figure is the median move of its projects.
+const CHAP_TOP = 3;
+const longer = new Set();   // arena keys shown in full
 function move(a) {
   const xs = unhidden(a).map((e) => e.change_24h).filter((v) => v != null).sort((x, y) => x - y);
   if (!xs.length) return null;
   const m = xs.length >> 1;
   return xs.length % 2 ? xs[m] : (xs[m - 1] + xs[m]) / 2;
 }
-const SHORT = {
-  "Perps & Derivatives": "Perps", "Chains L0/L1/L2": "Chains", "Stablecoin Payments": "Payments",
-  "Wallets & Account Abstraction": "Wallets", "NFT & Collectibles": "NFT", "Lending & Credit": "Lending",
-  "Music & Media": "Music", "Dev Tools & RPC": "Dev tools", "Yield & Vaults": "Yield",
-  "Robotics / Physical AI": "Robotics", "Identity / Personhood": "Identity", "AI Data / Oracles": "AI Data",
-  "Prediction Markets": "Predictions", "Chain Abstraction": "Chain Abstr.", "AI-Managed Money": "AI Money",
-};
-function mosaicHtml(width = 360) {
+function chaptersHtml() {
   if (!arenas.length) return "";
-  // Privacy is one arena among the others (Lorenzo, 10/10): biggest first, no pin.
-  const list = [...arenas].sort((a, b) => shownCount(b) - shownCount(a));
-  const openA = hive ? arenas.find((a) => a.key === hive) : null;
-  const cut = mosaicAll || list.length <= MOSAIC_MAX ? list.length : MOSAIC_MAX - 1;
-  const tiles = list.slice(0, cut).map((a, i) => {
-    const [c, r] = SPANS[i] ?? [2, 1];
-    const n = shownCount(a);
+  const list = [...arenas].filter((a) => shownCount(a)).sort((a, b) => shownCount(b) - shownCount(a));
+  const chaps = list.map((a) => {
+    const rows = unhidden(a);
+    const full = longer.has(a.key) || rows.length <= CHAP_TOP + 1;
     const ch = move(a);
-    const tone = ch == null ? "" : ch >= 3 ? "g1" : ch >= 0.5 ? "g2" : ch <= -3 ? "r1" : ch <= -0.5 ? "r2" : "";
-    const top = unhidden(a)[0];
-    const lead = top ? `♛ ${escapeHtml(top.symbol ?? "")}` : "searching";
-    const pct = ch == null ? "" : ` <span class="${ch >= 0 ? "up" : "down"}">${ch >= 0 ? "+" : "−"}${Math.abs(ch).toFixed(Math.abs(ch) < 10 ? 1 : 0)}%</span>`;
-    const open = a.key === hive;
-    return `<button type="button" class="mz ${tone}${open ? " mz-open" : ""}" data-arena-pick="${escapeHtml(a.key)}" aria-expanded="${open}"
-      style="grid-column: span ${c}; grid-row: span ${r}" aria-label="${escapeHtml(a.label)}: ${n} projects">
-      <b>${escapeHtml(SHORT[a.label] || a.label)}</b>${r > 1 ? `<span class="mz-n">${n}<em> projects</em></span><small>${lead}${pct}</small>` : `<small>${n} · ${lead}</small>`}</button>`;
+    const pct = ch == null ? "" : `<em class="${ch >= 0 ? "up" : "down"}">${ch >= 0 ? "+" : "−"}${Math.abs(ch).toFixed(1)}%</em>`;
+    return `<section class="chap" data-arena="${escapeHtml(a.key)}">
+      <header><h4>${escapeHtml(a.label)}</h4><span>${rows.length} project${rows.length === 1 ? "" : "s"}</span>${pct}</header>
+      <ol class="memes-list" data-top-rows>${(full ? rows : rows.slice(0, CHAP_TOP)).map((e) => row(e, a)).join("")}</ol>
+      ${rows.length > CHAP_TOP + 1 ? `<button type="button" class="chap-more" data-chap-more="${escapeHtml(a.key)}" aria-expanded="${full}">${full ? "Show less" : `Show all ${rows.length}`}</button>` : ""}
+    </section>`;
   });
-  if (cut < list.length) tiles.push(`<button type="button" class="mz mz-more" data-mosaic-more style="grid-column: span 2">
-    <b>+ ${list.length - cut} more</b><small>smaller arenas</small></button>`);
-  return `<p class="mz-intro">Each tile is a narrative: its projects compete only with each other. Tap one for its ranking.</p>
-    <div class="mosaic" role="group" aria-label="Arenas">${tiles.join("")}</div>
-    <p class="mz-legend"><span>♛ leader · size = projects</span><span><i class="up">■</i> up 24h <i class="down">■</i> down 24h</span></p>
-    ${openA ? `<div class="ar-open">${arenaHtml(openA, true)}</div>` : ""}`;
+  return chaps.join("");
 }
-// A tile opens its ranking right under the mosaic, same screen, no sub-menu
-// (Lorenzo, 10/10: the honeycomb was "orribile, ripristina un elenco").
-let hive = null;            // arena key whose ranking is open
 const sigma = (z) => `${z >= 0 ? "+" : "−"}${Math.abs(z).toFixed(1)}σ`;
 
 function row(e, a) {
@@ -193,14 +173,13 @@ function paint() {
 
   const box = root.querySelector("[data-top-arenas]");
   if (only && !arenas.some((a) => a.key === only)) setOnly(null);
-  // No arena picked: the mosaic of every arena (Lorenzo, 10/10, "Mosaico");
+  // No arena picked: every arena as a chapter (Lorenzo, 10/10, "B a capitoli");
   // one picked: its whole list under a way back.
   const picked = only ? arenas.find((a) => a.key === only) : null;
-  if (hive && !arenas.some((a) => a.key === hive)) hive = null;
   withEntrance(box, () => {
     const html = picked
       ? `<button type="button" class="ar-back" data-arena-pick="">← All arenas</button>${arenaHtml(picked, true)}`
-      : mosaicHtml(box?.clientWidth || 360);
+      : chaptersHtml();
     box.innerHTML = html || `<p class="muted pad">The arenas are filling up: projects appear as they pass the checks.</p>`;
   });
 
@@ -319,19 +298,18 @@ export function mountTop() {
   waiting();
   root.addEventListener("click", (event) => {
     if (event.target.closest("[data-top-narr-clear]")) { narr.set([]); return; }
-    const tileHit = event.target.closest(".mz[data-arena-pick]");
-    if (tileHit) {
-      const key = tileHit.dataset.arenaPick;
-      hive = hive === key ? null : key;        // the same tile again closes it
+    const more = event.target.closest("[data-chap-more]");
+    if (more) {
+      const key = more.dataset.chapMore;
+      if (longer.has(key)) longer.delete(key); else longer.add(key);
       paint();
-      const again = root.querySelector(`.mz[data-arena-pick="${CSS.escape(key)}"]`);
-      again?.focus({ preventScroll: true });
-      if (hive) root.querySelector(".ar-open")?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      const btn = root.querySelector(`[data-chap-more="${CSS.escape(key)}"]`);
+      btn?.focus({ preventScroll: true });
+      if (!longer.has(key)) btn?.closest(".chap")?.scrollIntoView({ block: "nearest" });
       return;
     }
     const pick = event.target.closest("[data-arena-pick]");
     if (pick) {
-      hive = null;
       const back = only;
       setOnly(pick.dataset.arenaPick || null);
       paint();
@@ -339,7 +317,6 @@ export function mountTop() {
       if (only) root.querySelector("[data-top-arenas]")?.scrollIntoView({ block: "start" });
       return;
     }
-    if (event.target.closest("[data-mosaic-more]")) { mosaicAll = true; paint(); root.querySelectorAll("[data-top-arenas] .mz")[MOSAIC_MAX - 1]?.focus({ preventScroll: true }); return; }
     if (event.target.closest("[data-top-wallet]")) { import("@onchain/sim-backtest.js").then((m) => m.openSimBacktest()); }
   });
   onHiddenChange(paint);
