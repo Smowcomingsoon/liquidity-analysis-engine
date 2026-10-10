@@ -126,7 +126,7 @@ function mosaicHtml(width = 360) {
   if (cut < list.length) tiles.push(`<button type="button" class="mz mz-more" data-mosaic-more style="grid-column: span 2">
     <b>+ ${list.length - cut} more</b><small>smaller arenas</small></button>`);
   return `<p class="mz-intro">Each tile is a narrative: its projects compete only with each other. Tap one to open its projects.</p>
-    <div class="mosaic" role="group" aria-label="Arenas">${tiles.join("")}</div>
+    <div class="mosaic${hive ? " has-hive" : ""}" role="group" aria-label="Arenas">${tiles.join("")}</div>
     <p class="mz-legend"><span>♛ leader · size = projects</span><span><i class="up">■</i> up 24h <i class="down">■</i> down 24h</span></p>`;
 }
 // A tile opens in place as a honeycomb of its projects, Apple Watch style
@@ -372,7 +372,7 @@ export function mountTop() {
       paint();
       const again = root.querySelector(`.mz[data-arena-pick="${CSS.escape(key)}"]`);
       again?.focus({ preventScroll: true });
-      if (hive) root.querySelector(".hive")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      if (hive) root.querySelector(".hive")?.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
       return;
     }
     const pick = event.target.closest("[data-arena-pick]");
