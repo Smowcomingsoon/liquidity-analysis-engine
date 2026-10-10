@@ -152,7 +152,8 @@ function hiveHtml(a, width = 360) {
   const D = Math.max(44, Math.min(78, (width / 2 - 34) / rings));  // centre to centre, px: two rings fit a phone
   const spots = hex.map(([q, r, k]) => [D * (q + r / 2), (D * 0.866 + 14) * r, k]);   // +14: the name under each
   const ys = spots.map((s) => s[1]);
-  const top = Math.min(...ys), h = Math.max(...ys) - top + D + 26;
+  const pad = Math.max(D / 2, 34);                  // the top bubble's edge stays inside the box
+  const top = Math.min(...ys), h = Math.max(...ys) - top + 2 * pad + 26;
   const cells = rows.map((e, i) => {
     const id = idOf(e);
     register(id, { kind: "gem", symbol: e.symbol, name: e.name, chain: e.chain, token: e.token_address, pair: e.pair_address,
@@ -161,7 +162,7 @@ function hiveHtml(a, width = 360) {
     const [x, y, k] = spots[i];
     const ch = e.change_24h;
     return `<button type="button" class="hx${i ? "" : " hx-lead"}${ch == null ? "" : ch >= 0 ? " hx-up" : " hx-down"}" data-open="${escapeHtml(id)}"
-      style="left: calc(50% + ${x.toFixed(1)}px); top: ${(y - top + D / 2).toFixed(1)}px; --s: ${Math.max(0.62, 1 - 0.14 * k).toFixed(2)}; --d: ${k * 70 + (i % 6) * 18}ms"
+      style="left: calc(50% + ${x.toFixed(1)}px); top: ${(y - top + pad).toFixed(1)}px; --s: ${Math.max(0.62, 1 - 0.14 * k).toFixed(2)}; --d: ${k * 70 + (i % 6) * 18}ms"
       aria-label="${i + 1}. ${escapeHtml(e.symbol ?? "")}, score ${Math.round(e.score ?? 0)}${ch != null ? `, ${ch >= 0 ? "up" : "down"} ${Math.abs(ch).toFixed(1)}% in 24h` : ""}">
       <span class="hx-b">${tile(e.symbol, e.image, e.chain, e.token_address)}</span>
       <small>${i ? "" : "♛ "}${escapeHtml(e.symbol ?? "")}</small></button>`;
