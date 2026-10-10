@@ -145,9 +145,10 @@ const HIVE_MAX = 19;          // the leader and two rings; the rest in the full 
 function hiveHtml(a, width = 360) {
   const all = unhidden(a);
   const rows = all.slice(0, HIVE_MAX);
-  const rings = hexSpots(rows.length).at(-1)?.[2] || 1;
-  const D = Math.min(78, (width / 2 - 34) / rings);  // centre to centre, px: two rings fit a phone
-  const spots = hexSpots(rows.length).map(([q, r, k]) => [D * (q + r / 2), (D * 0.866 + 14) * r, k]);   // +14: the name under each
+  const hex = hexSpots(rows.length);
+  const rings = hex.at(-1)?.[2] || 1;
+  const D = Math.max(44, Math.min(78, (width / 2 - 34) / rings));  // centre to centre, px: two rings fit a phone
+  const spots = hex.map(([q, r, k]) => [D * (q + r / 2), (D * 0.866 + 14) * r, k]);   // +14: the name under each
   const ys = spots.map((s) => s[1]);
   const top = Math.min(...ys), h = Math.max(...ys) - top + D + 26;
   const cells = rows.map((e, i) => {
