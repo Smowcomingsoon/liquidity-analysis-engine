@@ -127,6 +127,51 @@ function mosaicHtml() {
     <div class="mosaic" role="group" aria-label="Arenas">${tiles.join("")}</div>
     <p class="mz-legend"><span>♛ leader · size = projects</span><span><i class="up">■</i> up 24h <i class="down">■</i> down 24h</span></p>`;
 }
+// A tile opens in place as a honeycomb of its projects, Apple Watch style
+// (Lorenzo, 10/10): the leader in the middle, the others in rings round it,
+// smaller the further out; tapping one opens its page.
+let hive = null;            // arena key whose honeycomb is open
+let hiveFrom = "50% 0";     // where the honeycomb grows from: the tile tapped
+const HEX = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+function hexSpots(n) {
+  const out = [[0, 0, 0]];
+  for (let k = 1; out.length < n; k++) {
+    let [q, r] = [HEX[4][0] * k, HEX[4][1] * k];
+    for (let i = 0; i < 6; i++) for (let j = 0; j < k; j++) { out.push([q, r, k]); q += HEX[i][0]; r += HEX[i][1]; }
+  }
+  return out.slice(0, n);
+}
+const HIVE_MAX = 19;          // the leader and two rings; the rest in the full ranking
+function hiveHtml(a, width = 360) {
+  const all = unhidden(a);
+  const rows = all.slice(0, HIVE_MAX);
+  const rings = hexSpots(rows.length).at(-1)?.[2] || 1;
+  const D = Math.min(78, (width / 2 - 34) / rings);  // centre to centre, px: two rings fit a phone
+  const spots = hexSpots(rows.length).map(([q, r, k]) => [D * (q + r / 2), (D * 0.866 + 14) * r, k]);   // +14: the name under each
+  const ys = spots.map((s) => s[1]);
+  const top = Math.min(...ys), h = Math.max(...ys) - top + D + 26;
+  const cells = rows.map((e, i) => {
+    const id = idOf(e);
+    register(id, { kind: "gem", symbol: e.symbol, name: e.name, chain: e.chain, token: e.token_address, pair: e.pair_address,
+      pairUrl: e.pair_url, image: e.image, cap: e.market_cap, change: e.change_24h != null ? e.change_24h / 100 : null,
+      ageTs: e.launched_at, rank: i + 1, context: `${a.label} · #${i + 1} of ${rows.length} · score ${Math.round(e.score ?? 0)}` });
+    const [x, y, k] = spots[i];
+    const ch = e.change_24h;
+    return `<button type="button" class="hx${i ? "" : " hx-lead"}${ch == null ? "" : ch >= 0 ? " hx-up" : " hx-down"}" data-open="${escapeHtml(id)}"
+      style="left: calc(50% + ${x.toFixed(1)}px); top: ${(y - top + D / 2).toFixed(1)}px; --s: ${Math.max(0.62, 1 - 0.14 * k).toFixed(2)}; --d: ${k * 70 + (i % 6) * 18}ms"
+      aria-label="${i + 1}. ${escapeHtml(e.symbol ?? "")}, score ${Math.round(e.score ?? 0)}${ch != null ? `, ${ch >= 0 ? "up" : "down"} ${Math.abs(ch).toFixed(1)}% in 24h` : ""}">
+      <span class="hx-b">${tile(e.symbol, e.image, e.chain, e.token_address)}</span>
+      <small>${i ? "" : "♛ "}${escapeHtml(e.symbol ?? "")}</small></button>`;
+  });
+  return `<section class="hive" style="transform-origin: ${hiveFrom}" aria-label="${escapeHtml(a.label)}">
+    <header class="hive-head"><button type="button" class="ar-back" data-hive-close>← All arenas</button>
+      <b>${escapeHtml(a.label)}</b><span>${all.length} projects</span></header>
+    ${rows.length ? `<div class="hive-cells" style="height: ${Math.round(h)}px">${cells.join("")}</div>`
+      : `<p class="muted pad">No ${escapeHtml(a.label)} project has passed the checks yet.</p>`}
+    <p class="mz-legend"><span>Tap a project to open it · ring <i class="up">■</i> up <i class="down">■</i> down 24h${all.length > rows.length ? ` · top ${rows.length} shown` : ""}</span>
+      <button type="button" class="hive-list" data-arena-pick="${escapeHtml(a.key)}">Full ranking →</button></p>
+  </section>`;
+}
 const sigma = (z) => `${z >= 0 ? "+" : "−"}${Math.abs(z).toFixed(1)}σ`;
 
 function row(e, a) {
@@ -189,10 +234,12 @@ function paint() {
   // No arena picked: the mosaic of every arena (Lorenzo, 10/10, "Mosaico");
   // one picked: its whole list under a way back.
   const picked = only ? arenas.find((a) => a.key === only) : null;
+  const comb = !picked && hive ? arenas.find((a) => a.key === hive) : null;
+  if (!comb) hive = null;
   withEntrance(box, () => {
     const html = picked
       ? `<button type="button" class="ar-back" data-arena-pick="">← All arenas</button>${arenaHtml(picked, true)}`
-      : mosaicHtml();
+      : comb ? hiveHtml(comb, box?.clientWidth || 360) : mosaicHtml();
     box.innerHTML = html || `<p class="muted pad">The arenas are filling up: projects appear as they pass the checks.</p>`;
   });
 
@@ -311,8 +358,26 @@ export function mountTop() {
   waiting();
   root.addEventListener("click", (event) => {
     if (event.target.closest("[data-top-narr-clear]")) { narr.set([]); return; }
+    const tileHit = event.target.closest(".mz[data-arena-pick]");
+    if (tileHit) {
+      const box = root.querySelector("[data-top-arenas]").getBoundingClientRect();
+      const t = tileHit.getBoundingClientRect();
+      hiveFrom = `${Math.round(t.left + t.width / 2 - box.left)}px ${Math.round(t.top + t.height / 2 - box.top)}px`;
+      hive = tileHit.dataset.arenaPick;
+      paint();
+      root.querySelector("[data-hive-close]")?.focus({ preventScroll: true });
+      return;
+    }
+    if (event.target.closest("[data-hive-close]")) {
+      const back = hive;
+      hive = null;
+      paint();
+      root.querySelector(`[data-arena-pick="${CSS.escape(back ?? "")}"]`)?.focus({ preventScroll: true });
+      return;
+    }
     const pick = event.target.closest("[data-arena-pick]");
     if (pick) {
+      hive = null;
       const back = only;
       setOnly(pick.dataset.arenaPick || null);
       paint();

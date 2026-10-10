@@ -1491,7 +1491,29 @@ html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { d
 .mz-legend i { font-style: normal; } .mz-legend .up { color: var(--c-up, #2de2b0); } .mz-legend .down { color: var(--c-down, #ff6b5a); }
 .ar-back { justify-self: start; padding: 6px 2px; font: inherit; font-size: 12px; letter-spacing: .04em; cursor: pointer;
   background: none; border: 0; color: var(--c-amber, #2de2b0); }
-@media (prefers-reduced-motion: reduce) { .mz { transition: none; } .mz:active { transform: none; } }
+.hive { animation: hive-in .32s cubic-bezier(.2, .8, .2, 1) both; }
+.hive-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+.hive-head b { font-size: 13px; letter-spacing: .05em; text-transform: uppercase; }
+.hive-head span { margin-inline-start: auto; font-size: 11px; color: var(--c-text-3, var(--k-text-3)); }
+.hive-cells { position: relative; }
+.hx { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 4px; inline-size: 76px; margin-inline-start: -38px;
+  margin-block-start: -32px; padding: 0; border: 0; background: none; font: inherit; color: var(--c-text, inherit); cursor: pointer;
+  animation: hx-in .38s cubic-bezier(.2, .9, .3, 1.25) var(--d, 0ms) both; }
+.hx-b { display: grid; place-items: center; inline-size: 60px; block-size: 60px; border-radius: 50%; overflow: hidden;
+  transform: scale(var(--s, 1)); transition: transform .15s; background: var(--c-card, transparent);
+  box-shadow: 0 0 0 1px var(--c-line, var(--k-line)); }
+.hx-b > * { inline-size: 100%; block-size: 100%; border-radius: 50%; }
+.hx-b img { object-fit: cover; }
+.hx:active .hx-b { transform: scale(calc(var(--s, 1) * .92)); }
+.hx small { font-size: 10px; white-space: nowrap; color: var(--c-text-2, inherit); transform: translateY(calc((var(--s, 1) - 1) * 30px)); }
+.hive .mz-legend i { font-style: normal; } .hive .mz-legend .up { color: var(--c-up, #2de2b0); } .hive .mz-legend .down { color: var(--c-down, #ff6b5a); }
+.hx.hx-up .hx-b { box-shadow: 0 0 0 2px var(--c-up, #2de2b0); } .hx.hx-down .hx-b { box-shadow: 0 0 0 2px var(--c-down, #ff6b5a); }
+.hx.hx-lead .hx-b { outline: 2px solid var(--c-amber, #2de2b0); outline-offset: 3px; }
+.hx:focus-visible { outline: none; } .hx:focus-visible small { text-decoration: underline; }
+.hive-list { padding: 0; border: 0; background: none; font: inherit; color: var(--c-text-2, inherit); cursor: pointer; }
+@keyframes hive-in { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+@keyframes hx-in { from { opacity: 0; transform: scale(.2); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .mz { transition: none; } .mz:active { transform: none; } .hive, .hx { animation: none; } }
 
 /* iPhone in a Safari tab: notifications need the app on the home screen (bg.js). */
 .bg-hint { position: fixed; z-index: 60; inset: calc(env(safe-area-inset-top) + 10px) 12px auto;
