@@ -2570,13 +2570,15 @@ body {
   }
   .mts-main { flex: 1; min-width: 0; }
   .mts-sym-row { display: flex; align-items: baseline; gap: 7px; }
-  .mts-sym { font-weight: 700; font-size: 14px; color: var(--accent); }
+  .mts-sym { font-weight: 700; font-size: 14px; color: var(--accent); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mts-badge { flex-shrink: 0; }
   .mts-badge {
     font-family: var(--font-mono); font-size: 11px; font-weight: 700; text-transform: uppercase;
     padding: 1.5px 6px; border-radius: 4px; background: var(--bg-panel); color: var(--ink-dim); border: 1px solid var(--border);
   }
   .mts-name { font-size: 13px; color: var(--ink-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
-  .mts-right { text-align: right; flex-shrink: 0; }
+  .mts-right { text-align: right; flex-shrink: 0; max-width: 45%; }
+  .mts-exch { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mts-exch { font-weight: 600; font-size: 12.5px; color: var(--ink); }
 
   #levels-panel .chart-settings-group {
@@ -2713,6 +2715,11 @@ body {
     border: none;
     padding: 0;
     cursor: pointer;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .mobile-strategy-pill {

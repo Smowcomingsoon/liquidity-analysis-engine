@@ -2685,5 +2685,11 @@
     "at": 1791634492,
     "summary": "In Levels > Structure & Liquidity c'e' 'Elliott Waves': sul grafico disegna le onde d'impulso 1-5 e le correttive a-b-c trovate sullo zigzag (pivot a 10 candele), tratteggiate finche' l'ultimo punto puo' ancora muoversi o se la correzione rompe l'inizio dell'impulso, e i ritracciamenti di Fibonacci 0.5 / 0.618 / 0.764 / 0.854 dell'ultimo impulso. Regole dalla descrizione dell'indicatore LuxAlgo indicato (onda 2 non oltre l'inizio dell'1, onda 4 fuori dal territorio dell'1, onda 3 mai la piu' corta), codice scritto da zero. Gli alert dell'originale non ci sono.",
     "detail": "frontend/static/elliott.js, app.js applyElliott/renderElliott, index.html; tests/test_elliott_js.py"
+  },
+  "seed-0265": {
+    "status": "risolto",
+    "at": 1791636000,
+    "summary": "Un token DEX ora si legge come 'DREGG · 2XHr…tBAG' (ticker e indirizzo del pool accorciato) sotto il grafico, nella ricerca, nella watchlist e nel Lab; il simbolo completo resta nel tooltip. Le righe della ricerca da telefono tagliano con i puntini invece di sovrapporre nome ed exchange.",
+    "detail": "frontend/static/app.js shortSymbol; style.css .mobile-chart-symbol, .mts-sym, .mts-exch"
   }
 }

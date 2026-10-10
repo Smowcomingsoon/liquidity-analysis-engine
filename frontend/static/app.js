@@ -436,7 +436,8 @@
           main.className = "sug-main";
           const sym = document.createElement("span");
           sym.className = "sug-symbol";
-          sym.textContent = item.symbol;
+          sym.textContent = shortSymbol(item.symbol);
+          sym.title = item.symbol;
           const name = document.createElement("span");
           name.className = "sug-name";
           name.textContent = item.name || "";
@@ -5148,6 +5149,17 @@
   function timeToX(time) {
     return mainChart ? mainChart.timeScale().timeToCoordinate(time) : null;
   }
+  // A DEX pair's symbol is "TICKER@chain:pool-address": shown whole it runs
+  // off the phone screen. Ticker plus a short address is enough to tell two
+  // pools apart; the full symbol stays in the tooltip.
+  function shortSymbol(symbol) {
+    const sym = String(symbol || "");
+    const at = sym.indexOf("@");
+    if (at < 0) return sym;
+    const addr = sym.slice(sym.indexOf(":", at) + 1);
+    return addr.length > 10 ? `${sym.slice(0, at)} · ${addr.slice(0, 4)}…${addr.slice(-4)}` : sym.slice(0, at);
+  }
+
   function priceToY(price) {
     return candleSeries ? candleSeries.priceToCoordinate(price) : null;
   }
@@ -7416,7 +7428,8 @@
       tools.classList.add("hidden");
       return;
     }
-    el("mobile-chart-symbol").textContent = state.data.symbol;
+    el("mobile-chart-symbol").textContent = shortSymbol(state.data.symbol);
+    el("mobile-chart-symbol").title = state.data.symbol;
     // Keep the strategy pill updated with the currently-active strategy name.
     // Abbreviate long names so the pill stays compact on small screens.
     const pill = el("mobile-strategy-pill");
@@ -8598,7 +8611,8 @@
       symRow.className = "wl-sym-row";
       const sym = document.createElement("span");
       sym.className = "wl-sym";
-      sym.textContent = entry.symbol;
+      sym.textContent = shortSymbol(entry.symbol);
+      sym.title = entry.symbol;
       symRow.appendChild(sym);
       const badge = document.createElement("span");
       badge.className = "wl-badge";
@@ -8824,7 +8838,8 @@
       main.className = "sug-main";
       const sym = document.createElement("span");
       sym.className = "sug-symbol";
-      sym.textContent = item.symbol;
+      sym.textContent = shortSymbol(item.symbol);
+      sym.title = item.symbol;
       const name = document.createElement("span");
       name.className = "sug-name";
       name.textContent = item.name || "";
@@ -8911,7 +8926,8 @@
       symRow.className = "mts-sym-row";
       const sym = document.createElement("span");
       sym.className = "mts-sym";
-      sym.textContent = item.symbol;
+      sym.textContent = shortSymbol(item.symbol);
+      sym.title = item.symbol;
       const badge = document.createElement("span");
       badge.className = "mts-badge";
       badge.textContent = item.asset_type === "crypto" ? "crypto" : item.asset_type === "dex" ? "dex" : "stocks";
@@ -11319,7 +11335,7 @@
     labState.exchange = item.provider || "mexc";
     labState.baseTokenAddress = item.base_token_address || null;
     labSuggest.resolved = item;
-    labEl("lab-ticker-val").textContent = item.symbol;
+    labEl("lab-ticker-val").textContent = shortSymbol(item.symbol);
     labEl("lab-ticker-input").value = "";
     labEl("lab-ticker-input").blur();
     labEl("lab-suggestions").classList.add("hidden");
@@ -11375,7 +11391,7 @@
         labState.baseTokenAddress = null;
         labState.symbol = base ? base + "USDT" : labState.symbol;
         labState.displaySymbol = base || labState.displaySymbol;
-        labEl("lab-ticker-val").textContent = labState.symbol || "—";
+        labEl("lab-ticker-val").textContent = shortSymbol(labState.symbol) || "—";
       }
       labState.exchange = sel.value;
     });
@@ -11618,7 +11634,7 @@
       labState.symbol = sym;
       labState.displaySymbol = sym.replace(/USDT$|USD$|BTC$|ETH$/, "") || sym;
       const val = el("lab-ticker-val");
-      if (val) val.textContent = sym;
+      if (val) val.textContent = shortSymbol(sym);
     }
     // The chart's exchange lives in state.cryptoExchange (segnalazione
     // 87cc755b): reading state.exchange, which is never set, left the Lab on

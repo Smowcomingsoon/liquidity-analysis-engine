@@ -165,6 +165,10 @@ def _resolutions() -> dict[str, dict]:
 
 
 _SEED = [
+    ("seed-0265", "Sito classico: il nome di un token DEX e' troppo lungo nella barra sotto il grafico",
+     "Lorenzo, 10/10, da telefono con DREGG: 'ticker troppo lungo nella barra una volta caricato'. "
+     "Sotto il grafico e nella ricerca compariva tutto 'DREGG@solana:2XHrhkx...', che usciva dallo schermo.",
+     "media"),
     ("seed-0264", "I task lunghi lanciati dall'app si perdono se cambio finestra o chiudo l'app; manca una notifica a fine lavoro",
      "Lorenzo, 01/10: 'qualsiasi task, qualsiasi attivita' lanciata da mobile o da desktop deve continuare in background se io cambio finestra o butto giu' l'applicazione sul telefono e arrivarmi una notifica al completamento dell'attivita' che mi riporta esattamente al punto in cui l'ho lasciata se ci clicco sulla notifica'.",
      "alta"),
