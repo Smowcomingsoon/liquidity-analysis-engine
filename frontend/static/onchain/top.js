@@ -85,14 +85,15 @@ async function sequence(changes, crowns) {
 
 const heatBar = (h) => `<span class="ar-heat" aria-label="Narrative heat ${h} of 3">${"█".repeat(h)}${"░".repeat(Math.max(0, 3 - h))}</span>`;
 // What the tile counts is what the list shows: tokens hidden by the user left out.
-const shownCount = (a) => a.entries.filter((e) => !isHidden(e.chain, e.token_address)).length;
+const unhidden = (a) => a.entries.filter((e) => !isHidden(e.chain, e.token_address));
+const shownCount = (a) => unhidden(a).length;
 // The mosaic: the biggest arenas take the biggest tiles, privacy first;
 // the colour is how the arena's projects moved in 24 hours (their median).
 const SPANS = [[4, 3], [2, 3], [3, 2], [3, 2], [2, 2], [2, 2], [2, 2]];
 const MOSAIC_MAX = 13;     // tiles before "+ N more"
 let mosaicAll = false;
 function move(a) {
-  const xs = a.entries.map((e) => e.change_24h).filter((v) => v != null).sort((x, y) => x - y);
+  const xs = unhidden(a).map((e) => e.change_24h).filter((v) => v != null).sort((x, y) => x - y);
   if (!xs.length) return null;
   const m = xs.length >> 1;
   return xs.length % 2 ? xs[m] : (xs[m - 1] + xs[m]) / 2;
@@ -113,7 +114,8 @@ function mosaicHtml() {
     const n = shownCount(a);
     const ch = move(a);
     const tone = ch == null ? "" : ch >= 3 ? "g1" : ch >= 0.5 ? "g2" : ch <= -3 ? "r1" : ch <= -0.5 ? "r2" : "";
-    const lead = a.entries[0] ? `♛ ${escapeHtml(a.entries[0].symbol ?? "")}` : "searching";
+    const top = unhidden(a)[0];
+    const lead = top ? `♛ ${escapeHtml(top.symbol ?? "")}` : "searching";
     const pct = ch == null ? "" : ` <span class="${ch >= 0 ? "up" : "down"}">${ch >= 0 ? "+" : "−"}${Math.abs(ch).toFixed(Math.abs(ch) < 10 ? 1 : 0)}%</span>`;
     return `<button type="button" class="mz${a.key === "privacy" ? " mz-pin" : ""} ${tone}" data-arena-pick="${escapeHtml(a.key)}"
       style="grid-column: span ${c}; grid-row: span ${r}" aria-label="${escapeHtml(a.label)}: ${n} projects">
@@ -316,7 +318,7 @@ export function mountTop() {
       if (only) root.querySelector("[data-top-arenas]")?.scrollIntoView({ block: "start" });
       return;
     }
-    if (event.target.closest("[data-mosaic-more]")) { mosaicAll = true; paint(); return; }
+    if (event.target.closest("[data-mosaic-more]")) { mosaicAll = true; paint(); root.querySelectorAll("[data-top-arenas] .mz")[MOSAIC_MAX - 1]?.focus({ preventScroll: true }); return; }
     if (event.target.closest("[data-top-wallet]")) { import("@onchain/sim-backtest.js").then((m) => m.openSimBacktest()); }
   });
   onHiddenChange(paint);
