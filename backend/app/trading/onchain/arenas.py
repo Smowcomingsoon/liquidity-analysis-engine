@@ -98,6 +98,21 @@ def candidates(e: dict, cat: dict[str, dict] | None = None, prefer: set[str] | N
     return keys or [OTHER]
 
 
+def also_in(e: dict, cat: dict[str, dict], home: str) -> list[str]:
+    """Every other narrative arena of a project, besides the one it competes
+    for (Lorenzo, 10/10: "non voglio vederle vuote"): a DEX that leads the AI
+    arena still shows in DEX & AMM, ranked among DEXes, without a second
+    podium place or tenure."""
+    out = []
+    for n in e.get("narratives") or []:
+        k = n.get("key") if isinstance(n, dict) else n
+        if k in cat and cat[k].get("kind") != "meme":
+            k = GROUP.get(k, k)
+            if k != home and k not in out:
+                out.append(k)
+    return out
+
+
 def _score(e: dict) -> float:
     return float(e.get("score") or 0.0)
 
@@ -152,6 +167,10 @@ def build(entries: list[dict], ladder: dict | None = None, prefer: set[str] | No
     groups: dict[str, list[dict]] = {}
     for e in entries:
         groups.setdefault(where[entry_id(e)], []).append(e)
+    if not prefer:
+        for e in entries:
+            for k in also_in(e, cat, where[entry_id(e)]):
+                groups.setdefault(k, []).append({**e, "also": True})
     arenas, p4p = [], []
     for key, members in groups.items():
         members = sorted(members, key=lambda e: -_score(e))
@@ -165,7 +184,7 @@ def build(entries: list[dict], ladder: dict | None = None, prefer: set[str] | No
             merit = _score(e) >= med
             since = tenure.get(eid)
             held = not merit and since is not None and 0 <= now - since < TENURE_S
-            if record:
+            if record and not e.get("also"):
                 if merit and since is None:
                     tenure[eid] = now
                 elif not merit and not held:
@@ -178,7 +197,7 @@ def build(entries: list[dict], ladder: dict | None = None, prefer: set[str] | No
         arenas.append({"key": key, "label": label, "heat": _heat(key, cat), "size": len(rows),
                        "median": round(med, 1), "entries": rows})
         lead = rows[0]
-        if lead["z"] is not None and lead["z"] > 0 and key != OTHER:
+        if lead["z"] is not None and lead["z"] > 0 and key != OTHER and not lead.get("also"):
             p4p.append({**lead, "arena": key, "arena_label": label})
     if record:
         # Out of the pool (a gate, a rejection, a rug): out now, and a return starts afresh.

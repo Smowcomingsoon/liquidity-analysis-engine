@@ -105,28 +105,13 @@ const SHORT = {
   "Robotics / Physical AI": "Robotics", "Identity / Personhood": "Identity", "AI Data / Oracles": "AI Data",
   "Prediction Markets": "Predictions", "Chain Abstraction": "Chain Abstr.", "AI-Managed Money": "AI Money",
 };
-// Narratives of the catalogue no project has reached yet still get a tile
-// (Lorenzo, 10/10: "non ho più le categorie"): an arena needs two projects
-// past the gates, so most new narratives start empty.
-let cover = [];            // GET /api/onchain/narratives/coverage items
-const FOLDED = new Set(["zero_knowledge", "fhe_mpc_tee"]);   // compete inside Privacy
-function emptyArenas() {
-  const have = new Set(arenas.map((a) => a.key));
-  return cover.filter((n) => !have.has(n.key) && !FOLDED.has(n.key))
-    .map((n) => ({ key: n.key, label: n.label ?? n.key, entries: [], empty: true }));
-}
 function mosaicHtml(width = 360) {
   if (!arenas.length) return "";
   // Privacy is one arena among the others (Lorenzo, 10/10): biggest first, no pin.
-  const list = [...[...arenas].sort((a, b) => shownCount(b) - shownCount(a)), ...emptyArenas()];
-  const openA = hive ? list.find((a) => a.key === hive) : null;
+  const list = [...arenas].sort((a, b) => shownCount(b) - shownCount(a));
+  const openA = hive ? arenas.find((a) => a.key === hive) : null;
   const cut = mosaicAll || list.length <= MOSAIC_MAX ? list.length : MOSAIC_MAX - 1;
   const tiles = list.slice(0, cut).map((a, i) => {
-    const open = a.key === hive;
-    if (a.empty) {
-      return `<button type="button" class="mz mz-empty${open ? " mz-open" : ""}" data-arena-pick="${escapeHtml(a.key)}" aria-expanded="${open}"
-        style="grid-column: span 2" aria-label="${escapeHtml(a.label)}: no project yet"><b>${escapeHtml(SHORT[a.label] || a.label)}</b><small>0 · searching</small></button>`;
-    }
     const [c, r] = SPANS[i] ?? [2, 1];
     const n = shownCount(a);
     const ch = move(a);
@@ -134,12 +119,13 @@ function mosaicHtml(width = 360) {
     const top = unhidden(a)[0];
     const lead = top ? `♛ ${escapeHtml(top.symbol ?? "")}` : "searching";
     const pct = ch == null ? "" : ` <span class="${ch >= 0 ? "up" : "down"}">${ch >= 0 ? "+" : "−"}${Math.abs(ch).toFixed(Math.abs(ch) < 10 ? 1 : 0)}%</span>`;
+    const open = a.key === hive;
     return `<button type="button" class="mz ${tone}${open ? " mz-open" : ""}" data-arena-pick="${escapeHtml(a.key)}" aria-expanded="${open}"
       style="grid-column: span ${c}; grid-row: span ${r}" aria-label="${escapeHtml(a.label)}: ${n} projects">
       <b>${escapeHtml(SHORT[a.label] || a.label)}</b>${r > 1 ? `<span class="mz-n">${n}<em> projects</em></span><small>${lead}${pct}</small>` : `<small>${n} · ${lead}</small>`}</button>`;
   });
   if (cut < list.length) tiles.push(`<button type="button" class="mz mz-more" data-mosaic-more style="grid-column: span 2">
-    <b>+ ${list.length - cut} more</b><small>smaller and empty arenas</small></button>`);
+    <b>+ ${list.length - cut} more</b><small>smaller arenas</small></button>`);
   return `<p class="mz-intro">Each tile is a narrative: its projects compete only with each other. Tap one for its ranking.</p>
     <div class="mosaic" role="group" aria-label="Arenas">${tiles.join("")}</div>
     <p class="mz-legend"><span>♛ leader · size = projects</span><span><i class="up">■</i> up 24h <i class="down">■</i> down 24h</span></p>
@@ -242,7 +228,8 @@ function paint() {
     if (changes.length) sequence(changes, crowns);
     else { seen = crowns; writeSeen(seen); }
   }
-  const total = arenas.reduce((n, a) => n + a.size, 0);
+  // A project shows in each of its narratives (also: true) but counts once.
+  const total = new Set(arenas.flatMap((a) => a.entries.map(idOf))).size;
   const narrLine = filtered
     ? `<button type="button" class="top-narr-clear" data-top-narr-clear>${escapeHtml(narr.get().map((k) => labels[k] ?? k).join(", "))} ✕</button> `
     : "";
@@ -365,8 +352,7 @@ export function mountTop() {
   narr.onChange(() => load());
   narr.coverage().then((list) => {
     labels = Object.fromEntries(list.map((n) => [n.key, n.label ?? n.key]));
-    cover = list;
-    if (filtered || arenas.length) paint();
+    if (filtered) paint();
   });
   load();
   setInterval(() => document.visibilityState === "visible" && load(), POLL_MS);

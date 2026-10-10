@@ -20,7 +20,7 @@ MAX_KEYS = 3
 # When narratives.json last gained keys: rows mapped before it are asked
 # again, so the new arenas fill (Lorenzo, 10/10: "rifai il giro subito").
 # Move it forward whenever narratives.json gains keys.
-CATALOGUE_AT = 1791637200.0      # 2026-10-10 13:00 UTC, 13 narratives added (#521)
+CATALOGUE_AT = 1791655200.0      # 2026-10-10 18:00 UTC: full second pass (Lorenzo, "rifai fare un giro completo")
 _FILE = storage.data_file("onchain_narrative_map.json")
 
 SYSTEM = (

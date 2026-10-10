@@ -149,3 +149,13 @@ def test_new_catalogue_keys_reach_stored_projects_at_read_time():
     e = {"narratives": ["rwa"], "description": "A decentralized exchange with concentrated liquidity pools"}
     assert main._narr_now(e) == {"rwa", "dex_amm"}
     assert main._narr_now({"narratives": [{"key": "privacy"}, None]}) == {"privacy"}
+
+
+def test_project_also_shows_in_its_other_narratives(monkeypatch):
+    monkeypatch.setattr(arenas, "_catalog", lambda: CAT)
+    es = [_e("R", 70, ["rwa", "privacy"]), _e("P1", 60, ["privacy"]), _e("P2", 50, ["privacy"])]
+    out = arenas.build(es, ladder={}, tenure={}, now=0)
+    rwa = next(a for a in out["arenas"] if a["key"] == "rwa")
+    assert [(e["symbol"], e["also"]) for e in rwa["entries"]] == [("R", True)]
+    # One podium place, in the arena it competes for.
+    assert [(e["symbol"], e["arena"]) for e in out["p4p"]] == [("R", "privacy")]
