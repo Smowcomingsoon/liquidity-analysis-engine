@@ -17,6 +17,9 @@ BATCH = 12
 EVERY_S = 90
 DAILY_MAX = 400          # DeepSeek calls per UTC day
 MAX_KEYS = 3
+# When narratives.json last gained keys: rows mapped before it are asked
+# again, so the new arenas fill (Lorenzo, 10/10: "rifai il giro subito").
+CATALOGUE_AT = 1791637200.0      # 2026-10-10 13:00 UTC, 13 narratives added (#521)
 _FILE = storage.data_file("onchain_narrative_map.json")
 
 SYSTEM = (
@@ -111,7 +114,7 @@ async def step(now: float | None = None, ask=None) -> dict[str, list[str]]:
             return {}
         if ask is None and not settings.deepseek_api_key:
             return {}
-        rows = projects_db.need_narratives(BATCH)
+        rows = projects_db.need_narratives(BATCH, before=CATALOGUE_AT)
         if not rows:
             return {}
         # a failed call still waits its turn and counts: no hammering

@@ -55,3 +55,16 @@ def test_step_writes_every_row_and_respects_daily_max():
     nm._state["calls"][nm.time.strftime("%Y-%m-%d", nm.time.gmtime(T0))] = nm.DAILY_MAX
     assert asyncio.run(nm.step(T0 + nm.EVERY_S, ask=ask)) == {}  # daily cap
     assert len(calls) == 1
+
+
+def test_rows_mapped_before_the_catalogue_grew_are_asked_again():
+    _seed(2)
+    db.set_narratives("solana", "T0", ["rwa"], nm.CATALOGUE_AT - 86400)     # old catalogue
+    db.set_narratives("solana", "T1", ["depin"], nm.CATALOGUE_AT + 60)      # already today's
+    assert [r["token"] for r in db.need_narratives(10, before=nm.CATALOGUE_AT)] == ["T0"]
+
+    async def ask(messages, **kw):
+        return json.dumps({"p1": ["dex_amm"]})
+
+    out = asyncio.run(nm.step(nm.CATALOGUE_AT + 3600, ask=ask))
+    assert out == {"solana:T0": ["rwa", "dex_amm"]}                         # old keys kept

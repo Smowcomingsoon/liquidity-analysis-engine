@@ -1477,6 +1477,8 @@ html.detail-open .ask-fab, :root:has(#app-shell[data-view="entry"]) .ask-fab { d
 .mz:active { transform: scale(.98); }
 .mz b { font-size: 11px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mz .mz-n { font-size: 22px; line-height: 1; font-variant-numeric: tabular-nums; }
+.mz .mz-n em { font-style: normal; font-size: 10px; letter-spacing: .04em; color: var(--c-text-3, var(--k-text-3)); }
+.mz-intro { margin: 0 2px 8px; font-size: 12px; line-height: 1.4; color: var(--c-text-2, var(--k-text-2)); }
 .mz small { font-size: 10px; color: var(--c-text-3, var(--k-text-3)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .mz small .up { color: var(--c-up, #2de2b0); } .mz small .down { color: var(--c-down, #ff6b5a); }
 .mz.g1 { background: var(--c-up-soft, rgb(127 209 127 / .16)); } .mz.g2 { background: rgb(127 209 127 / .07); }

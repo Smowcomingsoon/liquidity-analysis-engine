@@ -142,3 +142,10 @@ def test_claimed_arenas_always_offered(monkeypatch):
     assert out["decentralized_compute"]["size"] == 1      # one project is enough to keep the arena
     assert out["privacy"]["size"] == 0 and out["privacy"]["entries"] == []
     assert [a["key"] for a in arenas.build(es, ladder={})["arenas"]][-1] == "privacy"   # empty tiles last
+
+
+def test_new_catalogue_keys_reach_stored_projects_at_read_time():
+    from app import main
+    e = {"narratives": ["rwa"], "description": "A decentralized exchange with concentrated liquidity pools"}
+    assert main._narr_now(e) == {"rwa", "dex_amm"}
+    assert main._narr_now({"narratives": [{"key": "privacy"}, None]}) == {"privacy"}

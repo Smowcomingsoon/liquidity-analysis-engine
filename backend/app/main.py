@@ -4281,6 +4281,12 @@ def _narr_keys(raw) -> set[str]:
     return {n.get("key") if isinstance(n, dict) else n for n in raw or []}
 
 
+def _narr_now(e: dict) -> set[str]:
+    """Stored keys plus what today's catalogue finds in the texts: a narrative
+    added to narratives.json fills its arena at once, not after the next study."""
+    return (_narr_keys(e.get("narratives")) - {None}) | set(onchain_narratives.match(e.get("description"), e.get("categories")))
+
+
 def _require_trading() -> None:
     """Trading endpoints answer 404 while trading is off (Lorenzo, 07/10)."""
     if not settings.onchain_trading_enabled:
@@ -4297,11 +4303,11 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
     want = {k.strip() for k in (narrative or "").split(",") if k.strip()}
     board = sorted(onchain_leaderboard.board().get("entries") or [], key=lambda e: -(e.get("score") or 0))
     if want:
-        board = [e for e in board if _narr_keys(e.get("narratives")) & want]
+        board = [e for e in board if _narr_now(e) & want]
     out = [{**{k: e.get(k) for k in ("chain", "token_address", "pair_address", "pair_url", "symbol", "name", "image",
                                      "market_cap", "liquidity_usd", "change_24h", "launched_at", "score", "early", "usage", "hidden",
                                      "blocks")},
-            "narratives": sorted(_narr_keys(e.get("narratives")) - {None}), "on_board": True} for e in board if not onchain_leaderboard.no_name(e.get("symbol"))]
+            "narratives": sorted(_narr_now(e)), "on_board": True} for e in board if not onchain_leaderboard.no_name(e.get("symbol"))]
     seen = {f"{e['chain']}:{e['token_address']}" for e in out}
     cutoff = time.time() - 30 * 86400
     # "ranked" too: a row whose flag outlived its place on the board was
@@ -4311,7 +4317,7 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
     for row in sorted(rows, key=lambda r: -(r.get("score") or 0)):
         if row.get("score") is None or (row.get("analyzed_at") or 0) < cutoff:
             continue
-        if want and not _narr_keys(row.get("narratives")) & want:
+        if want and not _narr_now(row) & want:
             continue
         if (row.get("overall") or {}).get("fatal") or onchain_leaderboard.no_name(row.get("symbol")):
             continue
@@ -4367,7 +4373,7 @@ def _top_entries(n: int = 50, narrative: str = "") -> list[dict]:
                     "market_cap": row.get("mcap"), "liquidity_usd": row.get("liq"), "change_24h": None,
                     "launched_at": row.get("launched_at"), "score": score, "early": None, "on_board": False,
                     "hidden": hidden, "usage": onchain_leaderboard.usage.latest(row["chain"], row["token"]),
-                    "blocks": blocks, "narratives": sorted(_narr_keys(row.get("narratives")) - {None})})
+                    "blocks": blocks, "narratives": sorted(_narr_now(row))})
     out.sort(key=lambda e: -(e.get("score") or 0))
     return out[:n]
 

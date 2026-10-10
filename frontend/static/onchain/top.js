@@ -119,12 +119,13 @@ function mosaicHtml() {
     const pct = ch == null ? "" : ` <span class="${ch >= 0 ? "up" : "down"}">${ch >= 0 ? "+" : "−"}${Math.abs(ch).toFixed(Math.abs(ch) < 10 ? 1 : 0)}%</span>`;
     return `<button type="button" class="mz${a.key === "privacy" ? " mz-pin" : ""} ${tone}" data-arena-pick="${escapeHtml(a.key)}"
       style="grid-column: span ${c}; grid-row: span ${r}" aria-label="${escapeHtml(a.label)}: ${n} projects">
-      <b>${escapeHtml(SHORT[a.label] || a.label)}</b>${r > 1 ? `<span class="mz-n">${n}</span><small>${lead}${pct}</small>` : `<small>${n} · ${lead}</small>`}</button>`;
+      <b>${escapeHtml(SHORT[a.label] || a.label)}</b>${r > 1 ? `<span class="mz-n">${n}<em> projects</em></span><small>${lead}${pct}</small>` : `<small>${n} · ${lead}</small>`}</button>`;
   });
   if (cut < list.length) tiles.push(`<button type="button" class="mz mz-more" data-mosaic-more style="grid-column: span 2">
     <b>+ ${list.length - cut} more</b><small>smaller arenas</small></button>`);
-  return `<div class="mosaic" role="group" aria-label="Arenas">${tiles.join("")}</div>
-    <p class="mz-legend"><span>size = projects</span><span><i class="up">■</i> up 24h <i class="down">■</i> down 24h</span></p>`;
+  return `<p class="mz-intro">Each tile is a narrative: its projects compete only with each other. Tap one for its ranking.</p>
+    <div class="mosaic" role="group" aria-label="Arenas">${tiles.join("")}</div>
+    <p class="mz-legend"><span>♛ leader · size = projects</span><span><i class="up">■</i> up 24h <i class="down">■</i> down 24h</span></p>`;
 }
 const sigma = (z) => `${z >= 0 ? "+" : "−"}${Math.abs(z).toFixed(1)}σ`;
 

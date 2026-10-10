@@ -500,8 +500,8 @@ def search(q: str = "", status: str = "", sort: str = "score", limit: int = 50, 
         total = _db().execute(f"SELECT COUNT(*) FROM projects {clause}", args).fetchone()[0]
         rows = _db().execute(
             f"SELECT key, chain, token, symbol, name, website, github, image, mcap, liq, vol24, launched_at,"
-            f" first_seen, analyzed_at, status, why, score, rank, sources, narratives, traction, overall"
-            f" FROM projects {clause} ORDER BY {order} LIMIT ? OFFSET ?", (*args, limit, max(0, int(offset)))
+            f" first_seen, analyzed_at, status, why, score, rank, sources, narratives, traction, overall,"
+            f" description, categories FROM projects {clause} ORDER BY {order} LIMIT ? OFFSET ?", (*args, limit, max(0, int(offset)))
         ).fetchall()
     return {"total": total, "items": [_row(r) for r in rows]}
 
@@ -562,13 +562,14 @@ _NARR_ORDER = ("CASE status WHEN 'ranked' THEN 0 WHEN 'studied' THEN 1 WHEN 'new
                " WHEN 'analyzing' THEN 3 WHEN 'rejected' THEN 4 ELSE 5 END")
 
 
-def need_narratives(limit: int) -> list[dict]:
-    """Rows DeepSeek has not mapped to narratives yet, best first."""
+def need_narratives(limit: int, before: float = 0.0) -> list[dict]:
+    """Rows DeepSeek has not mapped to narratives yet, or mapped before
+    `before` (an older catalogue), best first."""
     with _lock:
         rows = _db().execute(
             "SELECT chain, token, symbol, name, website, description, categories, narratives FROM projects"
-            f" WHERE narr_at IS NULL ORDER BY {_NARR_ORDER}, COALESCE(score, -1) DESC LIMIT ?",
-            (max(1, int(limit)),)).fetchall()
+            f" WHERE narr_at IS NULL OR narr_at < ? ORDER BY {_NARR_ORDER}, COALESCE(score, -1) DESC LIMIT ?",
+            (float(before), max(1, int(limit)))).fetchall()
     return [_row(r) for r in rows]
 
 
