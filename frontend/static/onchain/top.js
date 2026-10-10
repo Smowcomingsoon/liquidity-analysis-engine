@@ -113,7 +113,7 @@ const FOLDED = new Set(["zero_knowledge", "fhe_mpc_tee"]);   // compete inside P
 function emptyArenas() {
   const have = new Set(arenas.map((a) => a.key));
   return cover.filter((n) => !have.has(n.key) && !FOLDED.has(n.key))
-    .map((n) => ({ key: n.key, label: n.label ?? n.key, entries: [], empty: true, projects: n.projects ?? 0 }));
+    .map((n) => ({ key: n.key, label: n.label ?? n.key, entries: [], empty: true }));
 }
 function mosaicHtml(width = 360) {
   if (!arenas.length) return "";
