@@ -138,6 +138,11 @@ def _three_way_split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.D
             df.iloc[train_n + val_n:])
 
 
+# Same floor as random/grid (optimize._MIN_TRADES_FLOOR): with RSI 14 / BB 20 /
+# 2 locked, RSI+BB rarely reaches 8 trades and the stable search reported
+# every candidate as unusable (segnalazione e0bffe25).
+from app.analysis.optimize import _MIN_TRADES_FLOOR  # noqa: E402
+
 def run_pipeline(
     strategy_name: str,
     df: pd.DataFrame,
@@ -212,7 +217,8 @@ def run_pipeline(
             strategy_name, df_in, bp,
             base_points=1, coarse=coarse, tol=tol,
             max_grid_evals=max_evals_per_branch,
-            min_trades=min_trades, space=cs.as_param_space(), seed=seed,
+            min_trades=_MIN_TRADES_FLOOR.get(strategy_name, min_trades),
+            space=cs.as_param_space(), seed=seed,
             # Le fasi della mappatura escono nello stesso log: "mappatura dei
             # pianori…" e poi silenzio per minuti non dice se sta lavorando ne'
             # che cosa sta facendo.

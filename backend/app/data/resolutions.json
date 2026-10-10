@@ -2691,5 +2691,11 @@
     "at": 1791636000,
     "summary": "Un token DEX ora si legge come 'DREGG · 2XHr…tBAG' (ticker e indirizzo del pool accorciato) sotto il grafico, nella ricerca, nella watchlist e nel Lab; il simbolo completo resta nel tooltip. Le righe della ricerca da telefono tagliano con i puntini invece di sovrapporre nome ed exchange.",
     "detail": "frontend/static/app.js shortSymbol; style.css .mobile-chart-symbol, .mts-sym, .mts-exch"
+  },
+  "e0bffe25": {
+    "status": "risolto",
+    "at": 1791639460,
+    "summary": "Ritestata in tutte e tre le modalita' su BTC 1d, SOL 4h e KAS 1h: casuale e griglia davano gia' 10 risultati, ma su una serie dove nessuna configurazione chiude in guadagno (o con almeno 4 trade e drawdown sotto il tetto) la classifica restava vuota e il Lab mostrava solo i parametri di default. Ora per RSI+BB in quel caso compaiono comunque le 10 migliori per rendimento, con la nota nel log 'esplorative, non un segnale'. Anche la ricerca stabile usa lo stesso minimo di 4 trade invece di 8. 14/20/2 restano sempre fissi.",
+    "detail": "backend/app/analysis/optimize.py fallback in optimize_strategy; pipeline.py _MIN_TRADES_FLOOR; test_optimize_gabriele_locked.test_fixed_gabriele_board_never_empty_when_nothing_passes"
   }
 }

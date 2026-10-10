@@ -386,6 +386,14 @@ def optimize_strategy(
             round(bt.max_drawdown_pct, 4),
         )
 
+    # Runners-up kept only for the case where nothing passes the score filters
+    # (positive return, trade floor, drawdown cap): an empty board read as "the
+    # optimizer is broken" (segnalazione e0bffe25). Ranked by return, at least
+    # one trade, and announced as not usable. RSI+BB only, where the locked
+    # 14/20/2 makes an empty board common.
+    fallback: list = []
+    fallback_seen: set = set()
+
     def _consider(params: dict, bt: BacktestResult) -> None:
         nonlocal counter, rejected_by_constraints
         # Prima del punteggio: un candidato che viola i vincoli non deve poter
@@ -395,6 +403,15 @@ def optimize_strategy(
             return
         score = _score(bt, ticker_volatility, _MIN_TRADES_FLOOR.get(strategy_name))
         if score == float("-inf"):
+            fp = _fingerprint(bt)
+            if strategy_name in GABRIELE_STRATEGIES and bt.num_trades >= 1 and fp not in fallback_seen:
+                fallback_seen.add(fp)
+                counter += 1
+                entry = (bt.total_return_pct, counter, params, bt)
+                if len(fallback) < top_n:
+                    heapq.heappush(fallback, entry)
+                elif entry[0] > fallback[0][0]:
+                    heapq.heapreplace(fallback, entry)
             return
         fp = _fingerprint(bt)
         if fp in seen_fingerprints:
@@ -446,6 +463,12 @@ def optimize_strategy(
 
     if not heap and constraints.active and rejected_by_constraints:
         raise NoCandidateMeetsConstraints(constraints, evaluated, rejected_by_constraints)
+
+    if not heap and fallback:
+        say("no configuration passed the filters (positive return, "
+            f"{_MIN_TRADES_FLOOR.get(strategy_name) or 'enough'} trades, drawdown cap): "
+            "showing the best by return — exploratory, not a signal")
+        heap = fallback
 
     if not heap:
         # No candidate passed the score filters — fall back to defaults with OOS

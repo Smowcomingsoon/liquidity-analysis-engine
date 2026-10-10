@@ -81,3 +81,21 @@ def test_fixed_gabriele_still_returns_candidates():
     *_head, top = optimize_strategy("Gabriele (RSI+BB reversal)", df, {"initial_capital": 10000},
                                     mode="grid", seed=1)
     assert top
+
+
+def test_fixed_gabriele_board_never_empty_when_nothing_passes():
+    """e0bffe25: on a series where no configuration has a positive return the
+    board was empty; it now shows the best by return, labelled exploratory."""
+    import numpy as np
+    import pandas as pd
+
+    from app.analysis.optimize import optimize_strategy
+    n = 600
+    c = 100 * np.exp(np.cumsum(np.random.default_rng(5).normal(-0.004, 0.03, n)))
+    df = pd.DataFrame({"open": c, "high": c * 1.01, "low": c * 0.99, "close": c, "volume": 1e6},
+                      index=pd.date_range("2022-01-01", periods=n, freq="D"))
+    log = []
+    *_head, top = optimize_strategy("Gabriele (RSI+BB reversal)", df, {"initial_capital": 10000},
+                                    mode="grid", seed=1, progress=log.append)
+    assert top
+    assert any("exploratory" in m for m in log)
