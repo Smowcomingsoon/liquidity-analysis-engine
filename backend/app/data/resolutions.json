@@ -2766,9 +2766,9 @@
   },
   "seed-0268": {
     "status": "in corso",
-    "at": 1791794419,
-    "summary": "Prima tranche del piano: grafico e backtest non bloccano più il sito, il backtest è circa 9 volte più veloce, il refresh ogni 60 s si fa solo quando serve, l'editor Pine non rallenta più l'apertura.",
-    "detail": "Calcoli del grafico e del backtest in thread separati (massimo due insieme, per la memoria). Motore senza iterrows: 5000 candele da 233 a 26 ms, risultati identici verificati da un test contro la versione precedente. Con il feed live attivo il ricalcolo completo avviene una volta per candela, al massimo ogni 5 minuti, invece che ogni minuto. Corretta la corsa fra due ricerche (vinceva la risposta vecchia). CodeMirror (400 KB) caricato quando il browser è libero o quando si apre l'editor. Nuovo /api/perf con i tempi per endpoint e i blocchi del server. Resta il resto del piano di 8 settimane."
+    "at": 1792161292,
+    "summary": "Seconda tranche (16/10): l'app scarica circa un terzo in meno, il CSS e il JavaScript arrivano compressi, il server riusa le connessioni. Resta la pulizia del codice di trading spento, in attesa di decisione.",
+    "detail": "Calcoli del grafico e del backtest in thread separati (massimo due insieme, per la memoria). Motore senza iterrows: 5000 candele da 233 a 26 ms, risultati identici verificati da un test contro la versione precedente. Con il feed live attivo il ricalcolo completo avviene una volta per candela, al massimo ogni 5 minuti, invece che ogni minuto. Corretta la corsa fra due ricerche (vinceva la risposta vecchia). CodeMirror (400 KB) caricato quando il browser è libero o quando si apre l'editor. Nuovo /api/perf con i tempi per endpoint e i blocchi del server. Resta il resto del piano di 8 settimane. 16/10: CSS dell'app in un file in cache (146 KB in meno a ogni apertura), moduli del trading spento caricati solo se il trading e' acceso, CSS minificato al volo (-29%) e JavaScript minificato nell'immagine (-32%), una connessione HTTP riusata per servizio esterno, compressione lasciata a Caddy, sette file di cache scritti in modo sicuro, workflow di misura dal vivo. Aspetto invariato: screenshot uguali a prima."
   },
   "seed-0269": {
     "status": "risolto",
