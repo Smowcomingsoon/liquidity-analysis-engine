@@ -42,6 +42,11 @@ jobs:
           node --check frontend/static/app.js
           node --check frontend/static/draw-engine.js
           node --test frontend/tests/draw-engine.test.mjs
+          # The image serves minified JS (Dockerfile, assets stage): the
+          # minified modules must still parse, as modules where they are.
+          cp -r frontend /tmp/min && sh deploy/minify-assets.sh /tmp/min/static
+          node --check /tmp/min/static/app.js
+          for f in /tmp/min/static/onchain/*.js; do cp "$f" /tmp/m.mjs && node --check /tmp/m.mjs || exit 1; done
 
       - name: Test
         run: |
