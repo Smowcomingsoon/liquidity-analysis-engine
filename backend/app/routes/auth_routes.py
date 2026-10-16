@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from app import auth, rate_limit
 from app import guest as guest_links
-from app.config import settings
+from app.config import email_allowlist, settings
 from app.models import (
     MAX_FUTURES_LEVERAGE,
     User,
@@ -119,7 +119,7 @@ async def register(req: RegisterRequest, request: Request, response: Response) -
         rate_limit.register_failure(ip_key)
         raise HTTPException(status_code=400, detail="Invalid email")
 
-    consentite = {e.strip().lower() for e in settings.registration_allowed_emails.split(",") if e.strip()}
+    consentite = email_allowlist(settings.registration_allowed_emails)
     if consentite and email not in consentite:
         rate_limit.register_failure(ip_key)
         # Stesso messaggio che si da' a un'email gia' presente: due risposte

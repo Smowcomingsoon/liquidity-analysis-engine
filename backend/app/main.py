@@ -93,7 +93,7 @@ from app.analysis.strategies import (
 )
 from app.analysis.summary import build_summary, determine_bias
 from app.cache import get_or_fetch
-from app.config import settings
+from app.config import email_allowlist, settings
 from app import diagnostics
 from app.live.kraken_stream import kraken_stream_manager
 from app.live.mexc_stream import mexc_stream_manager
@@ -235,7 +235,7 @@ dexscreener_provider = DexScreenerProvider()
 
 
 def _balance_visible(user: User) -> bool:
-    allowed = {e.strip().lower() for e in settings.balance_visible_emails.split(",") if e.strip()}
+    allowed = email_allowlist(settings.balance_visible_emails)
     return not allowed or user.email.lower() in allowed
 
 
@@ -1417,7 +1417,7 @@ async def _telegram_reply(chat_id: str, text: str) -> None:
     try:
         # Who may give DeepSeek standing instructions: the site's own chats and
         # the admins' personal ones, never other users.
-        admins = {e.strip().lower() for e in settings.admin_emails.split(",") if e.strip()}
+        admins = email_allowlist(settings.admin_emails)
         owner_chats = {c.strip() for c in settings.telegram_chat_ids.split(",") if c.strip()} | {
             u.telegram_chat_id for u in auth.list_users()
             if u.telegram_chat_id and (getattr(u, "email", "") or "").lower() in admins}
@@ -3952,7 +3952,7 @@ class PlanAssign(BaseModel):
 
 def _full_access(user: User) -> bool:
     """Top plan without the admin powers: admins plus full_access_emails."""
-    allowed = {e.strip().lower() for e in settings.full_access_emails.split(",") if e.strip()}
+    allowed = email_allowlist(settings.full_access_emails)
     return _is_admin(user) or (not guest_links.is_guest(user) and user.email.lower() in allowed)
 
 
@@ -5110,7 +5110,7 @@ async def onchain_reset_circuit_breaker(chain: OnchainChain, user: User = Depend
 
 
 def _require_onchain_admin(user: User) -> None:
-    allowed = {e.strip().lower() for e in settings.admin_emails.split(",") if e.strip()}
+    allowed = email_allowlist(settings.admin_emails)
     if user.email.lower() not in allowed:
         raise HTTPException(status_code=403, detail="Only a configured admin (settings.admin_emails) "
                                                       "can read /admin/status.")
@@ -5534,7 +5534,7 @@ async def set_trading_halt(body: HaltRequest, user: User = Depends(auth.get_curr
     La chiusura manuale di una posizione esistente ignora il kill switch
     (vedi /api/trading/futures/close).
     """
-    allowed_emails = {e.strip().lower() for e in settings.registration_allowed_emails.split(",") if e.strip()}
+    allowed_emails = email_allowlist(settings.registration_allowed_emails)
     if user.email.lower() not in allowed_emails:
         raise HTTPException(status_code=403, detail="Not authorized")
     settings.trading_halt = body.halt
@@ -5545,7 +5545,7 @@ async def set_trading_halt(body: HaltRequest, user: User = Depends(auth.get_curr
 @app.get("/api/trading/halt")
 async def get_trading_halt(user: User = Depends(auth.get_current_user)):
     """Stato corrente del kill switch."""
-    allowed_emails = {e.strip().lower() for e in settings.registration_allowed_emails.split(",") if e.strip()}
+    allowed_emails = email_allowlist(settings.registration_allowed_emails)
     if user.email.lower() not in allowed_emails:
         raise HTTPException(status_code=403, detail="Not authorized")
     return {"trading_halt": settings.trading_halt}

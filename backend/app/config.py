@@ -1,3 +1,4 @@
+import hashlib
 import sys
 from pathlib import Path
 
@@ -190,11 +191,14 @@ class Settings(BaseSettings):
     # un ruolo) — /admin/status usa questa allowlist dedicata, stesso
     # meccanismo di telegram_allowed_emails/registration_allowed_emails
     # sotto, con lo stesso default (chi gia' amministra il sito oggi).
-    admin_emails: str = "lorenzocorazzi@gmail.com"
+    # Email allowlists (16/10, the repo is public): an entry is an address or
+    # "sha256:<hex of the lowercased address>", so the defaults name the two
+    # accounts without printing them. Match with email_allowlist() below.
+    admin_emails: str = "sha256:ec987139be8d4d3991504dbe9bd5c8f92ce102948dee4e4305db5e84e841eb0e"
     # Every service without admin powers (plans, guest links, /admin/status,
     # teaching DeepSeek). Lorenzo, 29/09: "un utente che accede a tutti i
     # servizi, non admin".
-    full_access_emails: str = "whitekobra@icloud.com"
+    full_access_emails: str = "sha256:fdfcf4ae2f1823a2e1f24d0f48c3fcd8cf128541133709ad272f21f2e62f3f58"
 
     telegram_bot_token: str = ""
     telegram_chat_ids: str = ""  # comma-separated
@@ -213,14 +217,14 @@ class Settings(BaseSettings):
     # deliberately locked to specific account emails (comma-separated) —
     # other registered users can still use the app/watchlist, just without
     # alerts going out, until this is opened up more broadly.
-    telegram_allowed_emails: str = "lorenzocorazzi@gmail.com,whitekobra@icloud.com"
+    telegram_allowed_emails: str = "sha256:ec987139be8d4d3991504dbe9bd5c8f92ce102948dee4e4305db5e84e841eb0e,sha256:fdfcf4ae2f1823a2e1f24d0f48c3fcd8cf128541133709ad272f21f2e62f3f58"
 
     # Chi puo' aprire un account. Il sito e' pubblico, e un account non e' un
     # dettaglio estetico: da' accesso all'ottimizzatore, che occupa un core
     # per minuti, e alla parte che conserva chiavi di trading. Vuoto =
     # registrazione aperta a chiunque (com'era prima, e non e' una buona idea
     # su un indirizzo pubblico).
-    registration_allowed_emails: str = "lorenzocorazzi@gmail.com,whitekobra@icloud.com"
+    registration_allowed_emails: str = "sha256:ec987139be8d4d3991504dbe9bd5c8f92ce102948dee4e4305db5e84e841eb0e,sha256:fdfcf4ae2f1823a2e1f24d0f48c3fcd8cf128541133709ad272f21f2e62f3f58"
 
     # Read-only exchange account credentials, used ONLY for GET
     # account/balance endpoints (app/exchange_balances.py) — never for any
@@ -235,7 +239,7 @@ class Settings(BaseSettings):
     # Personal exchange balances are sensitive — visible only to these
     # account emails (comma-separated), separate from the Telegram
     # allowlist since this isn't necessarily the same audience.
-    balance_visible_emails: str = "lorenzocorazzi@gmail.com"
+    balance_visible_emails: str = "sha256:ec987139be8d4d3991504dbe9bd5c8f92ce102948dee4e4305db5e84e841eb0e"
 
     # Timeframe set: HTF -> MTF -> LTF, matches PROMPT_SPEC.md section 5.
     # Each DataProvider maps these neutral keys to its own interval format.
@@ -274,3 +278,27 @@ def without_paid_ai(s: Settings) -> Settings:
 
 
 settings = without_paid_ai(Settings())
+
+
+class EmailAllowlist:
+    """A comma-separated allowlist: plain addresses and/or "sha256:<hex>"
+    entries. `email in allowlist` matches either; empty is falsy."""
+
+    def __init__(self, csv: str):
+        entries = [e.strip().lower() for e in (csv or "").split(",") if e.strip()]
+        self._hashes = {e[7:] for e in entries if e.startswith("sha256:")}
+        self._plain = {e for e in entries if not e.startswith("sha256:")}
+
+    def __contains__(self, email: object) -> bool:
+        if not isinstance(email, str):
+            return False
+        e = email.strip().lower()
+        return e in self._plain or hashlib.sha256(e.encode()).hexdigest() in self._hashes
+
+    def __bool__(self) -> bool:
+        return bool(self._plain or self._hashes)
+
+
+def email_allowlist(csv: str) -> EmailAllowlist:
+    return EmailAllowlist(csv)
+

@@ -12,7 +12,7 @@ from fastapi import HTTPException, Request
 from pydantic import BaseModel
 
 from app import guest as guest_links
-from app.config import settings
+from app.config import email_allowlist, settings
 from app.models import User
 from app.trading.futures import registry as futures_registry
 
@@ -44,7 +44,7 @@ def _fired_done(task: asyncio.Task) -> None:
 
 
 def _telegram_allowed(user: User) -> bool:
-    allowed = {e.strip().lower() for e in settings.telegram_allowed_emails.split(",") if e.strip()}
+    allowed = email_allowlist(settings.telegram_allowed_emails)
     return not allowed or user.email.lower() in allowed
 
 
@@ -84,12 +84,12 @@ def _device(request: Request) -> str:
 
 
 def _is_admin(user: User) -> bool:
-    allowed = {e.strip().lower() for e in settings.admin_emails.split(",") if e.strip()}
+    allowed = email_allowlist(settings.admin_emails)
     return not guest_links.is_guest(user) and user.email.lower() in allowed
 
 
 def _require_admin(user: User) -> None:
-    allowed = {e.strip().lower() for e in settings.admin_emails.split(",") if e.strip()}
+    allowed = email_allowlist(settings.admin_emails)
     if guest_links.is_guest(user) or user.email.lower() not in allowed:
         raise HTTPException(status_code=403, detail="Only an admin can manage guest links.")
 
