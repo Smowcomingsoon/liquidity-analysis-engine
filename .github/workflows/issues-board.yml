@@ -1,0 +1,42 @@
+name: Issues board (read)
+
+# Lorenzo, 16/10: "usa la strada di farla leggere da GitHub [...] sono tutte
+# cose tecniche relative alle strategie". The sandbox cannot reach the site:
+# this reads GET /api/issues (public, read-only) and prints every issue that
+# is not resolved, plus the newest replies, as annotations. Run by hand.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Open issues
+        run: |
+          curl -sf --max-time 60 https://liquidityengine.app/api/issues -o issues.json
+          python3 - <<'PY'
+          import json, time
+          body = json.load(open("issues.json"))
+          items = body.get("items", [])
+          print(f"::notice title=Board::{len(items)} issues, counts {json.dumps(body.get('counts', {}), ensure_ascii=False)}")
+          import re
+          def one_line(s, n):
+              # the run is public (16/10): an address shows as its name only
+              return re.sub(r"([A-Za-z0-9._%+-]+)@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", r"\1@…", " ".join(str(s or "").split()))[:n]
+          open_ = [i for i in items if i.get("status") != "risolto"]
+          open_.sort(key=lambda i: -int(i.get("created_at") or 0))
+          rows = []
+          for i in open_:
+              when = time.strftime("%Y-%m-%d", time.gmtime(int(i.get("created_at") or 0)))
+              replies = i.get("replies") or []
+              last = replies[-1] if replies else None
+              tail = f" | last reply ({one_line(last.get('author'), 40)}, {last.get('side', '')}): {one_line(last.get('text'), 500)}" if last else ""
+              rows.append(f"{i.get('id')} [{i.get('status')}] {when} · {one_line(i.get('author'), 40)} · "
+                          f"{one_line(i.get('title'), 160)} — {one_line(i.get('detail'), 1500)}{tail}")
+              print(rows[-1])
+          # a step shows at most 10 annotations of a kind: several issues each
+          for k in range(0, min(len(rows), 72), 8):
+              print(f"::notice title=Open {k + 1}-{min(k + 8, len(rows))} of {len(rows)}::" + " %0A%0A ".join(rows[k:k + 8]))
+          PY
