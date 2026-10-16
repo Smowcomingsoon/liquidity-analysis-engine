@@ -26,3 +26,17 @@ backend/app/data/onchain_radar.json
 
 # Segreti del deploy self-hosted
 deploy/.env
+
+# Mai chiavi o dati personali nel repo pubblico (vedi .gitleaks.toml)
+.env
+.env.*
+!.env.example
+**/.env
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+*.keystore

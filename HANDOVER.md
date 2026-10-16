@@ -1,3 +1,11 @@
+# 2026-10-16 — Repository pubblico: via dati personali, chiavi e IP (Claude, a mano)
+
+Lorenzo: "rimuovere completamente ogni riferimento alle nostre email o qualsiasi altro dato personale o qualsiasi chiave, API [...] ovviamente preservando il funzionamento di tutto". `seed-0310`.
+- Scansione gitleaks di albero e storia: nessuna chiave mai committata. Nella storia restano solo 2 email (Lorenzo, tester), l'IP del server e un'email di terzi, piu' l'email personale come autore di ~460 commit.
+- Fatto: `/api/issues` anonimo maschera le email (`routes/issues._mask_emails`, prime due lettere); IP, percorso chiave SSH e nickname del tester tolti dai file; `.gitleaks.toml` (regole default + email + IPv4 pubblici, allowlist indirizzi on-chain), workflow `secret-scan.yml` separato dal deploy, `scripts/hooks/pre-commit` (`git config core.hooksPath scripts/hooks`), `.gitignore` per `.env`/chiavi.
+- Restano nomi di battesimo come chiavi di strategia (Lorenzo, Gabriele): cambiarli migra i dati salvati, non fatto. Lo slug del repo contiene lo username GitHub: inevitabile.
+- Riscrittura storia (git filter-repo, `--replace-text`, `--replace-message`, `--mailmap` verso l'indirizzo noreply di GitHub) provata su copia: 0 occorrenze dopo. **Il force push aspetta il si' di Lorenzo**; i riferimenti `refs/pull/*` delle PR restano su GitHub finche' il supporto non li pulisce.
+
 # 2026-10-16 — Overhaul prestazioni di tutto il sito, piano (Claude, solo piano)
 
 Lorenzo: "fai un overhaul completo del sito per renderlo piu veloce, performante e leggero; riducendo gli errori e le ripetizioni inutili nel codice; crea piano di attuazione e proponimelo". Documento "Overhaul prestazioni — piano" (Claude Doc, artifact 6d45e063-38e2-4509-8177-35212584cd6a). Assorbe le settimane rimaste del piano del 12/10 (`seed-0268`).
@@ -100,7 +108,7 @@ Lorenzo: "nella chat Telegram alert strategie (-5359869020) mi arrivano anche le
 
 Lorenzo: "aggiungi una modalita' che cerca solo il rendimento massimo su tutto il grafico [...] ipervenduto solo da 10 a 40, ipercomprato solo da 60 a 90 [...] di uno in uno [...] drawdown massimo consentito del 60%". `optimize.max_return_search` (961 combinazioni, backtest passato dal chiamante = `_chart_backtest`, cioe' lo stesso di Run), `mode=max_return` in /api/optimize e /api/optimize/start, `_max_return_payload` in main.py, radio 'Max return' nel Lab visibile solo per RSI+BB. Nessun OOS, dichiarato nella nota.
 
-# 2026-10-12 — Segnalazioni whitekobra 6a8fdae8, 58512aa5, 5571a9f1 (Claude, a mano)
+# 2026-10-12 — Segnalazioni del tester 6a8fdae8, 58512aa5, 5571a9f1 (Claude, a mano)
 
 Lorenzo: "Risolvi le segnalazioni aperte". 6a8fdae8: sincronia del tempo nei due sensi (`followPane` in app.js, il grafico principale fa da centro). 58512aa5: la casella in alto prende il pair cliccato in Watchlist e, a ogni analisi, il simbolo mostrato (non per DEX). 5571a9f1 (ottimizzazione RSI+BB battuta a mano): il backtest restituito era quello del solo tratto di selezione (70%, 60% in Stable) mentre Run usa tutta la serie; ora `_optimize_payload` ricalcola vincitore e classifica con `_chart_backtest` (stessa definizione di /api/backtest/deep) e tiene `in_sample_return_pct`. Grid Gabriele = tutti gli interi 15-50 x 50-85 (1296). **Cambia i numeri storici dell'ottimizzazione** (ora storia intera). Aperta per Lorenzo: modalita' 'massimo rendimento su tutto il grafico' dichiarata, se la vuole.
 
@@ -160,14 +168,14 @@ Lorenzo: "sui pair presenti solo nei dex il backtest non fornisce risultati [...
 
 Lorenzo: "Risolvi la segnalazione aperta". Bottone `#watch-star-btn` fra ricerca e timeframe: aggiunge/toglie la coppia del grafico da YOUR TICKERS (`updateWatchStar`, chiamata da `render()` e `renderFavorites()`). Solo barra desktop (su mobile `.toolbar` e' nascosta). Nota: WebFetch della bacheca a volte restituisce una copia vecchia; un parametro nuovo nell'URL (`?fresh=...`) la aggira.
 
-# 2026-10-12 — Altre due segnalazioni di whitekobra (Claude, a mano)
+# 2026-10-12 — Altre due segnalazioni del tester (Claude, a mano)
 
 Lorenzo: "risolvi le segnalazioni aperte". (Le cinque del 11/10 risultavano ancora aperte solo per una lettura in cache della bacheca: il deploy era andato.)
 
 - `3e8b3e78` domanda: la 1D crypto chiude a 00:00 UTC (02:00 italiane, 01:00 dal 25/10) su tutti e quattro gli exchange e i DEX; azioni alle 22:00. Risposta in `replies.json` + risoluzione.
 - `f3cdcc63` archivio manuale diverso dal Lab: il tasto Archive manda `data_start`/`data_end` del risultato a schermo e `intrabar`; `_run_archive_backtest` rifà sullo stesso intervallo (`_slice_to_window`), con i parametri passati da `StrategyParamsQuery` come fa `/api/backtest/deep`, segnali DEX solo-long e replay dentro la candela se il Lab lo aveva. Causa piu' probabile per le RSI+BB: dopo un'ottimizzazione il Lab mostra il backtest in campione (`pipeline.winner_bt` su `df_in`), l'archivio lo rifaceva su tutta la storia. Voci vecchie non ricalcolate.
 
-# 2026-10-11 — Cinque segnalazioni di whitekobra del sito classico (Claude, a mano)
+# 2026-10-11 — Cinque segnalazioni del tester del sito classico (Claude, a mano)
 
 Lorenzo: "risolvi le segnalazioni aperte" (prima aveva chiesto di farlo in automatico a ogni nuova segnalazione: c'e' gia' un'attivita' programmata sul suo account forelectric.it, non visibile da qui; non duplicata).
 
@@ -194,7 +202,7 @@ Lorenzo: "c'e' da creare una terza chat Telegram solo per gli alert, ho gia' fat
 
 # 2026-10-09 — Segnalazioni aperte del sito classico (Claude, a mano)
 
-Lorenzo: "io volevo solo chiudere i punti aperti del sito classico.. vabbe' ora concentrati su quello". Le otto voci aperte o riaperte di whitekobra:
+Lorenzo: "io volevo solo chiudere i punti aperti del sito classico.. vabbe' ora concentrati su quello". Le otto voci aperte o riaperte del tester:
 
 - `6453f4df`/`72f880af`: ottimizzazione Gabriele con lunghezza RSI 14, Bollinger 20, moltiplicatore 2 **sempre** (`optimize.GABRIELE_FIXED`), non piu' presi dai campi del Lab.
 - `8bd7884c`/`37637f11`: due opzioni in "Signal execution": `signal_close` (alla chiusura) e `on_condition` (alert sulla candela in formazione = `on_close: false` della watchlist). Il backtest riempie alla chiusura in tutti e due i casi (non vede dentro la candela) e lo dice.
@@ -214,14 +222,14 @@ Lorenzo: "chiudi tutti i punti aperti nel sito degen view, ora lasciamo stare lo
 - PR #402 (mappa Agent di Codex, 30/09) chiusa: storia scollegata da main, superata.
 - Bacheca: `seed-0143` (wallet di chiunque: collegamento fatto, vault non piu' necessario senza trading), `seed-0117`, `seed-0116`, `seed-0111` (Gem Finder da ricercatore, narrative, progetti seri: oggi arene + motore notturno), `seed-0109` (pagina /engn; il lancio del token resta una decisione di Lorenzo) segnate risolte.
 - Issue GitHub #347, #357, #358, #363, #365, #366 (piani del 29/09) chiuse come superate dal lavoro del 07/10.
-- Non toccati: `seed-0078` (Sniper, escluso da Lorenzo); le segnalazioni di whitekobra su Lab/Levels/Telegram sono del sito classico, non di DEGEN.
+- Non toccati: `seed-0078` (Sniper, escluso da Lorenzo); le segnalazioni del tester su Lab/Levels/Telegram sono del sito classico, non di DEGEN.
 
-Seguito (Lorenzo: "altri punti aperti da white kobra"):
+Seguito (Lorenzo: "altri punti aperti dal tester"):
 - `6453f4df` riaperta ("l'ottimizzazione personalizzata RSI+BB non produce risultati"): con 14/20/2 fissi il minimo di 9-10 trade svuotava la classifica. Minimo 4 per le due Gabriele, ipervenduto 15-50, ipercomprato 50-85 (`optimize._MIN_TRADES_FLOOR`).
 - `411e4c7c` Lab <-> Analizza: `syncLabFromChart` all'ingresso nel Lab, `syncChartFromLab` tornando su Analizza (pair, timeframe, strategia, parametri).
 - Restano in corso, non toccate: `seed-0054`, `seed-0051`, `seed-0028`.
 
-Seguito 10/10 (Lorenzo: "quelle nuove ?"): 4 voci di white kobra del 09/10 sera.
+Seguito 10/10 (Lorenzo: "quelle nuove ?"): 4 voci del tester del 09/10 sera.
 - `e67ae945` Lab: `clearLabResults()` svuota tutta la colonna risultati prima di backtest e ottimizzazione.
 - `87cc755b` exchange Analizza <-> Lab: il grafico tiene l'exchange in `state.cryptoExchange` (non `state.exchange`); sync anche su telefono (`showMobileScreen`, Lab = schermata "backtest").
 - `7410bba2` MEXC: filtro `status == "1"` invece di `isSpotTradingAllowed` (79 coppie vive escluse). Lista riletta ogni ora, ultima buona tenuta se la lettura fallisce. Niente job settimanale: l'ora basta.
@@ -522,7 +530,7 @@ Resta: dopo il deploy leggere `/api/agent/calls` su 7 giorni e decidere dove int
 
 Lorenzo, 29/09, ha condiviso i due piani di ChatGPT per Claude: #357 struttura backend, #358 intelligenza e memoria (altro thread). Registro vivo con mappa, evidenze e stato: `docs/backend/B00_REGISTRO.md` — aggiornarlo a ogni PR.
 S01-S07 li ha chiusi l'altro thread (#350, #354, #359). Qui: B02 scritture JSON atomiche (`app/atomic_write.py`, 39 punti: un crash a meta' scrittura lasciava file vuoti che gli store leggevano come "parti da zero"); B04 task di `lifespan` tracciati e cancellati (il riconciliatore degli ordini non aveva riferimento); B00 registro.
-Fatto dopo (#381, thread "Riepilogo backend dopo audit ChatGPT", Lorenzo 29/09: "completa quello che puoi"): SSRF chiusa con `trading/onchain/egress.py` (controllo IP pubblico al momento della connessione, anche per le richieste di Chromium, che non si connette piu' da solo); i ~30 `create_task` Telegram passano da `main._fire` (riferimento tenuto, errore nel log); deploy ancorato a `github.sha`. A-ADMIN: Lorenzo, 29/09: "whitekobra e' un utente che accede a tutti i servizi, non admin". `admin_emails` ora solo Lorenzo; `full_access_emails` (whitekobra) da' il piano pro senza poteri admin (piani, link ospite, /admin/status, istruzioni a DeepSeek).
+Fatto dopo (#381, thread "Riepilogo backend dopo audit ChatGPT", Lorenzo 29/09: "completa quello che puoi"): SSRF chiusa con `trading/onchain/egress.py` (controllo IP pubblico al momento della connessione, anche per le richieste di Chromium, che non si connette piu' da solo); i ~30 `create_task` Telegram passano da `main._fire` (riferimento tenuto, errore nel log); deploy ancorato a `github.sha`. A-ADMIN: Lorenzo, 29/09: "il tester e' un utente che accede a tutti i servizi, non admin". `admin_emails` ora solo Lorenzo; `full_access_emails` (tester) da' il piano pro senza poteri admin (piani, link ospite, /admin/status, istruzioni a DeepSeek).
 Resta: M01/M02, lease sui loop prima di piu' worker, backup/restore provati, B06 estrazione router, B07 misure, B08 Actions ferme (causa lato account GitHub, la vede solo Lorenzo).
 
 ## Consegne di ChatGPT/Codex del 29/09 — cosa sono e come trattarle
@@ -610,7 +618,7 @@ Lorenzo: "dobbiamo dare la possibilita' di far collegare il wallet a qualsiasi p
 - Sistema (`system.py`): Lorenzo "trova la miglior strategia [...] rendiamola praticamente operativa [...] i risultati di questi ingressi e uscite come risultati nella leaderboard". Candidate: Lorenzo e Lorenzo HF (default), candele 5m, fill all'apertura dopo il segnale, costi 0,3+0,5% per lato, finestra 48h, rug = -100%. Vince la mediana migliore su alert conclusi (>= 20, prima Lorenzo HF). Barre in `alert_track` (`_bars`, file `onchain_alert_bars.json`) dalle letture ogni minuto + un fetch GeckoTerminal per alert (`refresh_system`). La classifica ordina per "System" di default.
 - Autotrader (`autotrader.py`): "con un tasto io attivo la strategia [...] 100%, 50, 25 [...] considerare sempre le fee". Risposte di Lorenzo: saldo USDG, un token alla volta, nessun limite oltre la %, prima simulato. Off/Sim/Real, quota 10/25/50/100%. Reale = `execute_order(guards=False)` + approve USDG al router; firma solo percorsi Uniswap v3 (aggregatore Kyber non ancora firmabile: da fare se in simulato si vedono molti "only reachable through an aggregator"). Serve `onchain_execution_enabled=True` sul server (decide Lorenzo) ed ETH per il gas. NON testato su chain dalla sandbox: primo trade reale va seguito.
 - Cash USDC (`seed-0142`): Lorenzo "devono essere USDC, e se operi su Robinhood prima devi convertire in USDG"; risposte: USDC multichain, dopo ogni vendita sempre in USDC. `autotrader.find_usdc` prende il lato USDC del pool USDC/USDG piu' liquido su DexScreener (>= $20k, 6 decimali verificati) o `ROBINHOOD_USDC_ADDRESS`. Bridge Solana->Robinhood NON fatto.
-- DeepSeek sul server, 27/09 pomeriggio (Lorenzo: "seguimi per installare deepseek nel server"): con lui in SSH (`ssh -i %USERPROFILE%\.ssh\hetzner_new root@2.28.126.212`, progetto in `/opt/liquidity`, rete Docker `deploy_default`, app ~1 GB su 3,7 GB) e' stato avviato A MANO un container `ollama` (fuori dal compose: `--network deploy_default --memory 1800m --cpus 1`, volume `ollama`) per provare `deepseek-r1:1.5b`. Consiglio dato: 1.5B e' troppo debole per il revisore; usare l'API DeepSeek (`DEEPSEEK_API_KEY` in `/opt/liquidity/deploy/.env`, poi `docker compose up -d app`) e togliere il container con `docker rm -f ollama && docker volume rm ollama`. **Tolto** lo stesso giorno (container, volume e immagine), su richiesta di Lorenzo.
+- DeepSeek sul server, 27/09 pomeriggio (Lorenzo: "seguimi per installare deepseek nel server"): con lui in SSH (`ssh root@<server>`, progetto in `/opt/liquidity`, rete Docker `deploy_default`, app ~1 GB su 3,7 GB) e' stato avviato A MANO un container `ollama` (fuori dal compose: `--network deploy_default --memory 1800m --cpus 1`, volume `ollama`) per provare `deepseek-r1:1.5b`. Consiglio dato: 1.5B e' troppo debole per il revisore; usare l'API DeepSeek (`DEEPSEEK_API_KEY` in `/opt/liquidity/deploy/.env`, poi `docker compose up -d app`) e togliere il container con `docker rm -f ollama && docker volume rm ollama`. **Tolto** lo stesso giorno (container, volume e immagine), su richiesta di Lorenzo.
 - DeepSeek (`seed-0141`): Lorenzo voleva installarlo sul server. Non ci sta (CX23 2 vCPU/4 GB, il modello vero chiede centinaia di GB di GPU). Il revisore ora usa l'API DeepSeek se c'e' `DEEPSEEK_API_KEY` (`ai_review_provider=auto`). Per il coding: DeepSeek non puo' lavorare al posto di Claude in questa sessione; si usa da strumenti suoi (Aider/Cline) con la sua chiave.
 - Saldo multi-chain (`seed-0145`, `portfolio.py`): Lorenzo "il wallet deve essere multi-chain e devo visualizzare il saldo a prescindere da quale token e in quale chain ho". Totale in testata (`/api/wallets/total`). Limiti noti: Robinhood legge solo token gia' visti dal sito (Blockscout di Robinhood dietro Cloudflare); BSC solo BNB; Base/Ethereum dipendono da Blockscout pubblico.
 - Profilo (`profiles.py`, `wealth.py`, `profile.js`): "uno deve vedere cosa detiene, l'andamento del wallet nel tempo [...] scegliere l'immagine profilo". Dati in `profiles.json` + `avatars/` sul volume; storia valore in `onchain_wealth.json`. Il dock ha Profile al posto di Wallet; la vista wallet e' nel menu "…".
@@ -799,7 +807,7 @@ riferimento scelta: cubo nero con fessura verde, griglia, candele.
   banner, testi) in `/mnt/project-files/lancio/pumpfun/` e
   `docs/lancio-engn.md`. **Il token si crea solo col suo via.**
 - Sito dedicato: engn.xyz era gia' preso; proposto getengn.xyz (Lorenzo lo
-  compra, record A verso 2.28.126.212, nuvola grigia su Cloudflare). Il blocco
+  compra, record A verso il server, nuvola grigia su Cloudflare). Il blocco
   Caddy e' in `deploy/Caddyfile`: va unito solo quando il DNS punta al server,
   altrimenti Caddy prova il certificato a vuoto. Kit X in
   `/mnt/project-files/lancio/x/` (Lorenzo crea l'account, niente credenziali
@@ -2220,7 +2228,7 @@ chiesto con le sue parole.
   grafico — stessi dati del pulsante "N trade" del Laboratorio, non quel
   pannello spostato (e' pensato per restare incollato ai suoi risultati).
 - **Ordine futures disattivato + Sorveglia incasinata da mobile**
-  (`6237708e`, segnalazione reale da whitekobra, non da
+  (`6237708e`, segnalazione reale dal tester, non da
   Lorenzo): l'errore "Esecuzione futures disattivata per questo exchange"
   non diceva dove accenderla. Ora nomina l'exchange e, nel form d'ordine
   futures, aggiunge un pulsante "Attiva ora" accanto al rifiuto — un
@@ -2587,7 +2595,7 @@ il backend), ruff pulito.
 ### Chiuso — ee624db5 e 5c5aad89 (periodo di riferimento in Lab, bug marker grafico)
 
 Lorenzo: "risolvi tutti i punti aperti nel sito" — controllata la bacheca,
-4 segnalazioni vere ancora aperte da whitekobra. Risolte le due scoperte e
+4 segnalazioni vere ancora aperte dal tester. Risolte le due scoperte e
 chiare:
 
 - **ee624db5**: periodo di riferimento (data inizio/fine) nel Lab, subito
@@ -3208,8 +3216,8 @@ passed) + ruff pulito prima di committare.
 ## Le due segnalazioni genuinamente aperte, chiuse
 
 Lorenzo: "lavora sui punti aperti e risolvili" — riferito ai due unici
-rimasti senza risoluzione, `72f880af` e `37637f11`, entrambe scritte da
-whitekobra dall'app.
+rimasti senza risoluzione, `72f880af` e `37637f11`, entrambe scritte dal
+tester dall'app.
 
 **`72f880af`** — "Gabriele nel Lab lascia sempre predefiniti RSI
 LENGTH/BOLLINGER LENGTH/MOLTIPLICATORE, interviene solo su

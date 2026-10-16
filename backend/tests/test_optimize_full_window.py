@@ -1,7 +1,7 @@
 """
 The optimized result is the same backtest Run computes (5571a9f1).
 
-whitekobra: "changing the two RSI values by hand on SUI-USDT I got better
+Il tester: "changing the two RSI values by hand on SUI-USDT I got better
 results than the automatic optimization in every mode, even the recommended
 stable one". The search picks on the first 70% (60% for Stable) and the
 backtest it returned was that slice's, while Run backtests the whole series:

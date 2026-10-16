@@ -213,7 +213,7 @@ def _random_exhaustion_params(rng: random.Random, base: dict | None = None) -> d
     }
 
 
-# Segnalazioni 72f880af e 6453f4df (whitekobra): l'ottimizzazione di
+# Segnalazioni 72f880af e 6453f4df (tester): l'ottimizzazione di
 # Gabriele tiene sempre lunghezza RSI 14, lunghezza Bollinger 20 e
 # moltiplicatore 2, qualunque valore ci sia nei campi del Lab, e cerca solo
 # RSI ipercomprato/ipervenduto.

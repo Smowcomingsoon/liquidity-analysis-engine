@@ -354,7 +354,7 @@ def _gabriele_space(stats: SeriesStats, target_entries: int, strategy_name: str,
     """Gabriele con lunghezza RSI 14, lunghezza Bollinger 20 e moltiplicatore
     2 sempre fissi: si cercano solo RSI ipercomprato e ipervenduto.
 
-    Segnalazioni 72f880af e 6453f4df (whitekobra): "lascia sempre predefiniti
+    Segnalazioni 72f880af e 6453f4df (tester): "lascia sempre predefiniti
     [...] LUNGHEZZA RSI (14), LUNGHEZZA BOLLINGER (20) e MOLTIPLICATORE
     BOLLINGER (2)". Prima i tre valori venivano dai campi del Lab, che dopo
     un'ottimizzazione applicata o un ticker salvato non erano piu' i default.

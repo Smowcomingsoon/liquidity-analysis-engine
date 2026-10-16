@@ -165,6 +165,9 @@ def _resolutions() -> dict[str, dict]:
 
 
 _SEED = [
+    ("seed-0310", "Repository pubblico: nessun dato personale, chiave o IP nei file",
+     "Lorenzo, 16/10: 'rimuovere completamente ogni riferimento alle nostre email o qualsiasi altro dato personale o qualsiasi chiave, API [...] ovviamente preservando il funzionamento di tutto'.",
+     "alta"),
     ("seed-0309", "Repository pubblico: togliere dai file gli indirizzi email",
      "Lorenzo, 16/10: 'come si puo' cercare di modificare il fatto che siano visibili gli indirizzi email, i due indirizzi email, si possono in qualche modo oscurare'.",
      "media"),

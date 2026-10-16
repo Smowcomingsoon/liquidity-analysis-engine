@@ -552,7 +552,7 @@
   "ae0296aa": {
     "status": "risolto",
     "at": 1789113000,
-    "summary": "Riaperta da whitekobra chiedendo MEXC futures comunque, licenza UE o no ('anche Binance non ce l'ha per ora, il software si usa anche fuori UE'). Richiesta accolta: MexcFutures() e' nel registro (backend/app/trading/futures/registry.py), esposto da /api/auth/futures insieme agli altri cinque exchange — selezionabile in Opera oggi.",
+    "summary": "Riaperta dal tester chiedendo MEXC futures comunque, licenza UE o no ('anche Binance non ce l'ha per ora, il software si usa anche fuori UE'). Richiesta accolta: MexcFutures() e' nel registro (backend/app/trading/futures/registry.py), esposto da /api/auth/futures insieme agli altri cinque exchange — selezionabile in Opera oggi.",
     "detail": "La risoluzione precedente (12:23 del giorno prima) diceva 'escluso per scelta normativa, nessun codice da correggere' — ma nel frattempo l'adattatore MEXC e' stato aggiunto al registro apposta, con un commento che lo attribuisce esplicitamente a questa richiesta ('Lorenzo l'ha chiesto sapendolo, non per una svista'). La bacheca pero' non l'aveva mai registrato: la voce restava 'riaperta' anche se il codice gia' soddisfaceva la richiesta. Verificato ora: SUPPORTED_FUTURES_EXCHANGES (registry.py) include 'mexc', e /api/auth/futures lo restituisce fra le credenziali configurabili.",
     "files": [
       "backend/app/trading/futures/registry.py",
@@ -3028,5 +3028,10 @@
     "status": "in corso",
     "at": 1792167321,
     "summary": "Nei file attuali le due email non compaiono piu': gli elenchi di accesso (admin, accesso completo, Telegram, registrazione, saldi) usano l'impronta sha256 dell'indirizzo invece dell'indirizzo, con lo stesso effetto; .env.example e HANDOVER con segnaposto. Restano nella storia del repository (commit vecchi) e come autore di ~450 commit fatti dal sito di GitHub: per quelli serve riscrivere la storia o renderla privata, e per il futuro l'opzione 'Keep my email addresses private' nelle impostazioni email di GitHub."
+  },
+  "seed-0310": {
+    "status": "in corso",
+    "at": 1792168313,
+    "summary": "Scansione completa (gitleaks, 1.563 commit): nessuna chiave o token, mai. Tolti dai file l'IP del server, il percorso della chiave SSH, il nickname del tester e un'email di terzi; la bacheca /api/issues, che e' pubblica, mostrava le email degli autori a chiunque: ora chi non e' collegato vede solo le prime due lettere. Aggiunti gitleaks in CI (workflow 'Secret scan', separato dal deploy), regole per email e IP pubblici in .gitleaks.toml, hook pre-commit e .gitignore per .env e chiavi. Resta la storia: email e IP stanno ancora nei commit vecchi, serve la riscrittura con il si' di Lorenzo."
   }
 }

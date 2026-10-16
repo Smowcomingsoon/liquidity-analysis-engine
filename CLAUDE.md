@@ -97,7 +97,7 @@ serve (`grep -n "^### "`), non tutto il file.
 ## Minuti GitHub Actions (16/10)
 
 Il 16/10 i 3.000 minuti del piano privato sono finiti (ambiente di test
-chiesto da whitekobra ~1.870 min, deploy ~1.370) e GitHub ha fermato anche
+chiesto dal tester ~1.870 min, deploy ~1.370) e GitHub ha fermato anche
 il deploy. Lorenzo ha reso il repo **pubblico**: le Actions ora sono gratis.
 Quindi niente segreti nel repo, mai (chiavi solo nei Secrets di GitHub o nel
 `.env` del server). I tagli di #533/#534 restano: job raggruppati, niente

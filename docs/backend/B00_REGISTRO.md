@@ -39,7 +39,7 @@ Stato: **confermato** (visto nel codice), **risolto** (PR su main con test), **i
 | B04-c | ~30 `create_task` "spara e dimentica" (Telegram) in `main.py`: raccoglibili dal GC, errori mai visti | bassa | risolto | #381 | — |
 | A-SSRF | sito del token letto con controllo DNS prima e nuova risoluzione alla connessione (rebinding); Chromium risolveva da solo | media | risolto | #381 | Chromium non e' nell'immagine: oggi il render non gira |
 | A-DEPLOY | il deploy faceva `reset --hard origin/main`, non il commit verificato | bassa | risolto | #381 | Actions ferme (B08-a) |
-| A-ADMIN | ruolo admin dato dall'email configurata; whitekobra era admin senza esserlo | media | risolto | questa | registrazione gia' limitata a `registration_allowed_emails`; se il `.env` del server ha `ADMIN_EMAILS` vince lui |
+| A-ADMIN | ruolo admin dato dall'email configurata; il tester era admin senza esserlo | media | risolto | questa | registrazione gia' limitata a `registration_allowed_emails`; se il `.env` del server ha `ADMIN_EMAILS` vince lui |
 | B04-b | nessun lease sui loop: due processi = scheduler doppi | media | confermato | — | oggi un solo worker; documentato, non cambiare senza lease |
 | B08-a | ogni run delle Actions fallisce in ~4 s senza step (CI, deploy, DeepSeek) | alta | confermato | — | causa lato account GitHub (minuti/fatturazione?): la vede solo Lorenzo |
 | B06 | `main.py` monolitico, nessun router | bassa | confermato | — | estrarre per flusso, dopo B01-B05 |

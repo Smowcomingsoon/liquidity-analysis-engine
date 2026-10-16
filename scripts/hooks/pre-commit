@@ -1,0 +1,8 @@
+#!/bin/sh
+# Blocks a commit that adds a key, an email or a server IP (see .gitleaks.toml).
+# Enable once per clone:  git config core.hooksPath scripts/hooks
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks not installed, secret scan skipped" >&2
+  exit 0
+fi
+exec gitleaks git --pre-commit --staged --no-banner --redact -c .gitleaks.toml .

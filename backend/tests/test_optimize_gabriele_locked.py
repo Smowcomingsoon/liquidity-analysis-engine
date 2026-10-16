@@ -3,7 +3,7 @@ Il tasto Ottimizza per le due varianti Gabriele deve toccare solo RSI
 ipercomprato/ipervenduto, lasciando lunghezza RSI, lunghezza Bollinger e
 moltiplicatore esattamente ai valori messi da chi cerca nei campi del Lab.
 
-Segnalazione 72f880af (whitekobra): "lascia sempre predefiniti i parametri
+Segnalazione 72f880af (tester): "lascia sempre predefiniti i parametri
 LUNGHEZZA RSI (14) LUNGHEZZA BOLLINGER (20) e MOLTIPLICATORE BOLLINGER (2).
 Intervieni solo sui parametri RSI IPERCOMPRATO e RSI IPERVENDUTO" — non era
 un difetto da spiegare, era una richiesta: la ricerca (in tutte e tre le

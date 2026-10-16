@@ -387,3 +387,17 @@ def test_closing_a_reopened_issue_by_hand_sticks(board, monkeypatch):
     assert board.list_issues()[0]["status"] == "risolto"
     board.update_issue(iid, status="aperto")
     assert board.list_issues()[0]["status"] == "riaperto"
+
+
+def test_public_board_masks_author_emails(store):
+    import asyncio
+
+    from app.routes import issues as route
+
+    store.add_issue(title="t", author="someone@mail.example")
+    store.add_reply(store.list_issues()[0]["id"], "ok", author="other@mail.example")
+    out = asyncio.run(route.list_issues(user=None))
+    text = str(out)
+    assert "@" not in text.replace("DeepSeek", "")
+    assert out["items"][0]["author"] == "so•••"
+    assert out["items"][0]["replies"][0]["author"] == "ot•••"

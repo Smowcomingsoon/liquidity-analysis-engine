@@ -1,0 +1,52 @@
+# Public repository: no secrets and no personal data in any file.
+# Runs in CI (.github/workflows/secret-scan.yml) and in the optional
+# pre-commit hook (scripts/hooks/pre-commit).
+title = "liquidity-analysis-engine"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "personal-email"
+description = "Email address (personal data): use a placeholder or sha256:<hex> in config"
+regex = '''[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}'''
+keywords = ["@"]
+[[rules.allowlists]]
+regexTarget = "match"
+regexes = [
+  '''(?i)@(example\.(com|org|net)|x\.it|b\.com|other\.com|mail\.example)$''',
+  '''noreply''',
+  '''^push@liquidityengine\.app$''',
+  '''^spot@public\.''',
+  '''@v?[0-9]''',
+]
+
+[[rules]]
+id = "public-ipv4"
+description = "Public IP address (server location): keep it in secrets or .env"
+regex = '''\b((25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])\b'''
+[[rules.allowlists]]
+regexTarget = "match"
+regexes = [
+  '''^(127|10|0)\.''',
+  '''^192\.168\.''',
+  '''^169\.254\.''',
+  '''^172\.(1[6-9]|2[0-9]|3[01])\.''',
+  '''^(1\.1\.1\.1|8\.8\.8\.8|8\.8\.4\.4|255\.255\.255\.[0-9]+)$''',
+]
+
+[allowlist]
+description = "On-chain token and pool addresses are public, not keys"
+regexTarget = "secret"
+regexes = [
+  '''^[1-9A-HJ-NP-Za-km-z]{32,44}$''',
+  '''^0x[0-9a-fA-F]{40}$''',
+  '''^So1AbCdEfGh123$''',
+]
+paths = [
+  '''(^|/)\.venv/''',
+  '''__pycache__/''',
+  '''node_modules/''',
+  '''\.(png|jpe?g|gif|webp|ico|woff2?|ttf|glb|gltf|pdf)$''',
+  '''(^|/)package-lock\.json$''',
+]

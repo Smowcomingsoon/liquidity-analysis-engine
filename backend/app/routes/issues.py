@@ -2,10 +2,13 @@
 
 Moved out of app/main.py (overhaul plan, phase 5); same paths, same code.
 """
+import re
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app import auth
+from app import guest as guest_links
 from app import issues as issues_store
 from app.models import (
     User,
@@ -51,8 +54,10 @@ async def reply_to_issue(
 @router.get("/api/issues")
 
 
-async def list_issues() -> dict:
+async def list_issues(user: User | None = Depends(auth.get_current_user_optional)) -> dict:
     items = issues_store.list_issues()
+    if user is None or guest_links.is_guest(user):
+        items = _mask_emails(items)
     return {
         "items": items,
         "counts": {
@@ -62,6 +67,21 @@ async def list_issues() -> dict:
             "riaperto": sum(1 for i in items if i.get("status") == "riaperto"),
         },
     }
+
+
+_EMAIL = re.compile(r"([A-Za-z0-9._%+-]{1,2})[A-Za-z0-9._%+-]*@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+
+
+def _mask_emails(obj):
+    """The board is public (anonymous GET): authors are stored as the account
+    email, so strangers see only the first two letters of it."""
+    if isinstance(obj, str):
+        return _EMAIL.sub(lambda m: m.group(1) + "•••", obj)
+    if isinstance(obj, list):
+        return [_mask_emails(v) for v in obj]
+    if isinstance(obj, dict):
+        return {k: _mask_emails(v) for k, v in obj.items()}
+    return obj
 
 
 @router.post("/api/issues")
