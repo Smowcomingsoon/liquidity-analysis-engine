@@ -21,8 +21,10 @@ jobs:
           body = json.load(open("issues.json"))
           items = body.get("items", [])
           print(f"::notice title=Board::{len(items)} issues, counts {json.dumps(body.get('counts', {}), ensure_ascii=False)}")
+          import re
           def one_line(s, n):
-              return " ".join(str(s or "").split())[:n]
+              # the run is public (16/10): an address shows as its name only
+              return re.sub(r"([A-Za-z0-9._%+-]+)@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", r"\1@…", " ".join(str(s or "").split()))[:n]
           open_ = [i for i in items if i.get("status") != "risolto"]
           open_.sort(key=lambda i: -int(i.get("created_at") or 0))
           rows = []
