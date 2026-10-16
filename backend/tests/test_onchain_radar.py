@@ -12,6 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import archive, auth, main, watchlist as watchlist_store
+from app.analysis import btc_regime
 from app.analysis.strategies import STRATEGY_REGISTRY
 from app.models import StrategySignal
 from app.trading.onchain import radar
@@ -180,7 +181,17 @@ def test_radar_endpoint_before_first_scan(client):
     assert body["filters"]["age_max_days"] == radar.AGE_MAX_DAYS
 
 
-def test_chart_returns_candles_and_long_events_per_strategy(client, monkeypatch):
+@pytest.fixture
+def btc():
+    """RSI+BB BTC band reads BTC's weekly band and fails without it, as the
+    server does until the first BTC refresh: give it a BTC that rises and falls."""
+    idx = pd.date_range("2019-01-01", pd.Timestamp.now(tz="UTC").normalize().tz_localize(None), freq="D", tz="UTC")
+    btc_regime.set_closes(pd.Series(30_000 + 15_000 * np.sin(np.arange(len(idx)) / 120), index=idx), pin=True)
+    yield
+    btc_regime.clear()
+
+
+def test_chart_returns_candles_and_long_events_per_strategy(client, monkeypatch, btc):
     async def fake_ohlcv(self, symbol, interval, outputsize, since_ms=None):
         assert symbol == "NEW@solana:PoolAddr" and interval == "15m"
         return _series()
