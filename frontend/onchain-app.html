@@ -131,13 +131,6 @@
           </div>
         </section>
 
-        <!-- Ponte sniper -> trend EMA: quanti token girano ora con la
-             strategia in auto-trade su questa chain, e quali. -->
-        <section class="status-card sniper-card" id="sniper-card" hidden>
-          <p class="label">Auto-trade sniper · Trend EMA</p>
-          <p class="sniper-state"><span class="pulse" id="sniper-pulse" hidden></span><span id="sniper-state-text">Off</span></p>
-          <div class="sniper-tags" id="sniper-tags"><span>min liquidity $3k</span></div>
-        </section>
 
         <section class="status-card security-card" id="status" data-armed="false" hidden>
           <p class="label">Security</p>
@@ -227,10 +220,6 @@
           <ol class="memes-list"></ol>
         </details>
       </section>
-      <!-- Il pilota: la vista di partenza. Richiesta: "voglio sapere cosa sta
-           monitorando, voglio vedere cosa sta scansionando [...] pochi
-           tasti". Un interruttore, una riga di stato, i token che segue.
-           Il contenuto lo disegna static/onchain/pilot.js. -->
       <section class="memes" id="memes" data-pane="meme:trending" data-loading hidden>
         <span data-memes-meta hidden></span>
         <!-- Lorenzo: "non e' chiaro che siano state scelte, sembrano appunto
@@ -312,37 +301,8 @@
         <div data-review-body></div>
       </dialog>
 
-      <section class="pilot" id="pilot" data-pane="meme:scanner" data-tone="off">
-        <!-- One card: status, switch, today's numbers, the limits. It used
-             to be three stacked cards saying the same thing three times. -->
-        <div class="pilot-main">
-          <div class="pilot-box">
-            <div class="pilot-head">
-              <div class="pilot-card"><p class="pilot-line"><small>Loading autopilot…</small></p></div>
-              <button type="button" class="pilot-toggle" data-pilot-toggle role="switch" aria-checked="false" aria-label="Autopilot">
-                <span class="pilot-switch" aria-hidden="true"></span>
-              </button>
-            </div>
-            <dl class="pilot-stats" data-stats></dl>
-            <ul class="pilot-rules" data-rules aria-label="Autopilot limits"></ul>
-            <p class="pilot-note" data-note></p>
-            <span class="pilot-scan" aria-hidden="true"></span>
-          </div>
-        </div>
-        <div class="pilot-side">
-          <div class="pilot-feed" hidden>
-            <header><h3>Watching now</h3><span data-updated></span></header>
-            <ul></ul>
-          </div>
-          <div class="pilot-rejected" hidden>
-            <header><h3>Recently rejected</h3></header>
-            <ul></ul>
-          </div>
-        </div>
-      </section>
-
       <!-- Due card come nel mockup approvato: a sinistra mercato +
-           posizioni/ordini/storico/strategie, a destra ordine + sniper +
+           posizioni/ordini/storico/strategie, a destra ordine e
            azioni rapide. -->
       <div class="market-order-row" id="market-order-row" hidden>
         <div class="market-card">
@@ -353,17 +313,8 @@
           <div class="mo-side-tabs" id="order-tabs" role="tablist">
             <button type="button" class="mo-side-tab mo-tab-active" data-order-tab="swap" role="tab" aria-selected="true">Swap</button>
             <button type="button" class="mo-side-tab" data-order-tab="limit" role="tab" aria-selected="false">Limit</button>
-            <button type="button" class="mo-side-tab" data-order-tab="sniper" role="tab" aria-selected="false">Sniper</button>
           </div>
           <div id="order-panel-body"></div>
-
-          <div class="sniper-box">
-            <div class="head">
-              <b>Sniper → Trend EMA (trend-following)</b>
-              <button type="button" class="switch" id="sniper-toggle" role="switch" aria-checked="false" aria-label="Toggle sniper auto-trade on this chain"></button>
-            </div>
-            <p>Every new token on this chain with liquidity &gt; $3,000 and age &lt; 72h joins the watchlist with the strategy on. Execution stays capped by risk limits and the circuit breaker.</p>
-          </div>
         </section>
       </div>
 
@@ -435,11 +386,6 @@
       <span class="t"><b>Reveal private key</b><small>Needs your phone, never this page alone</small></span>
       <span class="chev">›</span>
     </button>
-  </dialog>
-
-  <dialog class="sheet pilot-sheet" id="pilot-sheet" aria-label="Autopilot diagnostics">
-    <div class="grip" aria-hidden="true"></div>
-    <div class="pilot-sheet-body"></div>
   </dialog>
 
   <dialog class="modal" id="reveal">

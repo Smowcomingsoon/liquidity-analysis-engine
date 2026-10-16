@@ -47,8 +47,6 @@ const $$ = (selector) => ROOT.querySelectorAll(selector);
 const TRADING = document.documentElement.dataset.trading === "on";
 // Trading-only modules are imported on demand, so with trading off the
 // browser never downloads them (main.py leaves them out of modulepreload).
-let pilot = null;
-const refreshPilot = () => pilot?.refreshPilot();
 
 const view = {
   login: $("#login-screen"),
@@ -70,15 +68,9 @@ const view = {
   bottomPanelBody: $("#bottom-panel-body"),
   topbarAddress: $("#topbar-address-text"),
   statusSub: $("#status-sub"),
-  sniperTags: $("#sniper-tags"),
-  sniperCard: $("#sniper-card"),
-  sniperToggle: $("#sniper-toggle"),
-  sniperPulse: $("#sniper-pulse"),
-  sniperStateText: $("#sniper-state-text"),
   actions: $("#actions"),
   reveal: $("#reveal-row"),
   more: $("#more-btn"),
-  pilot: $("#pilot"),
   moreSheet: $("#more"),
   empty: $("#onchain-empty-state"),
   dock: $("#dock"),
@@ -103,7 +95,7 @@ function paintChainStatic() {
   for (const node of [view.actions, view.reveal, view.more, view.walletView]) {
     if (node) node.hidden = !hasWallet;
   }
-  for (const node of [view.status, view.pilot, view.marketOrderRow, view.bottomPanel, view.sniperCard]) {
+  for (const node of [view.status, view.marketOrderRow, view.bottomPanel]) {
     if (node) node.hidden = !hasWallet || !TRADING;
   }
   view.empty.hidden = hasWallet || !TRADING;   // no wallet to create for research only
@@ -212,8 +204,6 @@ function loadChainData() {
   refreshBalance();
   refreshStatus();
   if (TRADING) {
-    refreshSniperCard();
-    refreshPilot();
     mountChart(view.marketPanel);
     mountOrderTab(currentOrderTab);
     mountBottomTab(currentBottomTab);
@@ -231,87 +221,6 @@ function paintHoldings(force = false) {
       window.dispatchEvent(new CustomEvent("onchain:swap-from", { detail: holding }));
     } : undefined,
   });
-}
-
-// Ponte sniper -> trend EMA (2026-09-23): la card in alto dice quanti token
-// della watchlist girano ora in auto-trade trend EMA su questa chain, e
-// quali; l'interruttore sta nel pannello ordine. Tutti gli elementi sono
-// opzionali: la copia del wallet dentro la tab Trading (index.html) non
-// li ha, e un null qui fermerebbe l'intero modulo.
-const TREND_EMA = "Lorenzo (trend-follower)";
-
-function parseChainFromSymbol(symbol) {
-  const m = /^.+@([a-z]+):.+$/.exec(symbol);
-  return m ? m[1] : null;
-}
-
-async function trendAutoEntries(chain) {
-  const entries = await api.getWatchlist();
-  return entries.filter((e) => parseChainFromSymbol(e.symbol) === chain && e.auto_trade?.[TREND_EMA]);
-}
-
-async function refreshSniperCard() {
-  if (!view.sniperCard && !view.sniperToggle) return;
-  const chain = state.chain;
-  try {
-    const [{ chains }, active] = await Promise.all([api.getSniperAutotrade(), trendAutoEntries(chain)]);
-    if (chain !== state.chain) return;
-    paintSniperCard(chains.includes(chain), active);
-  } catch { /* resta lo stato di default, spento */ }
-}
-
-function escapeHtml(text) {
-  return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-
-function paintSniperCard(enabled, active = []) {
-  view.sniperToggle?.setAttribute("aria-checked", String(enabled));
-  if (view.sniperPulse) view.sniperPulse.hidden = !enabled;
-  if (view.sniperStateText) {
-    view.sniperStateText.textContent = !enabled
-      ? "Off"
-      : active.length === 1 ? "1 token live" : `${active.length} tokens live`;
-  }
-  if (view.sniperTags) {
-    const tags = active.slice(0, 3).map((e) => `<span>$${escapeHtml(e.symbol.split("@")[0])}</span>`);
-    if (active.length > 3) tags.push(`<span>+${active.length - 3}</span>`);
-    tags.push("<span>liquidity floor $3k</span>");
-    view.sniperTags.innerHTML = tags.join("");
-  }
-}
-
-view.sniperToggle?.addEventListener("click", async () => {
-  const chain = state.chain;
-  const next = view.sniperToggle.getAttribute("aria-checked") !== "true";
-  view.sniperToggle.disabled = true;
-  try {
-    await api.setSniperAutotrade(chain, next);
-    await refreshSniperCard();
-    refreshPilot();
-    toast(next ? "Autopilot on" : "Autopilot off", chainInfo().label);
-  } catch (error) {
-    toast("Didn't work", error instanceof ApiError ? error.message : "unexpected error");
-  } finally {
-    view.sniperToggle.disabled = false;
-  }
-});
-
-// Tab "Sniper" del pannello ordine: i token che il ponte ha gia' messo in
-// watchlist in auto-trade trend EMA su questa chain — sola lettura, lo
-// spegnimento per token resta nel tab Strategie.
-async function mountSniperTab(container) {
-  container.innerHTML = "<p class='sheet-note'>Loading sniper tokens…</p>";
-  const chain = state.chain;
-  try {
-    const active = await trendAutoEntries(chain);
-    if (chain !== state.chain) return;
-    container.innerHTML = active.length
-      ? `<ul class="tx-list">${active.map((e) => `
-          <li><span><b>${escapeHtml(e.symbol.split("@")[0])}</b></span><span class="strategy-tag">Trend EMA · auto</span></li>`).join("")}</ul>`
-      : "<p class='sheet-note'>No tokens on auto-trade on this network. Flip the sniper on below: new tokens with $3k+ liquidity and under 72h old get in on their own.</p>";
-  } catch (error) {
-    container.innerHTML = `<p class="sheet-note is-error">${escapeHtml(error instanceof ApiError ? error.message : "Unexpected error.")}</p>`;
-  }
 }
 
 let balanceRetry = null;
@@ -396,7 +305,7 @@ onTokenChanged(async (token) => {
       toast("Token unverified", error.message);
     }
   }
-  if (seq !== presetSeq || currentOrderTab === "sniper") return;
+  if (seq !== presetSeq) return;
   mountOrderTab(currentOrderTab);
 });
 
@@ -418,8 +327,6 @@ function mountOrderTab(tab) {
       onTokenPicked: followInChart,
       onExecuted: () => { refreshBalance(); mountBottomTab(currentBottomTab); toast("Swap sent", "check the signature in history"); },
     });
-  } else if (tab === "sniper") {
-    mountSniperTab(view.orderPanelBody);
   } else {
     mountLimitOrder(view.orderPanelBody, {
       presetToken,
@@ -699,15 +606,11 @@ document.addEventListener("pointerdown", unlockScan, true);
 document.addEventListener("keydown", (event) => { if (event.key !== "Tab") unlockScan(event); }, true);
 document.addEventListener("focusout", (event) => event.target.closest?.(SCAN_INPUT)?.setAttribute("readonly", ""), true);
 
-if (TRADING) {
-  import("@onchain/pilot.js").then((m) => { pilot = m; m.mountPilot({ toast, onChange: refreshSniperCard }); });
-}
 mountAgentView();
 mountLeaderboard();
 mountProjects();
 if (TRADING) {
   mountAlerts();
-  import("@onchain/autotrade.js").then((m) => m.mountAutotrade());
 }
 mountProfile({ go: (v) => setView(v) });
 loadLinked();

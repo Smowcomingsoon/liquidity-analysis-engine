@@ -126,15 +126,12 @@ export const getLivePrice = (chain, address) => request(`/api/onchain/price/${ch
 // Ponte sniper -> trend EMA (2026-09-23): il server aggiunge da solo alla
 // watchlist, con la strategia trend EMA attiva, i token scoperti dallo
 // sniper su questa chain — qui solo l'interruttore per utente/chain.
-export const getSniperAutotrade = () => request("/api/onchain/sniper-autotrade");
-export const getPilot = (chain) => request(`/api/onchain/pilot/${chain}`);
 export const getRadar = () => request("/api/onchain/radar");
 export const getRadarFeed = () => request("/api/onchain/radar/feed", { timeoutMs: 15000 });
 export const getLeaderboard = () => request("/api/onchain/leaderboard");
 export const getAlerts = (kind) => request(`/api/onchain/alerts/${kind}`);
 export const getScanFeed = () => request("/api/onchain/scan-feed");
 export const getLivePrices = (keys) => request(`/api/onchain/live-prices?ids=${encodeURIComponent(keys.join(","))}`, { timeoutMs: 5000 });
-export const getAutotrader = () => request("/api/onchain/autotrader");
 export const getTrack = () => request("/api/onchain/track");
 export const getTopBacktest = () => request("/api/onchain/top/backtest", { timeoutMs: 20000 });
 export const getAgentLog = (before) => request(`/api/agent/log?limit=60${before ? `&before=${before}` : ""}`);
@@ -233,7 +230,6 @@ export const getDeposit = () => request("/api/wallets/deposit");
 export const getWalletsTotal = () => request(`/api/wallets/total${walletQ()}`, { timeoutMs: 30000 });
 export const buildUserSwap = (body) => request("/api/wallets/swap/build", { method: "POST", body, timeoutMs: 30000 });
 export const walletUnlink = (kind, address) => request(`/api/wallets/link/${kind}/${address}`, { method: "DELETE" });
-export const setAutotrader = (body) => request("/api/onchain/autotrader", { method: "PATCH", body });
 export const getAiReview = () => request("/api/onchain/ai-review");
 export const getProjects = (params) => request(`/api/onchain/projects?${new URLSearchParams(params)}`);
 export const getRadarLessons = () => request("/api/onchain/radar/lessons");
@@ -243,8 +239,6 @@ export const getTokenChart = (chain, pool, symbol, interval, peek = false) =>
 export const getRadarChart = (chain, pool, symbol, interval) =>
   request(`/api/onchain/radar/chart?${new URLSearchParams({ chain, pool, symbol, interval })}`);
 export const followRadar = (body) => request("/api/onchain/radar/follow", { method: "POST", body });
-export const setSniperAutotrade = (chain, enabled) =>
-  request(`/api/onchain/sniper-autotrade/${chain}`, { method: "PATCH", body: { enabled } });
 
 export const getStrategies = () => request("/api/strategies");
 export const getWatchlist = () => request("/api/watchlist");

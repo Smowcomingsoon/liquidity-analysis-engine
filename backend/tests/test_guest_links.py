@@ -74,7 +74,6 @@ def test_guest_reads_but_cannot_write(env):
         ("POST", "/api/onchain/wallets", {"chain": "solana"}),
         ("PUT", "/api/preferences", {}),
         ("POST", "/api/issues", {"title": "x"}),
-        ("PATCH", "/api/onchain/sniper-autotrade/solana", {"enabled": True}),
         ("POST", "/api/trading/order", {}),
         ("POST", "/api/guest-links", {}),
         ("DELETE", "/api/alerts/log", None),

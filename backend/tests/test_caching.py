@@ -23,7 +23,7 @@ def client():
 
 
 def test_the_page_is_never_served_from_cache(client):
-    for path in ("/", "/sniper"):
+    for path in ("/",):
         resp = client.get(path)
         assert resp.status_code == 200
         assert resp.headers.get("cache-control") == "no-cache", path
