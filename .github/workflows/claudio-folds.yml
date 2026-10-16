@@ -23,23 +23,36 @@ on:
 jobs:
   pair:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 360
+    env:
+      PAIRS: ${{ inputs.pairs || '["BTCUSDT","ETHUSDT","SOLUSDT","XRPUSDT","COMPUSDT","BATUSDT","1INCHUSDT","KSMUSDT","SNXUSDT","ROSEUSDT","ZILUSDT","ANKRUSDT","CELOUSDT","IOTXUSDT","KAVAUSDT"]' }}
     strategy:
       fail-fast: false
       matrix:
         # 4 large caps, 5 around rank 150-250, 6 around 300-490 (rank printed
         # by the job, CoinPaprika)
-        pair: ${{ fromJSON(inputs.pairs || '["BTCUSDT","ETHUSDT","SOLUSDT","XRPUSDT","COMPUSDT","BATUSDT","1INCHUSDT","KSMUSDT","SNXUSDT","ROSEUSDT","ZILUSDT","ANKRUSDT","CELOUSDT","IOTXUSDT","KAVAUSDT"]') }}
+        chunk: [0, 1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
       - run: pip install -r backend/requirements.txt
-      - run: cd backend && PAIR=${{ matrix.pair }} TF=${{ inputs.tf || '4h' }} SET=${{ inputs.set }} FILTERS="${{ inputs.filters }}" PYTHONPATH=. python ../scripts/compare_claudio_folds.py
+      # One job per 7th of the pairs, not one per pair: every job pays the
+      # setup and is billed rounded up to the minute (35 jobs ~ 70+ minutes).
+      - run: |
+          cd backend; rc=0
+          for PAIR in $(python -c "import json,os; print(' '.join(json.loads(os.environ['PAIRS'])[${{ matrix.chunk }}::7]))"); do
+            echo "::group::$PAIR"
+            PAIR=$PAIR TF=${{ inputs.tf || '4h' }} SET=${{ inputs.set }} FILTERS="${{ inputs.filters }}" PYTHONPATH=. python ../scripts/compare_claudio_folds.py || { echo "::error::$PAIR failed"; rc=1; }
+            echo "::endgroup::"
+          done
+          exit $rc
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: folds-${{ matrix.pair }}
+          name: folds-${{ matrix.chunk }}
           path: backend/folds-*.json
           if-no-files-found: ignore
