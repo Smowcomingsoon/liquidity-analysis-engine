@@ -3013,5 +3013,10 @@
     "status": "risolto",
     "at": 1792156809,
     "summary": "Nuova strategia 'RSI+BB Reversal (BTC band)', accanto alla RSI+BB reversal che resta com'era. Solo long. Con BTC sopra la sua Bull Market Support Band (SMA 20 e EMA 21 settimanali, settimana chiusa) basta una delle due condizioni per entrare, RSI in ipervenduto oppure chiusura sotto la banda inferiore; con BTC sotto ne servono entrambe. Esce quando la chiusura torna sopra la banda centrale (niente livello di ipercomprato). Nell'ambiente di test sul 1D (35 coppie, valori di default): mediana semplice 2023-26 +36% (29/35 positive), 2021 +28% (26/32), 2022 +8% (23/35), circa 3 trade l'anno; la RSI+BB reversal fa +35 / 0 / -44 con 1 trade l'anno. Non si ottimizza in automatico: Max return peggiorava il 2022."
+  },
+  "seed-0307": {
+    "status": "risolto",
+    "at": 1792159864,
+    "summary": "Nel Lab, per le strategie senza ottimizzazione automatica (Combined Reversal, RSI+BB Reversal BTC band, Trend HF) spariscono il tasto Optimize, la scelta della modalita' di ricerca e i filtri sul risultato: resta solo Run. Nel pannello della strategia il tasto era gia' nascosto."
   }
 }

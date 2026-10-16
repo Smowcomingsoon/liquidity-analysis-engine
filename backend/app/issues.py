@@ -165,6 +165,9 @@ def _resolutions() -> dict[str, dict]:
 
 
 _SEED = [
+    ("seed-0307", "Lab: niente tasto Optimize sulle strategie che non si ottimizzano",
+     "Lorenzo, 16/10: 'per quanto riguarda le strategie sul sito, solo quelle dove non si puo' utilizzare l'ottimizzazione, forse sarebbe necessario eliminare direttamente il pulsante'.",
+     "bassa"),
     ("seed-0306", "Nuova strategia RSI+BB Reversal (BTC band): piu' trade, positiva anche nel 2021 e nel 2022",
      "Lorenzo, 16/10: 'le strategie RSI piu' BB [...] riescono a fare troppi pochi trade [...] aggiungerei pero' dei parametri che possano permettere di aumentare il numero di trade', 'basta solo uno dei due parametri (RSI o BB)', poi la Bull Market Band e l'uscita alla banda centrale, infine 'Si, aggiungila al sito'.",
      "media"),

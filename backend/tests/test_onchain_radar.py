@@ -12,6 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import archive, auth, main, watchlist as watchlist_store
+from app.analysis import btc_regime
 from app.analysis.strategies import STRATEGY_REGISTRY
 from app.models import StrategySignal
 from app.trading.onchain import radar
@@ -186,9 +187,13 @@ def test_chart_returns_candles_and_long_events_per_strategy(client, monkeypatch)
         return _series()
     monkeypatch.setattr(radar.DexScreenerProvider, "fetch_ohlcv", fake_ohlcv)
     radar._chart_cache.clear()
+    # RSI+BB BTC band reads BTC's weekly band (16/10)
+    days = pd.date_range("2018-01-01", periods=3000, freq="D", tz="UTC")
+    btc_regime.set_closes(pd.Series(np.linspace(5_000, 60_000, len(days)), index=days), pin=True)
     body = client.get("/api/onchain/radar/chart",
                       params={"chain": "solana", "pool": "PoolAddr", "symbol": "NEW", "interval": "15m"}).json()
     assert len(body["candles"]) == 600 and body["active"] == []
+    btc_regime.clear()
     assert {s["strategy_name"] for s in body["strategies"]} == set(STRATEGY_REGISTRY)
     for s in body["strategies"]:
         assert all(e["kind"] in ("in", "out") for e in s["events"])

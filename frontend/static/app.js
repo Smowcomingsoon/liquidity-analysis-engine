@@ -12004,6 +12004,12 @@
 
   function renderLabParamFields() {
     const strategyName = labState.strategy || "";
+    // 16/10 (Lorenzo): a strategy with no automatic optimization shows no
+    // Optimize button, search modes or result filters — only Run.
+    const canOptimize = OPTIMIZABLE_STRATEGIES.has(strategyName);
+    labEl("lab-optimize-btn")?.classList.toggle("hidden", !canOptimize);
+    document.querySelector(".lab-mode-picker")?.classList.toggle("hidden", !canOptimize);
+    labEl("lab-filters")?.classList.toggle("hidden", !canOptimize);
     const fields = STRATEGY_PARAM_FIELDS[strategyName] || [];
     const container = labEl("lab-params-fields");
     container.innerHTML = "";
