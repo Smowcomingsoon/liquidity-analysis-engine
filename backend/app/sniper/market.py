@@ -16,7 +16,8 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import httpx
+
+from app import http_client
 
 from .scanner import (
     GECKO_NETWORKS,
@@ -212,7 +213,7 @@ async def run_market_scan() -> int:
         t0 = time.time()
         _broadcast({"type": "market_scan_start"})
         added = 0
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        async with http_client.pooled(timeout=20.0) as client:
             # GeckoTerminal: full pool catalog per chain
             for chain_id in GECKO_NETWORKS:
                 _broadcast({"type": "market_chain_start", "chain": chain_id})
@@ -349,7 +350,7 @@ async def run_import() -> int:
                 passing.append(token)
 
         added = 0
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with http_client.pooled(timeout=10.0) as client:
             for token in passing:
                 _broadcast({
                     "type": "evaluating",

@@ -21,7 +21,8 @@ chiamata con fondi veri e non risponde in modo sensato, il chiamante
 """
 import base64
 
-import httpx
+
+from app import http_client
 
 JITO_BLOCK_ENGINE_URL = "https://mainnet.block-engine.jito.wtf:443/api/v1/bundles"
 
@@ -119,7 +120,7 @@ async def send_bundle_via_jito(signed_tx_bytes: bytes, tip_tx_bytes: bytes) -> s
         "jsonrpc": "2.0", "id": 1, "method": "sendBundle",
         "params": [encoded, {"encoding": "base64"}],
     }
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with http_client.pooled(timeout=15.0) as client:
         resp = await client.post(JITO_BLOCK_ENGINE_URL, json=payload)
     if resp.status_code != 200:
         raise RuntimeError(f"Jito sendBundle ha risposto {resp.status_code}: {resp.text[:200]}")

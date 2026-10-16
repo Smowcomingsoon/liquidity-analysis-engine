@@ -14,7 +14,8 @@ import logging
 import time
 from dataclasses import dataclass
 
-import httpx
+
+from app import http_client
 
 from .scanner import (
     _passes_primary,
@@ -110,7 +111,7 @@ async def _pump_fun_loop() -> None:
         status.error = None
         _broadcast_sniper({"type": "agent_start", "agent": name, "label": status.label})
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with http_client.pooled(timeout=15.0) as client:
                 tokens = await fetch_pumpfun_trending(client)
 
             from .cache import _save_candidates
@@ -171,7 +172,7 @@ async def _dexscreener_boost_loop() -> None:
         status.error = None
         _broadcast_sniper({"type": "agent_start", "agent": name, "label": status.label})
         try:
-            async with httpx.AsyncClient(timeout=20.0) as client:
+            async with http_client.pooled(timeout=20.0) as client:
                 tokens = await fetch_dexscreener_boosted(client)
 
             from .cache import _save_candidates
@@ -266,7 +267,7 @@ async def _geckoterminal_trending_loop() -> None:
         status.error = None
         _broadcast_sniper({"type": "agent_start", "agent": name, "label": status.label})
         try:
-            async with httpx.AsyncClient(timeout=20.0) as client:
+            async with http_client.pooled(timeout=20.0) as client:
                 tokens = await fetch_geckoterminal_trending(client)
 
             from .cache import _save_candidates

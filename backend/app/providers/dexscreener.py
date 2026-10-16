@@ -28,6 +28,8 @@ import time
 from collections import deque
 
 import httpx
+
+from app import http_client
 import pandas as pd
 from cachetools import TTLCache
 
@@ -184,7 +186,7 @@ async def gecko_get(url: str, params: dict | None = None) -> dict | None:
             if pause:
                 await asyncio.sleep(pause)
             await _gecko_slot()
-            async with httpx.AsyncClient(timeout=20.0) as client:
+            async with http_client.pooled(timeout=20.0) as client:
                 resp = await client.get(url, params=params)
             if resp.status_code != 429:
                 break
@@ -316,7 +318,7 @@ class DexScreenerProvider(DataProvider):
         pairs = _search_cache.get(query.lower())
         if pairs is None:
             try:
-                async with httpx.AsyncClient(timeout=10.0) as client:
+                async with http_client.pooled(timeout=10.0) as client:
                     resp = await client.get(self._dexscreener_base, params={"q": query})
                 payload = resp.json()
             except (httpx.HTTPError, ValueError):

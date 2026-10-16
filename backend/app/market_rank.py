@@ -14,6 +14,8 @@ import time
 
 import httpx
 
+from app import http_client
+
 logger = logging.getLogger(__name__)
 
 PAPRIKA_TICKERS = "https://api.coinpaprika.com/v1/tickers"
@@ -76,7 +78,7 @@ async def ranks() -> dict[str, int]:
             return _cache["ranks"]
         table: dict[str, int] = {}
         try:
-            async with httpx.AsyncClient(timeout=20) as client:
+            async with http_client.pooled(timeout=20) as client:
                 resp = await client.get(PAPRIKA_TICKERS)
                 resp.raise_for_status()
                 table = ranks_from_tickers(resp.json())

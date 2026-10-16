@@ -28,6 +28,8 @@ from collections import deque
 
 import httpx
 
+from app import http_client
+
 from app.trading.onchain import pool_prices
 
 DEXSCREENER_TOKENS = "https://api.dexscreener.com/tokens/v1/{chain}/{addrs}"
@@ -174,7 +176,7 @@ async def _onchain(client: httpx.AsyncClient, chain: str, keys: list[tuple[str, 
 
 
 async def _refresh(keys: list[tuple[str, str]]) -> None:
-    async with httpx.AsyncClient(timeout=4.0) as client:
+    async with http_client.pooled(timeout=4.0) as client:
         # 0. layer chains: no DEX pool, the price comes from the exchange
         from app.trading.onchain import cex_candles, projects_db
         layer = [k for k in keys if k[0] == "layer"]

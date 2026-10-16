@@ -1,7 +1,8 @@
 """Saldo e storico transazioni di un wallet on-chain, sola lettura —
 nessuna chiave coinvolta qui, solo l'indirizzo (che e' pubblico per
 definizione)."""
-import httpx
+
+from app import http_client
 
 from app.models import OnchainChain
 from app.trading.onchain import rpc_client
@@ -124,7 +125,7 @@ async def _solana_transactions(address: str) -> list[dict]:
         "jsonrpc": "2.0", "id": 1, "method": "getSignaturesForAddress",
         "params": [address, {"limit": _MAX_TRANSACTIONS}],
     }
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with http_client.pooled(timeout=15.0) as client:
         resp = await client.post(SOLANA_RPC, json=payload)
     data = resp.json()
     if "error" in data:

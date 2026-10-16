@@ -3,6 +3,8 @@ import time
 from datetime import datetime, timedelta, timezone
 
 import httpx
+
+from app import http_client
 import pandas as pd
 from cachetools import TTLCache
 
@@ -102,7 +104,7 @@ class TwelveDataProvider(DataProvider):
 
         await _throttle()
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with http_client.pooled(timeout=15.0) as client:
                 resp = await client.get(f"{self._base_url}/time_series", params=params)
         except httpx.HTTPError as exc:
             # Rete o TLS, non un rifiuto del servizio: e' passeggero, e chi
@@ -146,7 +148,7 @@ class TwelveDataProvider(DataProvider):
             return cached
 
         await _throttle()
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with http_client.pooled(timeout=15.0) as client:
             resp = await client.get(
                 f"{self._base_url}/symbol_search",
                 params={"symbol": query, "outputsize": 30, "apikey": self._api_key},

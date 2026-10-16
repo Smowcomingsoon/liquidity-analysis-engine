@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import httpx
 
+from app import http_client
+
 from app.trading import binance_exec, bitstamp_exec, coinbase_exec, kraken_exec, kucoin_exec
 from app.trading.futures import registry as futures_registry
 from app.trading.futures.base import FuturesCreds
@@ -93,7 +95,7 @@ async def _bitstamp_balance(api_key: str, api_secret: str) -> list[dict]:
     # Bitstamp non ha un endpoint "tutti i saldi" semplice come gli altri:
     # /balance/<pair>/ e' per coppia. BTC/USD e' il riferimento piu' comune
     # per verificare che la chiave funzioni e vedere un numero vero.
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with http_client.pooled(timeout=10.0) as client:
         data = await bitstamp_exec._get_balance(client, "btcusdt", api_key, api_secret)
     out = []
     for asset in ("usdt", "btc"):

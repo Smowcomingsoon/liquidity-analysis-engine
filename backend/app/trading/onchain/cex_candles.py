@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import re
 
-import httpx
+import httpx  # noqa: F401  (tests patch this module's httpx.AsyncClient)
+
+from app import http_client
 
 from app.providers.base import ProviderError
 
@@ -112,7 +114,7 @@ async def price(pool) -> float | None:
         return None
     exchange, pair = parsed
     try:
-        async with httpx.AsyncClient(timeout=4.0) as client:
+        async with http_client.pooled(timeout=4.0) as client:
             r = await client.get(PRICE_URL[exchange].format(pair=pair))
         if r.status_code != 200:
             return None

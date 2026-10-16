@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 
 import httpx
 
+from app import http_client
+
 logger = logging.getLogger(__name__)
 
 DEXSCREENER_BASE = "https://api.dexscreener.com"
@@ -501,7 +503,7 @@ async def fetch_all_tokens() -> ScanFetchResult:
     the moment) — so every supported chain is also queried directly via
     GeckoTerminal's per-network "new pools" feed, guaranteeing each one is
     actually explored on every scan."""
-    async with httpx.AsyncClient(timeout=20.0) as client:
+    async with http_client.pooled(timeout=20.0) as client:
         dex_tokens, total_profiles, unsupported_chain = await _fetch_dexscreener_profiles(client)
         gecko_lists = await asyncio.gather(
             *(_fetch_gecko_chain(client, chain_id) for chain_id in GECKO_NETWORKS)

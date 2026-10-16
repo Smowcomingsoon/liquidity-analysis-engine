@@ -13,7 +13,8 @@ import hashlib
 import hmac
 import time
 
-import httpx
+
+from app import http_client
 
 from app.config import settings
 
@@ -34,7 +35,7 @@ async def fetch_mexc_balances() -> list[dict]:
         settings.mexc_api_secret.encode("utf-8"), query.encode("utf-8"), hashlib.sha256
     ).hexdigest()
     url = f"{MEXC_BASE_URL}/api/v3/account?{query}&signature={signature}"
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with http_client.pooled(timeout=15.0) as client:
         resp = await client.get(url, headers={"X-MEXC-APIKEY": settings.mexc_api_key})
     try:
         data = resp.json()
@@ -74,7 +75,7 @@ async def fetch_kucoin_balances() -> list[dict]:
         "KC-API-PASSPHRASE": passphrase_signed,
         "KC-API-KEY-VERSION": "2",
     }
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with http_client.pooled(timeout=15.0) as client:
         resp = await client.get(f"{KUCOIN_BASE_URL}{endpoint}", headers=headers)
     try:
         data = resp.json()

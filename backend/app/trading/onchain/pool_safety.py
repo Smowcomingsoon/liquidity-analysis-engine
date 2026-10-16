@@ -17,7 +17,8 @@ from __future__ import annotations
 
 import time
 
-import httpx
+
+from app import http_client
 
 DEXSCREENER_BASE = "https://api.dexscreener.com"
 
@@ -42,7 +43,7 @@ async def fetch_pool_snapshot(chain: str, pool_address: str) -> dict | None:
     if slug is None:
         return None
     try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
+        async with http_client.pooled(timeout=8.0) as client:
             resp = await client.get(f"{DEXSCREENER_BASE}/latest/dex/pairs/{slug}/{pool_address}")
         if resp.status_code != 200:
             return None

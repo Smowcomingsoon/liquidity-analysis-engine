@@ -1,4 +1,6 @@
 import httpx
+
+from app import http_client
 import pandas as pd
 from cachetools import TTLCache
 
@@ -57,7 +59,7 @@ class BinanceProvider(DataProvider):
         max_pages = self._MAX_PAGES_SINCE if since_ms is not None else self._MAX_PAGES
         remaining = int(1e9) if since_ms is not None else outputsize
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with http_client.pooled(timeout=30.0) as client:
                 for _ in range(max_pages):
                     if remaining <= 0:
                         break
@@ -115,7 +117,7 @@ class BinanceProvider(DataProvider):
 
         symbols = _symbols_cache.get("all")
         if symbols is None:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with http_client.pooled(timeout=15.0) as client:
                 resp = await client.get(f"{self._base_url}/api/v3/exchangeInfo")
             payload = resp.json()
             symbols = payload.get("symbols", []) if isinstance(payload, dict) else []

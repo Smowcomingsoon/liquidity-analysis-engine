@@ -65,7 +65,7 @@ def test_guest_reads_but_cannot_write(env):
     me = client.get("/api/auth/me").json()["user"]
     assert me["guest"] is True and me["email"] == "ospite"
     page = client.get("/onchain-app.html")
-    assert page.status_code == 200 and "sola lettura" in page.text
+    assert page.status_code == 200 and "/static/onchain/main.js" in page.text
     assert client.get("/api/strategies").status_code == 200
     assert client.get("/api/watchlist").json() == []
 

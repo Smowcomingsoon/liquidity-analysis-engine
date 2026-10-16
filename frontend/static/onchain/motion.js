@@ -39,7 +39,7 @@ svg{--mint:var(--engn-accent,#2de2b0);--dim:var(--engn-muted,#49605d);--alert:va
 @media(prefers-reduced-motion:reduce){*{animation:none!important}.s-assemble .modules{display:none}.s-assemble .solid{opacity:1}.s-scan .scanline{opacity:.65}.status-mark{opacity:1}.link-dot{opacity:.55}.face{transform:none!important}.pulse{display:none}}
 `;
 
-export function svgMarkup(state='idle',progress=0,uid='engn',paused=false){
+export function svgMarkup(state='idle',progress=0,uid='engn',paused=false,inlineStyle=true){
  state=safeState(state);progress=safeProgress(progress);uid=String(uid).replace(/[^a-zA-Z0-9_-]/g,'');
  const info=motions.find(m=>m.id===state);
  let modules='';
@@ -58,22 +58,29 @@ export function svgMarkup(state='idle',progress=0,uid='engn',paused=false){
  if(state==='empty')extra='<path class="outline" style="opacity:.5;stroke-dasharray:4" d="M75 209 160 255 246 209"/><path class="mark" style="stroke:var(--dim)" d="M213 215h20"/>';
  if(state==='reconnect')extra=[0,1,2,3,4].map(i=>`<circle class="signal link-dot" style="--delay:${i*.16}s" cx="${132+i*14}" cy="253" r="2.3"/>`).join('');
  if(state==='cta')extra='<path class="mark" style="stroke-width:1.5" d="M252 145h24m-7-7 7 7-7 7"/>';
- return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" class="s-${state}${paused?' paused':''}" role="img" aria-labelledby="${uid}-title"><title id="${uid}-title">${info.title}${state==='progress'?` ${Math.round(progress)}%`:''}</title><style>${style}</style><defs><clipPath id="${uid}-clip"><path d="M160 70 230 108V185L160 223 90 185V108Z"/></clipPath></defs><path class="ground" d="M61 221 160 275 259 221M80 231 179 177M107 246 206 192M134 260 233 207"/><g class="face">${state==='assemble'?`<g class="modules">${modules}</g>`:''}${solid}${band}<path class="band halo" d="M92 150 160 187 228 150"/><path class="band" d="M92 150 160 187 228 150"/>${state==='assemble'?'</g>':''}${extra}</g></svg>`;
+ return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" class="s-${state}${paused?' paused':''}" role="img" aria-labelledby="${uid}-title"><title id="${uid}-title">${info.title}${state==='progress'?` ${Math.round(progress)}%`:''}</title>${inlineStyle?`<style>${style}</style>`:''}<defs><clipPath id="${uid}-clip"><path d="M160 70 230 108V185L160 223 90 185V108Z"/></clipPath></defs><path class="ground" d="M61 221 160 275 259 221M80 231 179 177M107 246 206 192M134 260 233 207"/><g class="face">${state==='assemble'?`<g class="modules">${modules}</g>`:''}${solid}${band}<path class="band halo" d="M92 150 160 187 228 150"/><path class="band" d="M92 150 160 187 228 150"/>${state==='assemble'?'</g>':''}${extra}</g></svg>`;
 }
 
 let serial=0;
+// One parsed stylesheet shared by every cube, instead of re-parsing ~3 KB of
+// CSS in each shadow root on every render.
+const HOST_CSS=':host{display:inline-block;width:160px;aspect-ratio:1;contain:layout style}svg{width:100%;height:100%;display:block}';
+let shared=null;
+try{if(globalThis.CSSStyleSheet&&'adoptedStyleSheets' in Document.prototype){shared=new CSSStyleSheet();shared.replaceSync(HOST_CSS+style)}}catch{shared=null}
 export class EngnMotion extends (globalThis.HTMLElement||class{}){
  static observedAttributes=['state','progress','label','paused'];
- constructor(){super();this.attachShadow({mode:'open'});this.uid=`engn-${++serial}`;this.offscreen=false;this.onVisibility=()=>this.updatePause();}
+ constructor(){super();this.attachShadow({mode:'open'});if(shared)this.shadowRoot.adoptedStyleSheets=[shared];this.uid=`engn-${++serial}`;this.offscreen=false;this.onVisibility=()=>this.updatePause();}
  connectedCallback(){this.render();this.observer=new IntersectionObserver(([entry])=>{this.offscreen=!entry.isIntersecting;this.updatePause()});this.observer.observe(this);document.addEventListener('visibilitychange',this.onVisibility)}
  disconnectedCallback(){this.observer?.disconnect();document.removeEventListener('visibilitychange',this.onVisibility);clearTimeout(this.timer)}
- attributeChangedCallback(){if(this.isConnected)this.render()}
+ attributeChangedCallback(){this.schedule()}
+ schedule(){this.dirty=true;if(this.queued)return;this.queued=true;queueMicrotask(()=>{this.queued=false;if(this.dirty&&this.isConnected)this.render()})}
  get state(){return safeState(this.getAttribute('state'))}set state(v){this.setAttribute('state',safeState(v))}
  get progress(){return safeProgress(this.getAttribute('progress'))}set progress(v){this.setAttribute('progress',safeProgress(v))}
- play(state=this.state){this.setAttribute('state',state);this.render()}
+ play(state=this.state){if(this.getAttribute('state')===state)this.schedule();else this.setAttribute('state',state)}
  updatePause(){this.shadowRoot.querySelector('svg')?.classList.toggle('paused',this.hasAttribute('paused')||this.offscreen||document.hidden)}
  render(){
- this.shadowRoot.innerHTML=`<style>:host{display:inline-block;width:160px;aspect-ratio:1;contain:layout style}svg{width:100%;height:100%;display:block}</style>${svgMarkup(this.state,this.progress,this.uid,this.hasAttribute('paused'))}`;
+ this.dirty=false;
+ this.shadowRoot.innerHTML=shared?svgMarkup(this.state,this.progress,this.uid,this.hasAttribute('paused'),false):`<style>${HOST_CSS}</style>${svgMarkup(this.state,this.progress,this.uid,this.hasAttribute('paused'))}`;
  const svg=this.shadowRoot.querySelector('svg');const label=this.getAttribute('label');if(label){svg.removeAttribute('aria-labelledby');svg.setAttribute('aria-label',label)}
  if(this.hasAttribute('decorative')){svg.setAttribute('aria-hidden','true');svg.removeAttribute('role')}
  clearTimeout(this.timer);this.updatePause();

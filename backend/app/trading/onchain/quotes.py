@@ -6,7 +6,8 @@ QuoterV2 via RPC — verificato dal vivo il 19/09/2026 contro il pool
 WETH/USDG reale (fee 3000: 0.01 WETH -> ~26.19 USDG, coerente con un
 prezzo ETH plausibile), non solo con un RPC finto.
 """
-import httpx
+
+from app import http_client
 from eth_abi import decode as _abi_decode
 from eth_abi import encode as _abi_encode
 from eth_utils import keccak, to_checksum_address
@@ -50,7 +51,7 @@ async def jupiter_quote(input_mint: str, output_mint: str, amount_lamports: int,
         "inputMint": input_mint, "outputMint": output_mint,
         "amount": amount_lamports, "slippageBps": slippage_bps,
     }
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with http_client.pooled(timeout=15.0) as client:
         resp = await client.get(JUPITER_QUOTE_URL, params=params)
     if resp.status_code != 200:
         raise RuntimeError(f"Jupiter ha risposto {resp.status_code}: {resp.text[:200]}")

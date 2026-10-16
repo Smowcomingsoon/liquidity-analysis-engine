@@ -6,6 +6,8 @@ import hashlib
 import io
 import html as _html
 import httpx
+
+from app import css_min, http_client
 import itertools
 import math
 import random
@@ -915,7 +917,7 @@ async def _pilot_vet(candidate) -> dict:
     token = {"chain": candidate.chain_id, "symbol": candidate.symbol, "name": candidate.name,
              "token_address": candidate.token_address, "market_cap": candidate.market_cap,
              "liquidity_usd": candidate.liquidity_usd}
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with http_client.pooled(timeout=10.0) as client:
         verdict = await onchain_legit.assess(token, links, client)
     if verdict["status"] != "wait":
         _pilot_verdicts[key] = (_time.time(), verdict)
@@ -1148,7 +1150,7 @@ async def _notify_deploy() -> None:
         logger.warning("Notifica deploy saltata: GITHUB_API_TOKEN non configurato")
         return
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with http_client.pooled(timeout=15.0) as client:
             r = await client.get(
                 f"https://api.github.com/repos/{_GITHUB_REPO}/commits",
                 headers={"Authorization": f"Bearer {settings.github_api_token}",
@@ -1220,7 +1222,7 @@ async def _maybe_send_recap() -> None:
     if last and not weekly_recap.should_send(now, last):
         return
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with http_client.pooled(timeout=15.0) as client:
             since = _dt.datetime.fromtimestamp(now - 7 * 86400, tz=_dt.timezone.utc).isoformat()
             r = await client.get(
                 f"https://api.github.com/repos/{_GITHUB_REPO}/commits",
@@ -1376,7 +1378,7 @@ async def _telegram_chat_loop() -> None:
         return
     base = f"https://api.telegram.org/bot{settings.telegram_bot_token}"
     offset, bot = None, ""
-    async with httpx.AsyncClient(timeout=70.0) as client:
+    async with http_client.pooled(timeout=70.0) as client:
         while True:
             try:
                 if not bot:
@@ -1697,6 +1699,8 @@ async def lifespan(app: FastAPI):
                        asyncio.create_task(_ai_scan_loop())]
     t4 = asyncio.create_task(_weekly_recap_loop())
     background.append(asyncio.create_task(perf.loop_lag_probe()))
+    from app.trading.onchain.storage import data_file as _perf_data_file
+    background.append(asyncio.create_task(perf.dump_loop(_perf_data_file("perf.json"))))
     background.append(asyncio.create_task(_btc_regime_loop()))
     background.append(asyncio.create_task(_telegram_chat_loop()))
     background.append(asyncio.create_task(_deepseek_recap_loop()))
@@ -1737,6 +1741,7 @@ async def lifespan(app: FastAPI):
         sniper_tasks.append(asyncio.create_task(enrichment_loop()))
         sniper_tasks.extend(await sniper_agents.start_all())
     yield
+    await http_client.aclose()
     t1.cancel()
     t4.cancel()
     t5.cancel()
@@ -1857,7 +1862,10 @@ async def require_authentication(request: Request, call_next):
         content={"detail": "Sign-in required: this feature is for registered users only."},
     )
 
-app.add_middleware(GZipMiddleware, minimum_size=500)
+# Behind Caddy (`encode zstd gzip`) the proxy compresses: doing it here too
+# only spends the app's CPU. Kept on for Fly and local runs.
+if settings.app_gzip:
+    app.add_middleware(GZipMiddleware, minimum_size=500)
 
 
 # Un 422 e' l'unica risposta d'errore che l'app non scrive da se': la genera
@@ -3451,7 +3459,7 @@ async def _dexscreener_token_pairs(chain: str, address: str) -> list[dict]:
     if cached and _time.time() - cached[0] < _DEX_PAIRS_TTL_S:
         return cached[1]
     try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
+        async with http_client.pooled(timeout=8.0) as client:
             r = await client.get(f"https://api.dexscreener.com/latest/dex/tokens/{address}")
         pairs = [p for p in (r.json().get("pairs") or []) if p.get("chainId") == chain] if r.status_code == 200 else []
     except Exception as exc:  # noqa: BLE001
@@ -4546,7 +4554,7 @@ async def onchain_token_recheck(chain: str, token: str, request: Request, bg: Ba
     limited = guest_links.is_guest(user)
 
     async def work() -> dict:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with http_client.pooled(timeout=15.0) as client:
             try:
                 return {"deep": await onchain_deep_recheck.run(chain, token, client, limited=limited)}
             except onchain_deep_recheck.TooSoon as exc:
@@ -5766,7 +5774,7 @@ def _charts_on_screen() -> list[tuple[str, str, str, str]]:
 
 async def _backfill_alert_track() -> None:
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with http_client.pooled(timeout=15.0) as client:
             n = await onchain_alert_track.backfill(client, _past_meme_alerts(), "meme")
         logger.info("alert track: %d past meme alerts rebuilt from candles", n)
     except Exception:
@@ -5781,7 +5789,7 @@ async def _onchain_signals_loop() -> None:
     warmed_at = 0.0
     while True:
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with http_client.pooled(timeout=15.0) as client:
                 await onchain_alert_track.sample(client)
                 await onchain_alert_track.refresh_system(client)
             await onchain_autotrader.tick(auth.list_users(), notify=_notify_autotrade)
@@ -8897,10 +8905,8 @@ async def sniper_agents_status() -> dict:
 @app.get("/api/sniper/research/auto/{token_address}")
 async def sniper_research_auto(token_address: str) -> dict:
     """Auto-detect chain via DexScreener, then run research."""
-    import httpx as _httpx
-
     chain_id = None
-    async with _httpx.AsyncClient(timeout=12.0) as client:
+    async with http_client.pooled(timeout=12.0) as client:
         try:
             r = await client.get(
                 f"https://api.dexscreener.com/latest/dex/tokens/{token_address}"
@@ -8929,7 +8935,6 @@ async def sniper_research_auto(token_address: str) -> dict:
 @app.get("/api/sniper/research/{chain_id}/{token_address}")
 async def sniper_research(chain_id: str, token_address: str) -> dict:
     """Query CoinGecko + DexScreener for a token and return a research report."""
-    import httpx as _httpx
     from app.sniper.cex_check import _CHAIN_TO_PLATFORM, _CEX_IDS
 
     checks = []
@@ -8939,7 +8944,7 @@ async def sniper_research(chain_id: str, token_address: str) -> dict:
 
     platform = _CHAIN_TO_PLATFORM.get(chain_id)
 
-    async with _httpx.AsyncClient(timeout=12.0) as client:
+    async with http_client.pooled(timeout=12.0) as client:
         # ── CoinGecko contract lookup ──
         cg_data = None
         if platform:
@@ -9121,6 +9126,11 @@ class _VersionedStatic(StaticFiles):
 
     async def get_response(self, path: str, scope):
         response = await super().get_response(path, scope)
+        if path.endswith(".css") and response.status_code == 200 and isinstance(response, FileResponse):
+            # Same file, same ETag/Last-Modified: only the body loses the
+            # comments and the extra whitespace (app/css_min.py).
+            headers = {k: v for k, v in response.headers.items() if k.lower() not in ("content-length", "content-type")}
+            response = Response(css_min.minified_file(str(response.path)), media_type="text/css", headers=headers)
         query = scope.get("query_string", b"").decode("latin-1")
         response.headers["Cache-Control"] = (
             "public, max-age=31536000, immutable" if "v=" in query else "no-cache"
@@ -9219,6 +9229,13 @@ _SNIPER_HTML = (
     .replace('href="/static/style.css"', f'href="/static/style.css?v={_ASSET_VERSION}"')
 )
 
+# Imported on demand by main.js only when trading is on: preloading them
+# would download ~45 KB that the app never runs.
+_ONCHAIN_LAZY_MODULES = frozenset({
+    "autotrade.js", "pilot.js", "portfolio.js", "send.js", "signals.js", "strategies.js",
+})
+
+
 def _onchain_modulepreloads(version: str) -> str:
     """Un <link rel="modulepreload"> per ogni modulo del wallet.
 
@@ -9228,6 +9245,7 @@ def _onchain_modulepreloads(version: str) -> str:
     return "\n".join(
         f'<link rel="modulepreload" href="/static/onchain/{module.name}?v={version}" />'
         for module in _onchain_modules()
+        if module.name not in _ONCHAIN_LAZY_MODULES
     )
 
 
@@ -9237,6 +9255,7 @@ _ONCHAIN_APP_HTML = (
     .replace("<!--onchain-importmap-->", _onchain_importmap(_ASSET_VERSION))
     .replace("<!--onchain-modulepreload-->", _onchain_modulepreloads(_ASSET_VERSION))
     .replace('src="/static/onchain/main.js"', f'src="/static/onchain/main.js?v={_ASSET_VERSION}"')
+    .replace('href="/static/onchain/shell.css"', f'href="/static/onchain/shell.css?v={_ASSET_VERSION}"')
     .replace('href="/static/onchain/app.css"', f'href="/static/onchain/app.css?v={_ASSET_VERSION}"')
     .replace('href="/static/engn-system.css"', f'href="/static/engn-system.css?v={_ASSET_VERSION}"')
     .replace('href="/static/onchain/ui.css"', f'href="/static/onchain/ui.css?v={_ASSET_VERSION}"')

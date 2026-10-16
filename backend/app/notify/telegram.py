@@ -34,6 +34,8 @@ import re
 
 import httpx
 
+from app import http_client
+
 from app.config import settings
 
 logger = logging.getLogger("telegram_notify")
@@ -79,7 +81,7 @@ async def send_to(chat_id: str, text: str) -> bool:
     configured recipient."""
     if not settings.telegram_bot_token or not chat_id:
         return False
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with http_client.pooled(timeout=15.0) as client:
         return await _deliver(client, chat_id, text)
 
 
@@ -170,7 +172,7 @@ async def send_message(text: str) -> bool:
         return False
 
     sent_any = False
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with http_client.pooled(timeout=15.0) as client:
         reserved = signal_only_chats()
         for chat_id in _chat_ids():
             if chat_id in reserved:

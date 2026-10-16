@@ -16,6 +16,8 @@ services:
     restart: unless-stopped
     # I segreti arrivano da .env, che non entra mai in git (vedi .gitignore).
     env_file: .env
+    environment:
+      APP_GZIP: "0"   # Caddy compresses (encode zstd gzip)
     volumes:
       - app-data:/srv/backend/data
     # Non esposto fuori: ci parla solo Caddy, sulla rete interna di compose.

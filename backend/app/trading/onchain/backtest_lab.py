@@ -13,7 +13,8 @@ import threading
 import time
 import zlib
 
-import httpx
+
+from app import http_client
 
 from app.providers import dexscreener
 from app.sniper.scanner import GECKO_NETWORKS
@@ -140,7 +141,7 @@ async def fill(now: float | None = None, per_tick: int = PER_TICK) -> int:
     if not items:
         return 0
     stored = 0
-    async with httpx.AsyncClient(timeout=15) as client:
+    async with http_client.pooled(timeout=15) as client:
         for key, entry in items[:per_tick]:
             net = GECKO_NETWORKS.get(entry.get("chain"))
             if not net:

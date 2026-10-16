@@ -10,6 +10,7 @@ import time
 
 from app.config import settings
 from app.trading.onchain import narratives, projects_db, storage
+from app.atomic_write import write_text_atomic
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +47,7 @@ def _load() -> None:
 
 def _save() -> None:
     try:
-        with open(_FILE, "w", encoding="utf-8") as fh:
-            json.dump({"calls": _state["calls"]}, fh)
+        write_text_atomic(_FILE, json.dumps({"calls": _state["calls"]}))
     except Exception:
         logger.exception("narrative map: contatore non salvato")
 

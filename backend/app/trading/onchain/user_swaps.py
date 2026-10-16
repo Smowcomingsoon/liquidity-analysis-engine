@@ -18,7 +18,8 @@ from __future__ import annotations
 
 import base64
 
-import httpx
+
+from app import http_client
 
 from app.trading.onchain import execution, quotes, token_metadata
 
@@ -108,7 +109,7 @@ async def build_solana(owner: str, side: str, token: str, amount: float | None, 
         raw = held.get("amount_raw") or int(float(held.get("amount") or 0) * 10 ** dec)
         amount_in = raw * max(1, min(100, pct or 100)) // 100
     q = await quotes.jupiter_quote(mint_in, mint_out, amount_in, slippage_bps)
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with http_client.pooled(timeout=15.0) as client:
         resp = await client.post(execution.JUPITER_SWAP_URL, json={
             "quoteResponse": q["raw"], "userPublicKey": owner, "dynamicComputeUnitLimit": True,
         })

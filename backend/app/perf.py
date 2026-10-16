@@ -69,3 +69,21 @@ async def loop_lag_probe() -> None:
         t0 = loop.time()
         await asyncio.sleep(PROBE_EVERY_S)
         _lags.append(max(0.0, loop.time() - t0 - PROBE_EVERY_S))
+
+
+DUMP_EVERY_S = 600
+
+
+async def dump_loop(path) -> None:
+    """Writes snapshot() to a file on the data volume every DUMP_EVERY_S, so
+    the server-perf workflow can read the numbers without a login."""
+    import json
+
+    from app.atomic_write import write_text_atomic
+
+    while True:
+        await asyncio.sleep(DUMP_EVERY_S)
+        try:
+            await asyncio.to_thread(write_text_atomic, path, json.dumps(snapshot()))
+        except OSError:
+            pass

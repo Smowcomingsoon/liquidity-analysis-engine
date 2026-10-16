@@ -1,4 +1,6 @@
 import httpx
+
+from app import http_client
 import pandas as pd
 from cachetools import TTLCache
 
@@ -85,7 +87,7 @@ class KrakenProvider(DataProvider):
             raise ProviderError(f"Timeframe {interval} not supported on Kraken")
 
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with http_client.pooled(timeout=15.0) as client:
                 resp = await client.get(
                     f"{self._base_url}/0/public/OHLC",
                     params={"pair": formatted_symbol, "interval": minutes},
@@ -123,7 +125,7 @@ class KrakenProvider(DataProvider):
     async def _load_pairs(self) -> list[dict]:
         pairs = _symbols_cache.get("all")
         if pairs is None:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with http_client.pooled(timeout=15.0) as client:
                 resp = await client.get(f"{self._base_url}/0/public/AssetPairs")
             payload = resp.json()
             result = payload.get("result", {}) if isinstance(payload, dict) else {}

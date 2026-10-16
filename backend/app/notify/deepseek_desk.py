@@ -28,6 +28,8 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
+from app import http_client
+
 from app.config import settings
 from app.trading.onchain.storage import data_file
 from app.atomic_write import write_text_atomic
@@ -234,7 +236,7 @@ async def _post(body: dict, *, kind: str, purpose: str | None, subject: str | No
     t0 = time.monotonic()
     try:
         if http is None:
-            async with httpx.AsyncClient(timeout=120.0) as c:
+            async with http_client.pooled(timeout=120.0) as c:
                 r = await c.post(url, json=body, headers=headers)
         else:
             r = await http.post(url, json=body, headers=headers)

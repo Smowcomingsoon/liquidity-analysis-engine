@@ -29,6 +29,8 @@ from urllib.parse import quote
 
 import httpx
 
+from app import http_client
+
 from app.config import settings
 from app.notify import deepseek_desk
 from app.trading.onchain import (ai_scan, alert_track, code_review, depth, judge, leaderboard, legit, outcomes,
@@ -338,7 +340,7 @@ async def backtest(item: dict, now: float | None = None) -> dict | None:
     if r is None and strategy_lab.GECKO_NETWORKS.get(item["chain"]):
         e = {k2: item.get(k2) for k2 in ("chain", "token_address", "symbol", "pair_address")}
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with http_client.pooled(timeout=15.0) as client:
                 r = await asyncio.wait_for(strategy_lab.run_one(client, e, now or time.time()), BACKTEST_TIMEOUT_S)
             if r is not None:
                 strategy_lab._save()

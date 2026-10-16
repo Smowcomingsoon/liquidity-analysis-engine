@@ -304,8 +304,8 @@ async def _default_market() -> Market:
         from app.config import settings as app_settings
         if app_settings.robinhood_usdc_address:
             return app_settings.robinhood_usdc_address
-        import httpx
-        async with httpx.AsyncClient(timeout=10.0) as c:
+        from app import http_client
+        async with http_client.pooled(timeout=10.0) as c:
             r = await c.get("https://api.dexscreener.com/latest/dex/search", params={"q": "USDC USDG"})
         best = None
         for p in (r.json() or {}).get("pairs") or []:

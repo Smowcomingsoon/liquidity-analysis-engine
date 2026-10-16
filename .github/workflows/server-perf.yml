@@ -1,0 +1,44 @@
+name: Server perf (read only)
+
+# Overhaul plan, phase 0: the live numbers each phase is measured against.
+# Reads only: container memory/CPU, request timings (perf.json, written by
+# app.perf.dump_loop), recent server errors and image size. Changes nothing.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read server numbers
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            echo "== docker stats"; docker stats --no-stream --format '{{.Name}} cpu={{.CPUPerc}} mem={{.MemUsage}}'
+            echo "== image"; docker images --format '{{.Repository}}:{{.Tag}} {{.Size}}' | head -5
+            echo "== host"; free -m; df -h / | tail -1; uptime
+            echo "== container start"; docker inspect -f '{{.State.StartedAt}}' deploy-app-1
+            docker exec -i deploy-app-1 python - <<'PY'
+            import json, os, time
+            for base in ("/srv/backend/data", "backend/data"):
+                p = os.path.join(base, "perf.json")
+                if os.path.exists(p):
+                    s = json.load(open(p))
+                    print("== perf since", time.strftime("%Y-%m-%d %H:%M", time.gmtime(s["since"])), "loop_lag", s["loop_lag"])
+                    for r in s["routes"][:30]:
+                        print(f'{r["p95_ms"]:>9} p95 {r["p50_ms"]:>8} p50 {r["count"]:>5}x err={r["errors"]} {r["route"]}')
+                    break
+            else:
+                print("== perf.json not written yet (first dump 10 min after start)")
+            p = "/srv/backend/app/data/server_errors.json"
+            if os.path.exists(p):
+                errs = json.load(open(p))
+                print("== server errors", len(errs))
+                for e in errs[-15:]:
+                    print(json.dumps(e, ensure_ascii=False)[:300])
+            PY
+            echo "== log warnings/errors (6h)"; docker logs deploy-app-1 --since 6h 2>&1 | grep -iE "error|exception|traceback|warning" | sort | uniq -c | sort -rn | head -30

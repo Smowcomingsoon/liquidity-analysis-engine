@@ -18,7 +18,9 @@ ledger.confirm_from_chain).
 """
 import time
 
-import httpx
+import httpx  # noqa: F401  (tests patch this module's httpx.AsyncClient)
+
+from app import http_client
 
 from app.trading.onchain import execution, ledger
 
@@ -43,7 +45,7 @@ async def _solana_signature_status(signature: str) -> str:
         "jsonrpc": "2.0", "id": 1, "method": "getSignatureStatuses",
         "params": [[signature], {"searchTransactionHistory": True}],
     }
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with http_client.pooled(timeout=15.0) as client:
         resp = await client.post(SOLANA_RPC_URL, json=payload)
     data = resp.json()
     if "error" in data:
@@ -63,7 +65,7 @@ async def _evm_receipt_status(tx_hash: str) -> str:
     stessa idea per Robinhood Chain (EVM): status 0x1 = successo, 0x0 =
     reverted, nessun risultato = non ancora minata (o mai arrivata)."""
     payload = {"jsonrpc": "2.0", "id": 1, "method": "eth_getTransactionReceipt", "params": [tx_hash]}
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with http_client.pooled(timeout=15.0) as client:
         resp = await client.post(execution.ROBINHOOD_RPC, json=payload)
     data = resp.json()
     if "error" in data:

@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import math
 
-import httpx
+
+from app import http_client
 
 from app.trading.onchain import portfolio, prices, token_metadata
 
@@ -42,7 +43,7 @@ async def token_price_usd(chain: str, address: str | None) -> float | None:
         return _ok(await prices.native_price_usd(chain))
     if _norm(chain, address) in STABLES.get(chain, set()):
         return 1.0
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with http_client.pooled(timeout=10.0) as client:
         found = await portfolio.dex_prices(chain, [address], client)
     return _ok((found.get(_norm(chain, address)) or {}).get("price"))
 

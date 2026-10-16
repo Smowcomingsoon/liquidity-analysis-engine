@@ -34,6 +34,8 @@ from datetime import datetime
 
 import httpx
 
+from app import http_client
+
 from app.atomic_write import write_text_atomic
 from app.sniper.quality import _looks_like_meme
 from app.trading.onchain import depth, legit, projects_db, research, storage
@@ -472,7 +474,7 @@ async def layers_loop() -> None:
     while True:
         try:
             if not _state.get("found") or time.time() - (_state.get("last_run") or 0) >= RUN_EVERY_S:
-                async with httpx.AsyncClient(timeout=20) as client:
+                async with http_client.pooled(timeout=20) as client:
                     await run(client)
         except Exception:
             logger.exception("layers loop failed")

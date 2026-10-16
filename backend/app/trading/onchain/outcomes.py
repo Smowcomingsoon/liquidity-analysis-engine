@@ -36,6 +36,8 @@ import math
 import time
 
 import httpx
+
+from app import http_client
 import numpy as np
 
 from app.trading.onchain import meme_engine
@@ -1026,7 +1028,7 @@ async def tick(now: float | None = None) -> dict:
     now = now or time.time()
     try:
         collect(now)
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        async with http_client.pooled(timeout=20.0) as client:
             await _sample(client, now)
             await _meme_safety(client, now)
         await _backfill(now)

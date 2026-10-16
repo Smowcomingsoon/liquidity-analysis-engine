@@ -23,6 +23,8 @@ from typing import Awaitable, Callable
 
 import httpx
 
+from app import http_client
+
 from app.notify import deepseek_desk
 from app.sniper.scanner import GECKO_NETWORKS
 from app.trading.onchain import alert_track, candle_archive, priority, projects_db, sim_backtest, system
@@ -398,7 +400,7 @@ async def tick(entries: list[dict], now: float | None = None) -> dict | None:
     if e is None:
         return None
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with http_client.pooled(timeout=15.0) as client:
             out = await run_one(client, e, now)
         _state.update(last_key=key_of(e["chain"], e["token_address"]), error="")
     except Exception as exc:

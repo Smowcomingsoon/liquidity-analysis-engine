@@ -31,6 +31,8 @@ import time
 
 import httpx
 
+from app import http_client
+
 from app.config import settings
 from app.trading.onchain.storage import data_file
 from app.atomic_write import write_text_atomic
@@ -409,7 +411,7 @@ async def tick(now: float | None = None, client=None, ask=None, dossier_fn=None)
             rec["tried_at"] = now
             rec["calls_at"] = [*(rec.get("calls_at") or []), now]
             try:
-                async with httpx.AsyncClient(timeout=300.0) as ds_http:
+                async with http_client.pooled(timeout=300.0) as ds_http:
                     answer = await ask(messages_for(rec), kind="study", max_tokens=rec["max_tokens"], http=ds_http,
                                          purpose="study", subject=rec["id"])
             except Exception as exc:

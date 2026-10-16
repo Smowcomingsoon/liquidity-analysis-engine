@@ -45,6 +45,8 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 
 import httpx
+
+from app import http_client
 import pandas as pd
 
 from app.analysis.backtest import run_backtest
@@ -583,7 +585,7 @@ async def scan_once() -> dict:
     tested: list[dict] = []
     chains: dict[str, dict] = {}
     try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        async with http_client.pooled(timeout=20.0) as client:
             for chain in CHAINS:
                 pools = await _fetch_pools(client, chain)
                 pools += await _fetch_extra_pools(client, chain)

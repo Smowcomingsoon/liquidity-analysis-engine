@@ -19,15 +19,10 @@ import { appendHistory, chainInfo, readCache, readHistory, state, writeCache } f
 import { mountSwap } from "@onchain/swap.js";
 import { mountLimitOrder, mountOpenOrders, mountHistory } from "@onchain/limitOrders.js";
 import { mountChart, onTokenChanged, resetForChainSwitch, setToken as setChartToken } from "@onchain/chart.js";
-import { mountStrategies } from "@onchain/strategies.js";
-import { mountPortfolio } from "@onchain/portfolio.js";
-import { openSend } from "@onchain/send.js";
-import { mountPilot, refreshPilot } from "@onchain/pilot.js";
 import { refreshHoldings } from "@onchain/holdings.js";
 import { mountLeaderboard } from "@onchain/leaderboard.js";
 import { mountProjects } from "@onchain/projects.js";
 import { mountAlerts, openInbox } from "@onchain/alerts.js";
-import { mountAutotrade } from "@onchain/autotrade.js";
 import { flash, liveDelta, liveKey, roll, watch } from "@onchain/live.js";
 import { mountProfile, phantomAnswer, refreshProfile } from "@onchain/profile.js";
 import * as phantom from "@onchain/phantomlink.js";
@@ -37,7 +32,6 @@ import { mountAgent, mountAgentView } from "@onchain/agent.js";
 import { mountAsk } from "@onchain/ask.js";
 import * as bg from "@onchain/bg.js";
 import { mountTop } from "@onchain/top.js";
-import { mountSignals } from "@onchain/signals.js";
 import { mountTrack } from "@onchain/track.js";
 import { deskView, openFirst, openFromHash } from "@onchain/detail.js";
 
@@ -51,6 +45,10 @@ const $ = (selector) => ROOT.querySelector(selector);
 const $$ = (selector) => ROOT.querySelectorAll(selector);
 // Trading and automatic strategies: off unless <html data-trading="on"> (see VIEWS).
 const TRADING = document.documentElement.dataset.trading === "on";
+// Trading-only modules are imported on demand, so with trading off the
+// browser never downloads them (main.py leaves them out of modulepreload).
+let pilot = null;
+const refreshPilot = () => pilot?.refreshPilot();
 
 const view = {
   login: $("#login-screen"),
@@ -449,13 +447,14 @@ function mountBottomTab(tab) {
     t.classList.toggle("mo-tab-active", active);
     t.setAttribute("aria-selected", String(active));
   });
+  if (!TRADING) return;
   const mounters = {
-    positions: mountPortfolio,
-    orders: mountOpenOrders,
-    history: mountHistory,
-    strategies: mountStrategies,
+    positions: () => import("@onchain/portfolio.js").then((m) => m.mountPortfolio),
+    orders: async () => mountOpenOrders,
+    history: async () => mountHistory,
+    strategies: () => import("@onchain/strategies.js").then((m) => m.mountStrategies),
   };
-  mounters[tab]?.(view.bottomPanelBody);
+  mounters[tab]?.().then((mount) => { if (currentBottomTab === tab) mount(view.bottomPanelBody); });
 }
 
 $$("#bottom-tabs .mo-side-tab").forEach((tab) => {
@@ -496,9 +495,9 @@ view.address.addEventListener("click", async (event) => {
 
 const SHEETS = {
   receive: () => sheets.openReceive(),
-  send: () => openSend({
+  send: () => import("@onchain/send.js").then(({ openSend }) => openSend({
     onSent: () => { refreshBalance(); paintHoldings(true); mountBottomTab(currentBottomTab); toast("Sent", "check the signature in history"); },
-  }),
+  })),
   risk: () => sheets.openRisk(() => { refreshStatus(); mountBottomTab(currentBottomTab); }),
   simulate: () => sheets.openSimulate({
     onAccepted: () => { mountBottomTab(currentBottomTab); refreshStatus(); toast("Simulation accepted", "logged to the ledger"); },
@@ -700,13 +699,15 @@ document.addEventListener("pointerdown", unlockScan, true);
 document.addEventListener("keydown", (event) => { if (event.key !== "Tab") unlockScan(event); }, true);
 document.addEventListener("focusout", (event) => event.target.closest?.(SCAN_INPUT)?.setAttribute("readonly", ""), true);
 
-if (TRADING) mountPilot({ toast, onChange: refreshSniperCard });
+if (TRADING) {
+  import("@onchain/pilot.js").then((m) => { pilot = m; m.mountPilot({ toast, onChange: refreshSniperCard }); });
+}
 mountAgentView();
 mountLeaderboard();
 mountProjects();
 if (TRADING) {
   mountAlerts();
-  mountAutotrade();
+  import("@onchain/autotrade.js").then((m) => m.mountAutotrade());
 }
 mountProfile({ go: (v) => setView(v) });
 loadLinked();
@@ -728,7 +729,7 @@ mountTop();
 // The "meme" view now holds Signals, the "top" view the Early list (07/10;
 // the Track record folds under the profile). The view names stay: the home
 // page links, the splash and the desk use them.
-if (TRADING) mountSignals();
+if (TRADING) import("@onchain/signals.js").then((m) => m.mountSignals());
 mountTrack();   // the picks' track record (gem_track), not a backtest
 // The scanner, in Gems now that Signals is gone (it lived there).
 document.getElementById("gem-scan")?.addEventListener("submit", (event) => {

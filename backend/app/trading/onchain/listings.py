@@ -39,6 +39,8 @@ from typing import Awaitable, Callable
 
 import httpx
 
+from app import http_client
+
 from app.providers.base import ProviderError
 from app.providers.dexscreener import DexScreenerProvider, make_symbol
 from app.trading.onchain import legit, scan_feed
@@ -596,7 +598,7 @@ START_DELAY_S = 10
 async def listings_loop() -> None:
     await asyncio.sleep(START_DELAY_S)
     global _http
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with http_client.pooled(timeout=10.0) as client:
         _http = client
         while True:
             now = time.time()

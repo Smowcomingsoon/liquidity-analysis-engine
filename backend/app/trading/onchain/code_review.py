@@ -14,6 +14,7 @@ import logging
 import time
 
 from app.trading.onchain import legit, storage
+from app.atomic_write import write_text_atomic
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +65,7 @@ def _load() -> None:
 
 def _save() -> None:
     try:
-        with open(_FILE, "w", encoding="utf-8") as fh:
-            json.dump({"cache": _cache, "calls": _calls}, fh)
+        write_text_atomic(_FILE, json.dumps({"cache": _cache, "calls": _calls}))
     except Exception:
         logger.exception("code review: cache non salvata")
 

@@ -18,6 +18,8 @@ import time
 
 import httpx
 
+from app import http_client
+
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -81,7 +83,7 @@ async def lookup(e: dict, now: float | None = None, client: httpx.AsyncClient | 
     headers = {"Authorization": f"Bearer {settings.x_bearer_token}"}
     try:
         if client is None:
-            async with httpx.AsyncClient(timeout=15.0) as c:
+            async with http_client.pooled(timeout=15.0) as c:
                 r = await c.get(SEARCH, params=params, headers=headers)
         else:
             r = await client.get(SEARCH, params=params, headers=headers)

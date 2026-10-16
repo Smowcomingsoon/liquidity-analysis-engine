@@ -40,6 +40,8 @@ import time
 
 import httpx
 
+from app import http_client
+
 from app.sniper.quality import _looks_like_meme
 from app.trading.onchain import (benchmark, big_coins, code_review, consistency, depth, discovery, gem_learn, gem_track, judge, legit, narrative_map,
                                   narratives, priority, projects_db, research, storage, traction, usage)
@@ -1269,7 +1271,7 @@ async def warm_usage(limit: int = USAGE_WARM_MAX) -> int:
     now = time.time()
     todo = [e for e in usage_candidates()
             if now - ((usage.latest(e["chain"], e["token_address"]) or {}).get("at") or 0) > USAGE_STALE_S]
-    async with httpx.AsyncClient(timeout=20) as client:
+    async with http_client.pooled(timeout=20) as client:
         return await _measure_usage(client, limit, todo)
 
 

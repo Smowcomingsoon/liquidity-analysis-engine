@@ -12,6 +12,8 @@ import logging
 
 import httpx
 
+from app import http_client
+
 logger = logging.getLogger(__name__)
 
 _CG_BASE = "https://api.coingecko.com/api/v3"
@@ -71,7 +73,7 @@ async def enrichment_loop() -> None:
             continue
 
         logger.info("CEX enricher: checking %d unchecked candidates", len(unchecked))
-        async with httpx.AsyncClient(timeout=12.0) as client:
+        async with http_client.pooled(timeout=12.0) as client:
             for c in unchecked:
                 result = await check_cex_listed(c.chain_id, c.token_address, client)
                 if result is not None:

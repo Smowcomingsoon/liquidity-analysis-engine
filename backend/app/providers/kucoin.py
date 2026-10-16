@@ -1,6 +1,8 @@
 import time
 
 import httpx
+
+from app import http_client
 import pandas as pd
 from cachetools import TTLCache
 
@@ -93,7 +95,7 @@ class KucoinProvider(DataProvider):
         end_at = int(time.time())
         remaining = outputsize
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with http_client.pooled(timeout=15.0) as client:
                 for _ in range(self._MAX_PAGES):
                     if remaining <= 0:
                         break
@@ -143,7 +145,7 @@ class KucoinProvider(DataProvider):
 
         symbols = _symbols_cache.get("all")
         if symbols is None:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with http_client.pooled(timeout=15.0) as client:
                 resp = await client.get(f"{self._base_url}/api/v1/symbols")
             payload = resp.json()
             all_symbols = payload.get("data", []) if isinstance(payload, dict) else []

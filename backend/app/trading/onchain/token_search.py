@@ -26,7 +26,8 @@ import asyncio
 import time
 from collections.abc import Iterable
 
-import httpx
+
+from app import http_client
 
 JUPITER_SEARCH_URL = "https://lite-api.jup.ag/tokens/v2/search"
 GECKOTERMINAL_SEARCH_URL = "https://api.geckoterminal.com/api/v2/search/pools"
@@ -194,7 +195,7 @@ def merge_candidates(primary: list[dict], extra: list[dict]) -> list[dict]:
 
 
 async def _fetch_json(url: str, params: dict) -> object:
-    async with httpx.AsyncClient(timeout=8.0) as client:
+    async with http_client.pooled(timeout=8.0) as client:
         resp = await client.get(url, params=params, headers={"accept": "application/json"})
         if resp.status_code == 429:
             # GeckoTerminal regge ~30 richieste al minuto: una pausa breve e

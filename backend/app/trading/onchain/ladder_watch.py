@@ -25,7 +25,8 @@ import statistics
 import time
 from datetime import datetime, timezone
 
-import httpx
+
+from app import http_client
 
 from app.atomic_write import write_text_atomic
 from app.sniper.scanner import GECKO_NETWORKS
@@ -79,7 +80,7 @@ async def run(now: float | None = None) -> dict:
     trend, rsi = [], []
     token_off = candle_archive.offline.set(True)
     try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        async with http_client.pooled(timeout=20.0) as client:
             for key, v in items:
                 chain, token = key.split(":", 1)
                 net = GECKO_NETWORKS.get(chain)

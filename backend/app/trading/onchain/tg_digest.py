@@ -17,6 +17,7 @@ import logging
 import time
 
 from app.trading.onchain import storage, telegram_public
+from app.atomic_write import write_text_atomic
 
 logger = logging.getLogger(__name__)
 
@@ -56,8 +57,7 @@ def _save() -> None:
     try:
         day = time.strftime("%Y-%m-%d", time.gmtime())
         calls = {d: n for d, n in _calls.items() if d >= day}
-        with open(_FILE, "w", encoding="utf-8") as fh:
-            json.dump({"cache": _cache, "calls": calls}, fh)
+        write_text_atomic(_FILE, json.dumps({"cache": _cache, "calls": calls}))
     except Exception:
         logger.exception("tg_digest: cache non salvata")
 

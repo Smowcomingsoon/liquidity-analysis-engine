@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import httpx
 
+from app import http_client
+
 CHAIN_ID = 4663
 KYBER_ROUTES_URL = "https://aggregator-api.kyberswap.com/robinhood/api/v1/routes"
 LIFI_QUOTE_URL = "https://li.quest/v1/quote"
@@ -47,7 +49,7 @@ async def _kyber(token_in: str, token_out: str, amount_in: int) -> int:
         "tokenOut": _KYBER_NATIVE if _is_native(token_out) else token_out,
         "amountIn": str(amount_in),
     }
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with http_client.pooled(timeout=10.0) as client:
         resp = await client.get(KYBER_ROUTES_URL, params=params,
                                 headers={"x-client-id": KYBER_CLIENT_ID, "accept": "application/json"})
     payload = resp.json()
@@ -65,7 +67,7 @@ async def _lifi(token_in: str, token_out: str, amount_in: int) -> int:
         "toToken": _LIFI_NATIVE if _is_native(token_out) else token_out,
         "fromAmount": str(amount_in), "fromAddress": _LIFI_QUOTE_SENDER,
     }
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with http_client.pooled(timeout=15.0) as client:
         resp = await client.get(LIFI_QUOTE_URL, params=params, headers={"accept": "application/json"})
     payload = resp.json()
     estimate = payload.get("estimate") if isinstance(payload, dict) else None

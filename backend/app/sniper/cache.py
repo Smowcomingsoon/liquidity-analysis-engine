@@ -13,7 +13,8 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import httpx
+
+from app import http_client
 
 from .scanner import RawToken, fetch_all_tokens
 from .scorer import TokenScore, score
@@ -266,7 +267,7 @@ async def run_scan() -> int:
                 tokens.append(token)
 
         added = 0
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with http_client.pooled(timeout=10.0) as client:
             for token in tokens:
                 _broadcast({
                     "type": "evaluating",

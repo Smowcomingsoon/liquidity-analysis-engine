@@ -33,6 +33,8 @@ from pathlib import Path
 
 import base58
 import httpx
+
+from app import http_client
 from solders.keypair import Keypair
 from solders.transaction import VersionedTransaction
 
@@ -139,7 +141,7 @@ async def _simulate(client: httpx.AsyncClient, raw: bytes) -> dict:
 
 async def cmd_wallet() -> int:
     kp = _creator(create=True)
-    async with httpx.AsyncClient(timeout=20) as client:
+    async with http_client.pooled(timeout=20) as client:
         bal = await _balance_sol(client, kp)
     print(f"launch wallet: {kp.pubkey()}\nbalance: {bal:.4f} SOL (needs >= {MIN_BALANCE_SOL})")
     return 0
@@ -154,7 +156,7 @@ async def cmd_check() -> int:
         print("no launch wallet yet: run `wallet` first")
         return 1
     mint = Keypair()
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with http_client.pooled(timeout=30) as client:
         bal = await _balance_sol(client, creator)
         raw = await _signed_create_tx(client, creator, mint, "https://example.invalid/engn-dry-run.json")
         sim = await _simulate(client, raw)
@@ -185,7 +187,7 @@ async def cmd_launch(confirm: str, twitter: str, telegram: str) -> int:
     # after sending, the address is still known.
     _write_private(data_file("engn_launch_mint.json"),
                    {"mint": str(mint.pubkey()), "secret": base58.b58encode(bytes(mint)).decode()})
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with http_client.pooled(timeout=60) as client:
         if await _balance_sol(client, creator) < MIN_BALANCE_SOL:
             print(f"refused: launch wallet has less than {MIN_BALANCE_SOL} SOL")
             return 1

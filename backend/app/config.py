@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     # trading deve sparire". False stops their loops and hides them in the
     # app; saved data stays in backend/data. The gem research keeps running.
     onchain_trading_enabled: bool = False
+    # Off on Hetzner (deploy/docker-compose.yml): Caddy compresses there.
+    app_gzip: bool = True
     # The gem research (discovery, pillars, DeepSeek readings, layers,
     # outcomes, weekly re-check, studies) in one run a night instead of loops
     # around the clock (app/trading/onchain/nightly.py). Lorenzo, 07/10: "non

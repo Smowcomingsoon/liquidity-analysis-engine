@@ -8,6 +8,8 @@ import time
 
 import httpx
 
+from app import http_client
+
 from app.models import OnchainChain
 
 GECKOTERMINAL_BASE = "https://api.geckoterminal.com/api/v2"
@@ -59,7 +61,7 @@ async def native_price_usd(chain: OnchainChain) -> float | None:
 async def _gecko_price(network: str, token_address: str) -> float | None:
     url = f"{GECKOTERMINAL_BASE}/simple/networks/{network}/token_price/{token_address}"
     try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
+        async with http_client.pooled(timeout=8.0) as client:
             resp = await client.get(url)
         if resp.status_code != 200:
             return None
@@ -83,7 +85,7 @@ async def btc_price_usd() -> float | None:
     if _btc_cache and time.time() - _btc_cache[1] < _CACHE_TTL_S:
         return _btc_cache[0]
     try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
+        async with http_client.pooled(timeout=8.0) as client:
             resp = await client.get(KRAKEN_TICKER_URL, params={"pair": "XBTUSD"})
         if resp.status_code != 200:
             return None

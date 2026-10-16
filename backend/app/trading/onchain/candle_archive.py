@@ -24,6 +24,8 @@ from typing import Callable
 
 import httpx
 
+from app import http_client
+
 from app.trading.onchain import alert_track, priority
 from app.trading.onchain.storage import data_file
 
@@ -184,7 +186,7 @@ async def tick(entries: list[dict], now: float | None = None) -> bool:
     if due is None:
         return False
     net, pair, token, tf, agg = due
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with http_client.pooled(timeout=15.0) as client:
         got = await candles(client, net, pair, tf, agg, now, token)
     return got is not None
 

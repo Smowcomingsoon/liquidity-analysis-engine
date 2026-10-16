@@ -79,9 +79,21 @@ def _boot(html: str) -> dict:
 def test_every_module_is_modulepreloaded_with_the_version():
     # Senza modulepreload gli import di main.js partono solo dopo main.js:
     # un giro di rete in fila in piu' prima che la pagina faccia qualcosa.
+    # Trading-only modules are the exception: main.js imports them on demand.
     for module in main._onchain_modules():
         link = f'<link rel="modulepreload" href="/static/onchain/{module.name}?v={main._ASSET_VERSION}" />'
-        assert link in main._ONCHAIN_APP_HTML, f"{module.name} non e' precaricato"
+        if module.name in main._ONCHAIN_LAZY_MODULES:
+            assert link not in main._ONCHAIN_APP_HTML, f"{module.name} e' solo trading, non va precaricato"
+        else:
+            assert link in main._ONCHAIN_APP_HTML, f"{module.name} non e' precaricato"
+
+
+def test_lazy_modules_are_imported_only_on_demand():
+    # A static import anywhere would pull a lazy module back into the graph.
+    static = re.compile(r'^import [^;]*from "@onchain/([\w-]+\.js)"', re.M)
+    for module in main._onchain_modules():
+        for name in static.findall(module.read_text(encoding="utf-8")):
+            assert name not in main._ONCHAIN_LAZY_MODULES, f"{module.name} importa {name} staticamente"
 
 
 def test_chart_library_is_versioned_and_async():

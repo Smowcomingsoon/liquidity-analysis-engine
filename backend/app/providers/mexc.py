@@ -1,4 +1,6 @@
 import httpx
+
+from app import http_client
 import pandas as pd
 from cachetools import TTLCache
 
@@ -67,7 +69,7 @@ class MexcProvider(DataProvider):
         max_pages = self._MAX_PAGES_SINCE if since_ms is not None else self._MAX_PAGES
         remaining = int(1e9) if since_ms is not None else outputsize
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with http_client.pooled(timeout=30.0) as client:
                 for _ in range(max_pages):
                     if remaining <= 0:
                         break
@@ -130,7 +132,7 @@ class MexcProvider(DataProvider):
         if symbols is not None:
             return symbols
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with http_client.pooled(timeout=15.0) as client:
                 resp = await client.get(f"{self._base_url}/api/v3/exchangeInfo")
             payload = resp.json()
             fresh = payload.get("symbols", []) if isinstance(payload, dict) else []
