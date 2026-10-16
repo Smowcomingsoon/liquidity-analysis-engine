@@ -22,6 +22,7 @@ jobs:
   verify:
     name: Lint e test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -53,23 +54,6 @@ jobs:
             grep -E '^(FAILED|ERROR) ' /tmp/pytest.log | head -20 | sed 's/^/::error::/'
             grep -E '^E  ' /tmp/pytest.log | head -20 | sed 's/^/::error::/'
             exit 1; }
-
-  # Drawing tools in a real browser (scripts/e2e/draw.e2e.mjs): reported on
-  # every push, not a gate for the deploy, so a slow runner cannot block it.
-  draw-e2e:
-    name: Drawing tools (browser)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: npm install --no-save playwright@1.56.0 && npx playwright install --with-deps chromium
-      - run: |
-          set -o pipefail
-          node scripts/e2e/draw.e2e.mjs 2>&1 | tee /tmp/e2e.log || {
-            grep -E '^FAIL|Error' /tmp/e2e.log | head -20 | sed 's/^/::error::/'; exit 1; }
 
   deploy:
     name: Deploy

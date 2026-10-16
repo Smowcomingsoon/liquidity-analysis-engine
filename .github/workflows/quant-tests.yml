@@ -6,6 +6,9 @@ on:
       - 'frontend/static/onchain/**'
       - 'frontend/tests/**'
       - '.github/workflows/quant-tests.yml'
+concurrency:
+  group: quant-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

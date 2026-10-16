@@ -108,7 +108,7 @@ Lorenzo: "procedi e falle tutte, e verifica ogni cosa" (piano del documento "Str
 - Server: `app/drawings.py` + `GET/PUT /api/drawings` (per utente, vince `updated_at` piu' recente), sync anche quando il login arriva dopo il grafico (`syncCurrentDrawings`).
 - Loop RAF protetto da try/catch: prima un'eccezione (es. `toLocaleString` con locale strano) fermava il loop per sempre e tutti i disegni sparivano.
 - Dock mobile: era piu' largo dello schermo e usciva a sinistra; ora scorre.
-- Verifica: `scripts/e2e/draw.e2e.mjs` (Playwright, API simulate, 32 controlli, 3 giri verdi); job `draw-e2e` in `deploy-hetzner.yml`, non blocca il deploy. `?drawdebug` espone `window.__drawDebug` per i test.
+- Verifica: `scripts/e2e/draw.e2e.mjs` (Playwright, API simulate, 32 controlli, 3 giri verdi); workflow `draw-e2e.yml` (solo se cambia il codice del disegno), non blocca il deploy. `?drawdebug` espone `window.__drawDebug` per i test.
 - Restano: lente sotto il dito su telefono, misura ms/fotogramma con 50 disegni, raggruppamento icone della barra.
 
 # 2026-10-12 — Strumenti di disegno: analisi e piano (Claude, piano)

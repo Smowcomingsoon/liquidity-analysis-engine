@@ -4,7 +4,7 @@ name: DeepSeek review
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, reopened, ready_for_review]   # not on every push: ~1 min each
 
 permissions:
   contents: read
